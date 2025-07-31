@@ -1,0 +1,26 @@
+'use client';
+import { useJobStore } from '@/store/jobStore';
+
+export default function ResultsCount() {
+  const { filteredJobs, jobs } = useJobStore();
+  
+  const totalJobs = jobs.length;
+  const filteredCount = filteredJobs.length;
+  const isFiltered = filteredCount !== totalJobs;
+
+  return (
+    <div className="mb-4">
+      <p className="text-sm text-gray-600">
+        {isFiltered ? (
+          <>
+            Viser <span className="font-medium">{filteredCount}</span> af <span className="font-medium">{totalJobs}</span> jobs
+          </>
+        ) : (
+          <>
+            Viser alle <span className="font-medium">{totalJobs}</span> jobs
+          </>
+        )}
+      </p>
+    </div>
+  );
+} 

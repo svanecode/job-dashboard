@@ -1,36 +1,149 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KPMG CFO Interim Dashboard
 
-## Getting Started
+Et moderne dashboard bygget med Next.js og Tailwind CSS til KPMG chefer, der hjælper med at finde virksomheder der har behov for CFO Interim Assistance baseret på jobopslag.
 
-First, run the development server:
+## 🎯 Formål
 
+Dashboardet giver cheferne mulighed for at:
+- Se hvilke virksomheder der akut har brug for hjælp (score 3)
+- Filtrere jobopslag efter score, lokation og fritekst
+- Læse opslagets detaljer uden at forlade siden
+- Trykke sig videre til opslaget
+
+## 🚀 Funktioner
+
+### 📊 Oversigt
+- **🔥 Akut behov**: Antal jobs med score 3
+- **📈 Høj prioritet**: Antal jobs med score 2  
+- **📋 Total jobs**: Antal jobs i alt
+
+### 🔍 Søge og filtrering
+- Fritekst søgning i titel, firma og beskrivelse
+- Filtrering efter lokation
+- Filtrering efter score (0-3)
+- Nulstil filtre funktion
+
+### 📋 Jobtabel
+- Kolonner: Score, Firma, Titel, Lokation, Dato, Link
+- Sortering: score DESC, dato DESC
+- Klik på række åbner detaljer
+- Responsivt design
+
+### 📝 Jobdetaljer
+- Modal med fuldt jobopslag
+- Knapper: "Åbn opslag", "Send til CRM", "Luk"
+- Responsivt design
+
+## 🎨 Design
+
+- **Farver**: 
+  - Grøn = Score 3 (Akut)
+  - Gul = Score 2 (Høj)
+  - Grå = Score 1 (Medium)
+  - Rød = Score 0 (Lav)
+- **Responsivt**: Fungerer på desktop og mobil
+- **Moderne UI**: Brug af Tailwind CSS
+
+## 🛠️ Teknisk Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **TypeScript**: Fuldt type-sikret
+- **Mock Data**: 10 jobopslag lokalt
+
+## 📦 Installation
+
+1. Klon projektet:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd job-dashboard
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Installer dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Start udviklingsserveren:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Åbn [http://localhost:3000](http://localhost:3000) i din browser
 
-## Learn More
+## 📁 Projektstruktur
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── layout.tsx          # Root layout
+│   ├── page.tsx           # Hovedside
+│   └── globals.css        # Global styling
+├── components/
+│   ├── FilterBar.tsx      # Søge og filtrering
+│   ├── JobModal.tsx       # Jobdetaljer modal
+│   ├── JobTable.tsx       # Jobtabel
+│   ├── ScoreBadge.tsx     # Score badge komponent
+│   └── StatsOverview.tsx  # Statistik oversigt
+├── data/
+│   └── mockJobs.ts        # Mock job data
+├── store/
+│   └── jobStore.ts        # Zustand store
+└── types/
+    └── job.ts             # TypeScript typer
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔧 Udvikling
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Tilføj nye jobs
+Rediger `src/data/mockJobs.ts` og tilføj nye job objekter med følgende struktur:
 
-## Deploy on Vercel
+```typescript
+{
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  publication_date: string;
+  description: string;
+  score: 0 | 1 | 2 | 3;
+  job_url: string;
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Tilføj nye filtre
+1. Opdater `JobFilters` interface i `src/types/job.ts`
+2. Tilføj filter logik i `src/store/jobStore.ts`
+3. Opdater `FilterBar` komponenten
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🚀 Deployment
+
+Projektet kan deployes på Vercel, Netlify eller andre Next.js kompatible platforme:
+
+```bash
+npm run build
+npm start
+```
+
+## 📝 TODO
+
+- [ ] Integrer med rigtig API
+- [ ] Tilføj CRM integration
+- [ ] Implementer bruger authentication
+- [ ] Tilføj eksport funktionalitet
+- [ ] Tilføj notifikationer
+- [ ] Implementer caching
+- [ ] Tilføj unit tests
+
+## 🤝 Bidrag
+
+1. Fork projektet
+2. Opret en feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit dine ændringer (`git commit -m 'Add some AmazingFeature'`)
+4. Push til branchen (`git push origin feature/AmazingFeature`)
+5. Opret en Pull Request
+
+## 📄 Licens
+
+Dette projekt er lavet for KPMG og er ikke offentligt tilgængeligt.
