@@ -13,6 +13,8 @@ interface JobStore {
   error: string | null;
   currentPage: number;
   jobsPerPage: number;
+  totalJobs: number;
+  totalPages: number;
   
   // Actions
   setJobs: (jobs: Job[]) => void;
@@ -27,6 +29,8 @@ interface JobStore {
   
   // Async actions
   fetchJobs: () => Promise<void>;
+  fetchJobsByScore: (score: number) => Promise<void>;
+  fetchJobsByLocation: (location: string) => Promise<void>;
   searchJobs: (query: string) => Promise<void>;
   createJob: (job: Omit<Job, 'id'>) => Promise<void>;
   updateJob: (id: number, updates: Partial<Job>) => Promise<void>;
@@ -44,6 +48,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
   error: null,
   currentPage: 1,
   jobsPerPage: 20,
+  totalJobs: 0,
+  totalPages: 0,
 
   setJobs: (jobs) => set({ jobs }),
   
@@ -66,77 +72,96 @@ export const useJobStore = create<JobStore>((set, get) => ({
   },
   
   applyFilters: () => {
-    const { jobs, filters, currentPage, jobsPerPage } = get();
+    const { filters, currentPage, jobsPerPage } = get();
     
-    // First, filter out jobs without CFO score
-    let filtered = jobs.filter(job => job.cfo_score !== null);
-
-    // Filter by score
+    // Apply filters based on current filters
     if (filters.score !== undefined) {
-      filtered = filtered.filter(job => job.cfo_score === filters.score);
+      get().fetchJobsByScore(filters.score);
+    } else if (filters.location) {
+      get().fetchJobsByLocation(filters.location);
+    } else if (filters.searchText) {
+      get().searchJobs(filters.searchText);
+    } else {
+      get().fetchJobs();
     }
-
-    // Filter by location
-    if (filters.location) {
-      filtered = filtered.filter(job => 
-        job.location?.toLowerCase().includes(filters.location!.toLowerCase()) || false
-      );
-    }
-
-    // Filter by search text
-    if (filters.searchText) {
-      const searchLower = filters.searchText.toLowerCase();
-      filtered = filtered.filter(job =>
-        (job.title?.toLowerCase().includes(searchLower) || false) ||
-        (job.company?.toLowerCase().includes(searchLower) || false) ||
-        (job.description?.toLowerCase().includes(searchLower) || false)
-      );
-    }
-
-    // Sort by score DESC, then by date DESC
-    filtered.sort((a, b) => {
-      const scoreA = a.cfo_score ?? -1;
-      const scoreB = b.cfo_score ?? -1;
-      if (scoreB !== scoreA) {
-        return scoreB - scoreA;
-      }
-      const dateA = a.publication_date ? new Date(a.publication_date).getTime() : 0;
-      const dateB = b.publication_date ? new Date(b.publication_date).getTime() : 0;
-      return dateB - dateA;
-    });
-
-    // Apply pagination
-    const startIndex = (currentPage - 1) * jobsPerPage;
-    const endIndex = startIndex + jobsPerPage;
-    const paginated = filtered.slice(startIndex, endIndex);
-
-    set({ filteredJobs: filtered, paginatedJobs: paginated });
   },
   
   resetFilters: () => {
     set({ filters: {}, currentPage: 1 });
-    get().applyFilters();
+    get().fetchJobs();
   },
 
   // Async actions
   fetchJobs: async () => {
+    const { currentPage, jobsPerPage } = get();
     set({ isLoading: true, error: null });
+    
     try {
-      const jobs = await jobService.getAllJobs();
-      set({ jobs, isLoading: false });
-      get().applyFilters(); // Apply filters and pagination
+      const response = await jobService.getAllJobs({ page: currentPage, pageSize: jobsPerPage });
+      set({ 
+        jobs: response.data,
+        paginatedJobs: response.data,
+        totalJobs: response.total,
+        totalPages: response.totalPages,
+        isLoading: false 
+      });
     } catch (error) {
       set({ error: 'Fejl ved hentning af jobs', isLoading: false });
       console.error('Error fetching jobs:', error);
     }
   },
 
-  searchJobs: async (query: string) => {
+  fetchJobsByScore: async (score: number) => {
+    const { currentPage, jobsPerPage } = get();
     set({ isLoading: true, error: null });
+    
     try {
-      const jobs = await jobService.searchJobs(query);
-      set({ jobs, isLoading: false });
-      get().applyFilters(); // Apply filters and pagination
+      const response = await jobService.getJobsByScore(score, { page: currentPage, pageSize: jobsPerPage });
+      set({ 
+        jobs: response.data,
+        paginatedJobs: response.data,
+        totalJobs: response.total,
+        totalPages: response.totalPages,
+        isLoading: false 
+      });
+    } catch (error) {
+      set({ error: 'Fejl ved hentning af jobs', isLoading: false });
+      console.error('Error fetching jobs by score:', error);
+    }
+  },
+
+  fetchJobsByLocation: async (location: string) => {
+    const { currentPage, jobsPerPage } = get();
+    set({ isLoading: true, error: null });
+    
+    try {
+      const response = await jobService.getJobsByLocation(location, { page: currentPage, pageSize: jobsPerPage });
+      set({ 
+        jobs: response.data,
+        paginatedJobs: response.data,
+        totalJobs: response.total,
+        totalPages: response.totalPages,
+        isLoading: false 
+      });
+    } catch (error) {
+      set({ error: 'Fejl ved hentning af jobs', isLoading: false });
+      console.error('Error fetching jobs by location:', error);
+    }
+  },
+
+  searchJobs: async (query: string) => {
+    const { currentPage, jobsPerPage } = get();
+    set({ isLoading: true, error: null });
+    
+    try {
+      const response = await jobService.searchJobs(query, { page: currentPage, pageSize: jobsPerPage });
+      set({ 
+        jobs: response.data,
+        paginatedJobs: response.data,
+        totalJobs: response.total,
+        totalPages: response.totalPages,
+        isLoading: false 
+      });
     } catch (error) {
       set({ error: 'Fejl ved søgning', isLoading: false });
       console.error('Error searching jobs:', error);
@@ -150,7 +175,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const { jobs } = get();
       const updatedJobs = [newJob, ...jobs];
       set({ jobs: updatedJobs, isLoading: false });
-      get().applyFilters(); // Apply filters and pagination
+      get().fetchJobs(); // Refresh with current pagination
     } catch (error) {
       set({ error: 'Fejl ved oprettelse af job', isLoading: false });
       console.error('Error creating job:', error);
@@ -164,7 +189,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const { jobs } = get();
       const updatedJobs = jobs.map(job => job.id === id ? updatedJob : job);
       set({ jobs: updatedJobs, isLoading: false });
-      get().applyFilters(); // Re-apply filters to update filteredJobs
+      get().fetchJobs(); // Refresh with current pagination
     } catch (error) {
       set({ error: 'Fejl ved opdatering af job', isLoading: false });
       console.error('Error updating job:', error);
@@ -178,7 +203,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const { jobs } = get();
       const updatedJobs = jobs.filter(job => job.id !== id);
       set({ jobs: updatedJobs, isLoading: false });
-      get().applyFilters(); // Re-apply filters to update filteredJobs
+      get().fetchJobs(); // Refresh with current pagination
     } catch (error) {
       set({ error: 'Fejl ved sletning af job', isLoading: false });
       console.error('Error deleting job:', error);

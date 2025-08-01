@@ -2,15 +2,13 @@
 import { useJobStore } from '@/store/jobStore';
 
 export default function StatsOverview() {
-  const { jobs } = useJobStore();
+  const { jobs, totalJobs } = useJobStore();
 
-  // Only count jobs with CFO score
-  const scoredJobs = jobs.filter(job => job.cfo_score !== null);
-  
+  // Count stats from current page jobs
   const stats = {
-    urgent: scoredJobs.filter(job => job.cfo_score === 3).length,
-    high: scoredJobs.filter(job => job.cfo_score === 2).length,
-    total: scoredJobs.length
+    urgent: jobs.filter(job => job.cfo_score === 3).length,
+    high: jobs.filter(job => job.cfo_score === 2).length,
+    total: totalJobs // Use total from server
   };
 
   return (

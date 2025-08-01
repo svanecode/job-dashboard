@@ -2,11 +2,10 @@
 import { useJobStore } from '@/store/jobStore';
 
 export default function Pagination() {
-  const { filteredJobs, currentPage, jobsPerPage, setCurrentPage } = useJobStore();
+  const { totalJobs, totalPages, currentPage, jobsPerPage, setCurrentPage } = useJobStore();
 
-  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
   const startItem = (currentPage - 1) * jobsPerPage + 1;
-  const endItem = Math.min(currentPage * jobsPerPage, filteredJobs.length);
+  const endItem = Math.min(currentPage * jobsPerPage, totalJobs);
 
   if (totalPages <= 1) {
     return null;
@@ -52,7 +51,7 @@ export default function Pagination() {
     <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-4">
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-400">
-          Viser {startItem}-{endItem} af {filteredJobs.length} jobs
+          Viser {startItem}-{endItem} af {totalJobs} jobs
         </div>
         
         <div className="flex items-center space-x-2">
