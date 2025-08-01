@@ -109,108 +109,112 @@ export default function JobTable() {
               const isExpanded = expandedRows.has(job.id)
               
               return (
-                <motion.tr
-                  key={job.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.05 }}
-                  className="group"
-                >
-                  {/* Score */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <ScoreBar score={job.cfo_score} className="w-16" />
-                      <span className="text-xs text-slate-400">
-                        {job.cfo_score !== null ? `${job.cfo_score}/3` : '—'}
-                      </span>
-                    </div>
-                  </td>
+                <>
+                  {/* Main row */}
+                  <motion.tr
+                    key={`row-${job.id}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                    className="group"
+                  >
+                    {/* Score */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <ScoreBar score={job.cfo_score} className="w-16" />
+                        <span className="text-xs text-slate-400">
+                          {job.cfo_score !== null ? `${job.cfo_score}/3` : '—'}
+                        </span>
+                      </div>
+                    </td>
 
-                  {/* Company */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="size-4 text-slate-400" />
-                      <span className="text-slate-200 font-medium">
-                        {job.company || 'Ukendt firma'}
-                      </span>
-                    </div>
-                  </td>
+                    {/* Company */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-4 text-slate-400" />
+                        <span className="text-slate-200 font-medium">
+                          {job.company || 'Ukendt firma'}
+                        </span>
+                      </div>
+                    </td>
 
-                  {/* Title */}
-                  <td className="px-6 py-4">
-                    <div className="max-w-xs">
-                      <span className="text-slate-200 font-medium">
-                        {job.title || 'Ingen titel'}
-                      </span>
-                    </div>
-                  </td>
+                    {/* Title */}
+                    <td className="px-6 py-4">
+                      <div className="max-w-xs">
+                        <span className="text-slate-200 font-medium">
+                          {job.title || 'Ingen titel'}
+                        </span>
+                      </div>
+                    </td>
 
-                  {/* Location */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="size-4 text-slate-400" />
-                      <span className="text-slate-200">
-                        {job.location || 'Ukendt lokation'}
-                      </span>
-                    </div>
-                  </td>
+                    {/* Location */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="size-4 text-slate-400" />
+                        <span className="text-slate-200">
+                          {job.location || 'Ukendt lokation'}
+                        </span>
+                      </div>
+                    </td>
 
-                  {/* Date */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="size-4 text-slate-400" />
-                      <span className="text-slate-200">
-                        {formatDate(job.publication_date)}
-                      </span>
-                    </div>
-                  </td>
+                    {/* Date */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="size-4 text-slate-400" />
+                        <span className="text-slate-200">
+                          {formatDate(job.publication_date)}
+                        </span>
+                      </div>
+                    </td>
 
-                  {/* Link */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {job.job_url ? (
-                      <a
-                        href={job.job_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-slate-400 hover:text-white transition-colors group/link"
-                      >
-                        <ExternalLink className="size-4 group-hover/link:scale-110 transition-transform" />
-                      </a>
-                    ) : (
-                      <span className="text-slate-500">Ingen link</span>
-                    )}
-                  </td>
-
-                  {/* Excerpt */}
-                  <td className="px-6 py-4">
-                    <div className="max-w-xs">
-                      <p className="text-slate-300 text-sm line-clamp-2">
-                        {truncateText(job.description, 80)}
-                      </p>
-                    </div>
-                  </td>
-
-                  {/* Expand button */}
-                  <td className="px-6 py-4 w-8">
-                    <button
-                      onClick={() => toggleRow(job.id)}
-                      onKeyDown={(e) => handleKeyDown(e, job)}
-                      className="flex items-center justify-center w-6 h-6 rounded-full hover:bg-white/10 transition-colors focus-ring"
-                      aria-label={isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="size-4 text-slate-400" />
+                    {/* Link */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {job.job_url ? (
+                        <a
+                          href={job.job_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-slate-400 hover:text-white transition-colors group/link"
+                        >
+                          <ExternalLink className="size-4 group-hover/link:scale-110 transition-transform" />
+                        </a>
                       ) : (
-                        <ChevronDown className="size-4 text-slate-400" />
+                        <span className="text-slate-500">Ingen link</span>
                       )}
-                    </button>
-                  </td>
+                    </td>
+
+                    {/* Excerpt */}
+                    <td className="px-6 py-4">
+                      <div className="max-w-xs">
+                        <p className="text-slate-300 text-sm line-clamp-2">
+                          {truncateText(job.description, 80)}
+                        </p>
+                      </div>
+                    </td>
+
+                    {/* Expand button */}
+                    <td className="px-6 py-4 w-8">
+                      <button
+                        onClick={() => toggleRow(job.id)}
+                        onKeyDown={(e) => handleKeyDown(e, job)}
+                        className="flex items-center justify-center w-6 h-6 rounded-full hover:bg-white/10 transition-colors focus-ring"
+                        aria-label={isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="size-4 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="size-4 text-slate-400" />
+                        )}
+                      </button>
+                    </td>
+                  </motion.tr>
 
                   {/* Expanded details row */}
                   <AnimatePresence>
                     {isExpanded && (
                       <motion.tr
+                        key={`details-${job.id}`}
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
@@ -285,7 +289,7 @@ export default function JobTable() {
                       </motion.tr>
                     )}
                   </AnimatePresence>
-                </motion.tr>
+                </>
               )
             })}
           </tbody>
