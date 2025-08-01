@@ -54,67 +54,60 @@ export default function Pagination() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.3 }}
-      className="card p-6"
+      className="flex flex-col items-center justify-center gap-4 py-6"
     >
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Results Info */}
-        <div className="text-sm text-slate-400">
-          Viser <span className="text-white font-medium">{startItem}</span> til{' '}
-          <span className="text-white font-medium">{endItem}</span> af{' '}
-          <span className="text-white font-medium">{totalJobs}</span> jobs
-        </div>
-        
-        {/* Pagination Controls */}
-        <div className="flex items-center gap-2">
-          {/* Previous Button */}
-          <button
-            onClick={() => setCurrentPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="flex items-center gap-2 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
-          >
-            <ChevronLeft className="size-4" />
-            <span className="hidden sm:inline">Forrige</span>
-          </button>
-
-          {/* Page Numbers */}
-          <div className="flex items-center gap-1">
-            {getPageNumbers().map((page, index) => (
-              <div key={index}>
-                {page === '...' ? (
-                  <div className="flex items-center justify-center w-10 h-10 text-slate-400">
-                    <MoreHorizontal className="size-4" />
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setCurrentPage(page as number)}
-                    className={`flex items-center justify-center w-10 h-10 text-sm rounded-lg transition-all duration-200 focus-ring ${
-                      page === currentPage
-                        ? 'bg-kpmg-500 text-white font-medium shadow-lg shadow-kpmg-500/25'
-                        : 'text-slate-300 hover:bg-white/5 border border-white/10 hover:border-white/20 hover:text-white'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Next Button */}
-          <button
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="flex items-center gap-2 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
-          >
-            <span className="hidden sm:inline">Næste</span>
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
+      {/* Results Info */}
+      <div className="text-sm text-slate-400">
+        Viser <span className="text-white font-medium">{startItem}</span> til{' '}
+        <span className="text-white font-medium">{endItem}</span> af{' '}
+        <span className="text-white font-medium">{totalJobs}</span> jobs
       </div>
+      
+      {/* Pagination Controls */}
+      <div className="flex items-center gap-2">
+        {/* Previous Button */}
+        <button
+          onClick={() => setCurrentPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="flex items-center gap-2 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
+        >
+          <ChevronLeft className="size-4" />
+          <span className="hidden sm:inline">Forrige</span>
+        </button>
 
-      {/* Page Info */}
-      <div className="mt-4 text-center text-xs text-slate-500">
-        Side {currentPage} af {totalPages}
+        {/* Page Numbers */}
+        <div className="flex items-center gap-1">
+          {getPageNumbers().map((page, index) => (
+            <div key={index}>
+              {page === '...' ? (
+                <div className="flex items-center justify-center w-10 h-10 text-slate-400">
+                  <MoreHorizontal className="size-4" />
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCurrentPage(page as number)}
+                  className={`flex items-center justify-center w-10 h-10 text-sm rounded-lg transition-all duration-200 focus-ring ${
+                    page === currentPage
+                      ? 'bg-kpmg-500 text-white font-medium shadow-lg shadow-kpmg-500/25'
+                      : 'text-slate-300 hover:bg-white/5 border border-white/10 hover:border-white/20 hover:text-white'
+                  }`}
+                >
+                  {page}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Next Button */}
+        <button
+          onClick={() => setCurrentPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="flex items-center gap-2 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
+        >
+          <span className="hidden sm:inline">Næste</span>
+          <ChevronRight className="size-4" />
+        </button>
       </div>
     </motion.div>
   )
