@@ -15,11 +15,39 @@ Denne guide hjælper dig med at opsætte Supabase til KPMG CFO Interim Dashboard
    - **Region**: Vælg den region der er tættest på dig
 7. Klik "Create new project"
 
-## 🗄️ Trin 2: Opret Database Schema
+## 🗄️ Trin 2: Database Schema
 
-1. Gå til **SQL Editor** i dit Supabase dashboard
-2. Kopier indholdet fra `supabase/schema.sql`
-3. Kør SQL scriptet for at oprette tabellen og indsætte sample data
+Din eksisterende database struktur er allerede korrekt! Du har:
+
+```sql
+create table public.jobs (
+  id bigserial not null,
+  job_id text not null,
+  title text null,
+  job_url text null,
+  company text null,
+  company_url text null,
+  location text null,
+  publication_date date null,
+  description text null,
+  created_at timestamp with time zone null default now(),
+  deleted_at timestamp with time zone null,
+  cfo_score integer null,
+  scored_at timestamp with time zone null,
+  job_info timestamp with time zone null,
+  last_seen timestamp with time zone null,
+  constraint jobs_pkey primary key (id),
+  constraint jobs_job_id_key unique (job_id),
+  constraint jobs_cfo_score_check check (
+    (
+      (cfo_score >= 0)
+      and (cfo_score <= 3)
+    )
+  )
+);
+```
+
+Dashboardet er nu konfigureret til at arbejde med din eksisterende struktur.
 
 ## 🔑 Trin 3: Få API Nøgler
 
@@ -66,23 +94,32 @@ Hvis du vil aktivere Row Level Security:
 
 | Kolonne | Type | Beskrivelse |
 |---------|------|-------------|
-| `id` | UUID | Primærnøgle (auto-genereret) |
+| `id` | BIGSERIAL | Primærnøgle (auto-genereret) |
+| `job_id` | TEXT | Unik job ID |
 | `title` | TEXT | Job titel |
+| `job_url` | TEXT | Link til jobopslag |
 | `company` | TEXT | Virksomhedsnavn |
+| `company_url` | TEXT | Link til virksomhed |
 | `location` | TEXT | Job lokation |
 | `publication_date` | DATE | Publiceringsdato |
 | `description` | TEXT | Job beskrivelse |
-| `score` | INTEGER | Prioritet score (0-3) |
-| `job_url` | TEXT | Link til jobopslag |
 | `created_at` | TIMESTAMP | Oprettelsesdato |
-| `updated_at` | TIMESTAMP | Sidste opdatering |
+| `deleted_at` | TIMESTAMP | Sletningsdato (soft delete) |
+| `cfo_score` | INTEGER | Prioritet score (0-3) |
+| `scored_at` | TIMESTAMP | Dato for scoring |
+| `job_info` | TIMESTAMP | Job info timestamp |
+| `last_seen` | TIMESTAMP | Sidst set |
 
 ### Indekser
 
-- `idx_jobs_score`: For hurtig sortering efter score
-- `idx_jobs_publication_date`: For hurtig sortering efter dato
-- `idx_jobs_location`: For hurtig søgning efter lokation
+- `idx_jobs_job_id`: For hurtig søgning efter job ID
 - `idx_jobs_company`: For hurtig søgning efter virksomhed
+- `idx_jobs_publication_date`: For hurtig sortering efter dato
+- `idx_jobs_deleted_at`: For soft delete funktionalitet
+- `idx_jobs_cfo_score`: For hurtig sortering efter score
+- `idx_jobs_scored_at`: For scoring tracking
+- `idx_jobs_high_priority`: For hurtig søgning efter score 3
+- `idx_jobs_last_seen`: For last seen tracking
 
 ## 🛠️ Fejlfinding
 
