@@ -1,35 +1,81 @@
 @import "tailwindcss";
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
+/* Base dark theme */
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: #0B0F14;
 }
 
-/* Dark theme custom styles */
-.dark {
-  color-scheme: dark;
+/* Radial gradient background */
+.bg-radial {
+  background:
+    radial-gradient(800px 400px at 20% -10%, rgba(24, 119, 242, 0.06), transparent 60%),
+    radial-gradient(600px 300px at 80% 0%, rgba(0, 255, 171, 0.06), transparent 65%);
 }
 
-.dark body {
-  background-color: #111827;
-  color: #f9fafb;
+/* Grain/noise overlay */
+.noise:before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.035'/></svg>");
+  opacity: 0.05;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Utility classes */
+.card {
+  @apply rounded-2xl border border-white/10 bg-panel backdrop-blur-md shadow-[0_0_0_1px_rgba(255,255,255,0.03)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.06)] transition-all duration-200;
+}
+
+.soft-divider {
+  @apply border-t border-white/10;
+}
+
+/* Focus states */
+.focus-ring {
+  @apply focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none;
+}
+
+/* Glassmorphism inputs */
+.glass-input {
+  @apply bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-slate-200 placeholder-slate-400 focus-ring hover:border-white/20 transition-colors;
+}
+
+/* Score badges */
+.score-badge-3 {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs bg-emerald-400/10 text-emerald-300 ring-1 ring-emerald-300/20;
+}
+
+.score-badge-2 {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs bg-amber-400/10 text-amber-300 ring-1 ring-amber-300/20;
+}
+
+.score-badge-1 {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs bg-slate-400/10 text-slate-300 ring-1 ring-slate-300/20;
+}
+
+.score-badge-0 {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs bg-rose-400/10 text-rose-300 ring-1 ring-rose-300/20;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

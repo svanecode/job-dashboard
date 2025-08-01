@@ -1,90 +1,137 @@
-'use client';
-import { useEffect } from 'react';
-import StatsOverview from '@/components/StatsOverview';
-import FilterBar from '@/components/FilterBar';
-import ResultsCount from '@/components/ResultsCount';
-import JobTable from '@/components/JobTable';
-import Pagination from '@/components/Pagination';
-import JobModal from '@/components/JobModal';
-import ConnectionStatus from '@/components/ConnectionStatus';
-import { useJobStore } from '@/store/jobStore';
+'use client'
+
+import { useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { useJobStore } from '@/store/jobStore'
+import StatCard from '@/components/StatCard'
+import FilterBar from '@/components/FilterBar'
+import JobTable from '@/components/JobTable'
+import JobModal from '@/components/JobModal'
+import ResultsCount from '@/components/ResultsCount'
+import Pagination from '@/components/Pagination'
+import ConnectionStatus from '@/components/ConnectionStatus'
 
 export default function Home() {
-  const { fetchJobs, isLoading, error } = useJobStore();
+  const { 
+    jobs, 
+    totalJobs, 
+    fetchJobs, 
+    isLoading, 
+    error 
+  } = useJobStore()
 
   useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
+    fetchJobs()
+  }, [fetchJobs])
+
+  // Calculate stats from current page jobs
+  const urgentJobs = jobs.filter(job => job.cfo_score === 3).length
+  const highPriorityJobs = jobs.filter(job => job.cfo_score === 2).length
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="bg-radial relative min-h-screen text-slate-200">
+      {/* Noise overlay */}
+      <div className="noise" />
+      
+      {/* Main content */}
+      <div className="container mx-auto max-w-7xl px-4 py-8 sm:py-10 relative z-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            KPMG CFO Interim Dashboard
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <h1 className="font-heading text-3xl sm:text-4xl tracking-tight text-white mb-2">
+            KPMG CFO Dashboard
           </h1>
-          <p className="text-gray-300">
+          <p className="text-slate-400 text-lg">
             Find virksomheder der har behov for CFO Interim Assistance
           </p>
-        </div>
+        </motion.div>
 
-        
+        {/* Connection Status */}
+        <div className="mb-6">
+          <ConnectionStatus />
+        </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-900/20 border border-red-700 rounded-lg p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-300">{error}</p>
-              </div>
-            </div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card p-4 mb-6 border-red-400/20 bg-red-400/5"
+          >
+            <p className="text-red-300 font-medium">Fejl: {error}</p>
+          </motion.div>
         )}
 
         {/* Loading State */}
         {isLoading && (
-          <div className="mb-6 bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="animate-spin h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="card p-8 text-center mb-6"
+          >
+            <div className="flex flex-col items-center space-y-4">
+              <div className="size-12 rounded-full bg-white/5 flex items-center justify-center">
+                <div className="size-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-blue-300">Henter jobs...</p>
-              </div>
+              <p className="text-slate-300">Indlæser jobs...</p>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Stats Overview */}
-        <StatsOverview />
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid gap-4 sm:grid-cols-3 mb-8"
+        >
+          <StatCard 
+            title="Akut behov" 
+            value={urgentJobs} 
+            tone="success" 
+            icon="flame" 
+          />
+          <StatCard 
+            title="Høj prioritet" 
+            value={highPriorityJobs} 
+            tone="warn" 
+            icon="bolt" 
+          />
+          <StatCard 
+            title="Total jobs" 
+            value={totalJobs} 
+            tone="muted" 
+            icon="stack" 
+          />
+        </motion.section>
 
         {/* Filter Bar */}
-        <FilterBar />
+        <div className="mb-6">
+          <FilterBar />
+        </div>
 
         {/* Results Count */}
-        <ResultsCount />
+        <div className="mb-4">
+          <ResultsCount />
+        </div>
 
-                       {/* Job Table */}
-               <JobTable />
+        {/* Job Table */}
+        <div className="mb-6">
+          <JobTable />
+        </div>
 
-               {/* Pagination */}
-               <Pagination />
-
-               {/* Job Modal */}
-               <JobModal />
-
-        {/* Connection Status */}
-        <ConnectionStatus />
+        {/* Pagination */}
+        <div className="mb-6">
+          <Pagination />
+        </div>
       </div>
-    </div>
-  );
+
+      {/* Job Modal */}
+      <JobModal />
+    </main>
+  )
 }

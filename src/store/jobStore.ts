@@ -72,7 +72,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   },
   
   applyFilters: () => {
-    const { filters, currentPage, jobsPerPage } = get();
+    const { filters } = get();
     
     // Apply filters based on current filters
     if (filters.score !== undefined) {

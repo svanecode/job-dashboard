@@ -1,96 +1,87 @@
-'use client';
-import { useJobStore } from '@/store/jobStore';
+'use client'
+
+import { motion } from 'framer-motion'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useJobStore } from '@/store/jobStore'
 
 export default function Pagination() {
-  const { totalJobs, totalPages, currentPage, jobsPerPage, setCurrentPage } = useJobStore();
+  const { totalJobs, totalPages, currentPage, jobsPerPage, setCurrentPage } = useJobStore()
 
-  const startItem = (currentPage - 1) * jobsPerPage + 1;
-  const endItem = Math.min(currentPage * jobsPerPage, totalJobs);
+  const startItem = (currentPage - 1) * jobsPerPage + 1
+  const endItem = Math.min(currentPage * jobsPerPage, totalJobs)
 
   if (totalPages <= 1) {
-    return null;
+    return null
   }
 
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisible = 5
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
+    const end = Math.min(totalPages, start + maxVisible - 1)
 
-  const renderPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      // Show all pages if total is small
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Show pages around current page
-      let start = Math.max(1, currentPage - 2);
-      let end = Math.min(totalPages, currentPage + 2);
-      
-      if (end - start < 4) {
-        if (start === 1) {
-          end = Math.min(totalPages, start + 4);
-        } else {
-          start = Math.max(1, end - 4);
-        }
-      }
-      
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1)
     }
-    
-    return pages;
-  };
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i)
+    }
+
+    return pages
+  }
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-4">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.3 }}
+      className="card p-4"
+    >
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-slate-400">
           Viser {startItem}-{endItem} af {totalJobs} jobs
         </div>
         
-        <div className="flex items-center space-x-2">
-          {/* Previous button */}
+        <div className="flex items-center gap-2">
+          {/* Previous Button */}
           <button
-            onClick={() => handlePageChange(currentPage - 1)}
+            onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-3 py-2 text-sm font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            <ChevronLeft className="size-4" />
             Forrige
           </button>
-          
-          {/* Page numbers */}
-          <div className="flex items-center space-x-1">
-            {renderPageNumbers().map((page) => (
+
+          {/* Page Numbers */}
+          <div className="flex items-center gap-1">
+            {getPageNumbers().map((page) => (
               <button
                 key={page}
-                onClick={() => handlePageChange(page)}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-2 text-sm rounded-lg transition-colors focus-ring ${
                   page === currentPage
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 bg-gray-700 border border-gray-600 hover:bg-gray-600'
+                    ? 'bg-primary text-ink font-medium'
+                    : 'text-slate-300 hover:bg-white/5 border border-white/10 hover:border-white/20'
                 }`}
               >
                 {page}
               </button>
             ))}
           </div>
-          
-          {/* Next button */}
+
+          {/* Next Button */}
           <button
-            onClick={() => handlePageChange(currentPage + 1)}
+            onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-3 py-2 text-sm font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Næste
+            <ChevronRight className="size-4" />
           </button>
         </div>
       </div>
-    </div>
-  );
+    </motion.div>
+  )
 } 

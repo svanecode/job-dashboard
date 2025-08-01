@@ -1,59 +1,67 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+'use client'
+
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Wifi, WifiOff } from 'lucide-react'
 
 export default function ConnectionStatus() {
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState<boolean | null>(null)
 
   useEffect(() => {
     const checkConnection = async () => {
-      if (!supabase) {
-        setIsConnected(false);
-        setIsLoading(false);
-        return;
+      try {
+        // Check if Supabase environment variables are set
+        const hasSupabaseConfig = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        
+        if (!hasSupabaseConfig) {
+          setIsConnected(false)
+          return
+        }
+
+        // Try to fetch a simple request to test connection
+        const response = await fetch('/api/health', { 
+          method: 'HEAD',
+          cache: 'no-cache'
+        })
+        
+        setIsConnected(response.ok)
+      } catch {
+        setIsConnected(false)
       }
+    }
 
-             try {
-         // Test connection by fetching a single row
-         const { error: dbError } = await supabase
-           .from('jobs')
-           .select('id')
-           .limit(1);
-
-         setIsConnected(!dbError);
-       } catch {
-        setIsConnected(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkConnection();
-  }, []);
-
-  if (isLoading) {
-    return null;
-  }
+    checkConnection()
+    
+    // Check connection every 30 seconds
+    const interval = setInterval(checkConnection, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   if (isConnected === null) {
-    return null;
+    return null
   }
 
   return (
-    <div className={`fixed top-4 right-4 z-50 px-3 py-2 rounded-lg text-sm font-medium shadow-lg ${
-      isConnected 
-        ? 'bg-green-900/80 text-green-200 border border-green-700 backdrop-blur-sm' 
-        : 'bg-yellow-900/80 text-yellow-200 border border-yellow-700 backdrop-blur-sm'
-    }`}>
-      <div className="flex items-center space-x-2">
-        <div className={`w-2 h-2 rounded-full ${
-          isConnected ? 'bg-green-400' : 'bg-yellow-400'
-        }`} />
-        <span>
-          {isConnected ? '🟢 Supabase forbundet' : '🟡 Bruger mock data'}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex items-center gap-2 text-sm"
+    >
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+        isConnected 
+          ? 'bg-emerald-400/10 text-emerald-300 ring-1 ring-emerald-300/20' 
+          : 'bg-red-400/10 text-red-300 ring-1 ring-red-300/20'
+      }`}>
+        {isConnected ? (
+          <Wifi className="size-4" />
+        ) : (
+          <WifiOff className="size-4" />
+        )}
+        <span className="font-medium">
+          {isConnected ? 'Forbundet' : 'Offline'}
         </span>
       </div>
-    </div>
-  );
+    </motion.div>
+  )
 } 

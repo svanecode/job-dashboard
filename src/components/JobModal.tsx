@@ -1,143 +1,151 @@
-'use client';
-import { useJobStore } from '@/store/jobStore';
-import ScoreBadge from './ScoreBadge';
-import { useEffect } from 'react';
+'use client'
+
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, ExternalLink, MapPin, Building2, Calendar, Send } from 'lucide-react'
+import { useJobStore } from '@/store/jobStore'
 
 export default function JobModal() {
-  const { selectedJob, isModalOpen, closeJobModal } = useJobStore();
+  const { selectedJob, isModalOpen, closeJobModal } = useJobStore()
 
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeJobModal();
-      }
-    };
-
-    if (isModalOpen) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
+  const getScoreBadge = (score: number | null) => {
+    if (score === null) {
+      return <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs bg-slate-400/10 text-slate-300 ring-1 ring-slate-300/20">❓ Ikke scoret</span>
     }
-  }, [isModalOpen, closeJobModal]);
-
-  if (!isModalOpen || !selectedJob) {
-    return null;
+    
+    switch (score) {
+      case 3:
+        return <span className="score-badge-3">🔥 Akut</span>
+      case 2:
+        return <span className="score-badge-2">⚡ Høj</span>
+      case 1:
+        return <span className="score-badge-1">📋 Medium</span>
+      case 0:
+        return <span className="score-badge-0">❌ Lav</span>
+      default:
+        return <span className="score-badge-1">{score}</span>
+    }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('da-DK', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const handleSendToCRM = () => {
-    // TODO: Implement CRM integration
-    alert('Sendt til CRM: ' + selectedJob.title);
-  };
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      closeJobModal();
-    }
-  };
+  if (!selectedJob) return null
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <ScoreBadge score={selectedJob.cfo_score} />
-              <h2 className="text-xl font-semibold text-white">{selectedJob.title || 'Ingen titel'}</h2>
-            </div>
-            <button
-              onClick={closeJobModal}
-              className="text-gray-400 hover:text-gray-300 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+    <AnimatePresence>
+      {isModalOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeJobModal}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          />
 
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
-                Firma
-              </h3>
-              <p className="text-lg font-medium text-white">{selectedJob.company || 'Ukendt firma'}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
-                Lokation
-              </h3>
-              <p className="text-lg text-white">{selectedJob.location || 'Ukendt lokation'}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
-                Publiceringsdato
-              </h3>
-              <p className="text-lg text-white">{selectedJob.publication_date ? formatDate(selectedJob.publication_date) : 'Ukendt dato'}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
-                Prioritet
-              </h3>
-              <ScoreBadge score={selectedJob.cfo_score} />
-            </div>
-          </div>
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+            className="fixed inset-4 z-50 flex items-center justify-center"
+          >
+            <div className="card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex-1">
+                  <h2 className="font-heading text-2xl font-semibold text-white mb-2">
+                    {selectedJob.title || 'Ingen titel'}
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    {getScoreBadge(selectedJob.cfo_score)}
+                    <span className="text-slate-400 text-sm">
+                      ID: {selectedJob.job_id}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={closeJobModal}
+                  className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-ring"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
 
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
-              Jobbeskrivelse
-            </h3>
-            <div className="bg-gray-700 rounded-lg p-4">
-              <p className="text-gray-200 whitespace-pre-wrap">{selectedJob.description || 'Ingen beskrivelse tilgængelig'}</p>
-            </div>
-          </div>
+              {/* Company & Location */}
+              <div className="grid gap-4 sm:grid-cols-2 mb-6">
+                <div className="flex items-center gap-3">
+                  <Building2 className="size-5 text-slate-400" />
+                  <div>
+                    <p className="text-slate-400 text-sm">Firma</p>
+                    <p className="text-white font-medium">
+                      {selectedJob.company || 'Ukendt firma'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <MapPin className="size-5 text-slate-400" />
+                  <div>
+                    <p className="text-slate-400 text-sm">Lokation</p>
+                    <p className="text-white font-medium">
+                      {selectedJob.location || 'Ukendt lokation'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            {selectedJob.job_url ? (
-              <a
-                href={selectedJob.job_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-center font-medium"
-              >
-                Åbn jobopslag
-              </a>
-            ) : (
-              <button
-                disabled
-                className="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-md cursor-not-allowed text-center font-medium"
-              >
-                Ingen link
-              </button>
-            )}
-            <button
-              onClick={handleSendToCRM}
-              className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors font-medium"
-            >
-              Send til CRM
-            </button>
-            <button
-              onClick={closeJobModal}
-              className="flex-1 bg-gray-700 text-gray-200 px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors font-medium"
-            >
-              Luk
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+              {/* Publication Date */}
+              <div className="flex items-center gap-3 mb-6">
+                <Calendar className="size-5 text-slate-400" />
+                <div>
+                  <p className="text-slate-400 text-sm">Publiceret</p>
+                  <p className="text-white font-medium">
+                    {selectedJob.publication_date 
+                      ? new Date(selectedJob.publication_date).toLocaleDateString('da-DK', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : 'Ukendt dato'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="mb-6">
+                <h3 className="text-slate-300 font-medium mb-3">Beskrivelse</h3>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-200 leading-relaxed">
+                    {selectedJob.description || 'Ingen beskrivelse tilgængelig'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/10">
+                <button
+                  onClick={closeJobModal}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-colors focus-ring"
+                >
+                  <Send className="size-4" />
+                  Send til CRM
+                </button>
+                {selectedJob.job_url && (
+                  <a
+                    href={selectedJob.job_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-ink font-medium rounded-lg hover:bg-primary/90 transition-colors focus-ring"
+                  >
+                    <ExternalLink className="size-4" />
+                    Åbn jobopslag
+                  </a>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
 } 

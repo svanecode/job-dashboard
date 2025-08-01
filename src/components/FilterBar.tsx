@@ -1,81 +1,87 @@
-'use client';
-import { useJobStore } from '@/store/jobStore';
+'use client'
+
+import { motion } from 'framer-motion'
+import { Search, MapPin, Filter, RotateCcw } from 'lucide-react'
+import { useJobStore } from '@/store/jobStore'
 
 export default function FilterBar() {
-  const { filters, setFilters, resetFilters } = useJobStore();
+  const { filters, setFilters, resetFilters } = useJobStore()
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ ...filters, searchText: e.target.value });
-  };
+    setFilters({ ...filters, searchText: e.target.value })
+  }
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ ...filters, location: e.target.value });
-  };
+    setFilters({ ...filters, location: e.target.value })
+  }
 
   const handleScoreChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const score = e.target.value === '' ? undefined : parseInt(e.target.value);
-    setFilters({ ...filters, score });
-  };
+    const score = e.target.value === '' ? undefined : parseInt(e.target.value)
+    setFilters({ ...filters, score })
+  }
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6 mb-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Filtrer og søg</h3>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label htmlFor="search" className="block text-sm font-medium text-gray-300 mb-1">
-            Søg
-          </label>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.1 }}
+      className="card p-4"
+    >
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
           <input
             type="text"
-            id="search"
-            placeholder="Søg i titel, firma eller beskrivelse..."
+            placeholder="Søg i jobopslag..."
             value={filters.searchText || ''}
             onChange={handleSearchChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
+            className="glass-input pl-10 w-full"
           />
         </div>
-        
-        <div>
-          <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-1">
-            Lokation
-          </label>
+
+        {/* Location */}
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
           <input
             type="text"
-            id="location"
-            placeholder="F.eks. København, Aarhus..."
+            placeholder="Lokation..."
             value={filters.location || ''}
             onChange={handleLocationChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white placeholder-gray-400"
+            className="glass-input pl-10 w-full"
           />
         </div>
-        
-        <div>
-          <label htmlFor="score" className="block text-sm font-medium text-gray-300 mb-1">
-            Score
-          </label>
+
+        {/* Score Filter */}
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
           <select
-            id="score"
             value={filters.score?.toString() || ''}
             onChange={handleScoreChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+            className="glass-input pl-10 w-full appearance-none cursor-pointer"
           >
             <option value="">Alle scores</option>
-            <option value="3">🔥 Akut (3)</option>
-            <option value="2">📈 Høj (2)</option>
-            <option value="1">📋 Medium (1)</option>
-            <option value="0">❌ Lav (0)</option>
+            <option value="3">Score 3 - Akut</option>
+            <option value="2">Score 2 - Høj</option>
+            <option value="1">Score 1 - Medium</option>
+            <option value="0">Score 0 - Lav</option>
           </select>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
-        
-        <div className="flex items-end">
-          <button
-            onClick={resetFilters}
-            className="w-full px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors"
-          >
-            Nulstil filtre
-          </button>
-        </div>
+
+        {/* Reset Button */}
+        <button
+          onClick={resetFilters}
+          className="flex items-center justify-center gap-2 px-4 py-2 border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-colors focus-ring"
+        >
+          <RotateCcw className="size-4" />
+          Nulstil filtre
+        </button>
       </div>
-    </div>
-  );
+    </motion.div>
+  )
 } 
