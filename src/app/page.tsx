@@ -5,6 +5,7 @@ import FilterBar from '@/components/FilterBar';
 import ResultsCount from '@/components/ResultsCount';
 import JobTable from '@/components/JobTable';
 import JobModal from '@/components/JobModal';
+import ConnectionStatus from '@/components/ConnectionStatus';
 import { useJobStore } from '@/store/jobStore';
 
 export default function Home() {
@@ -74,6 +75,9 @@ export default function Home() {
 
         {/* Job Modal */}
         <JobModal />
+
+        {/* Connection Status */}
+        <ConnectionStatus />
       </div>
     </div>
   );
