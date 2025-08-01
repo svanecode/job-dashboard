@@ -21,7 +21,7 @@ export default function JobTable() {
   const handleSort = (key: SortKey) => {
     const newSort = {
       key,
-      dir: (sort.key === key && sort.dir === 'asc' ? 'desc' : 'desc') as SortDirection
+      dir: (sort.key === key && sort.dir === 'asc' ? 'desc' : 'asc') as SortDirection
     }
     setSort(newSort)
   }
@@ -30,10 +30,7 @@ export default function JobTable() {
     openJobModal(job)
   }
 
-  // Filter jobs with score > 0
-  const filteredJobs = paginatedJobs.filter(job => (job.cfo_score || 0) > 0)
-
-  if (filteredJobs.length === 0) {
+  if (paginatedJobs.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -140,7 +137,7 @@ export default function JobTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {filteredJobs.map((job, index) => (
+            {paginatedJobs.map((job, index) => (
               <motion.tr
                 key={job.id}
                 initial={{ opacity: 0, y: 10 }}

@@ -92,7 +92,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   },
   
   applyFilters: () => {
-    const { filters, sort } = get()
+    const { filters } = get()
     
     // For now, we'll use the most specific filter
     // In a real implementation, you'd want to combine filters
@@ -127,17 +127,22 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const { currentPage, jobsPerPage } = get()
       const response = await jobService.getAllJobs({ page: currentPage, pageSize: jobsPerPage })
       
-      // Sort all jobs and then paginate
-      const sortedJobs = sortJobs(response.data, get().sort)
+      // Filter jobs with score > 0 first, then sort
+      const filteredJobs = response.data.filter(job => (job.cfo_score || 0) > 0)
+      const sortedJobs = sortJobs(filteredJobs, get().sort)
+      
+      // Calculate pagination for filtered jobs
+      const totalFilteredJobs = filteredJobs.length
+      const totalPages = Math.ceil(totalFilteredJobs / jobsPerPage)
       const startIndex = (currentPage - 1) * jobsPerPage
       const endIndex = startIndex + jobsPerPage
       const paginatedJobs = sortedJobs.slice(startIndex, endIndex)
       
       set({
-        jobs: response.data,
+        jobs: filteredJobs,
         paginatedJobs,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
+        totalJobs: totalFilteredJobs,
+        totalPages,
         isLoading: false,
       })
     } catch (error) {
@@ -155,17 +160,22 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const { currentPage, jobsPerPage } = get()
       const response = await jobService.searchJobs(query, { page: currentPage, pageSize: jobsPerPage })
       
-      // Sort all jobs and then paginate
-      const sortedJobs = sortJobs(response.data, get().sort)
+      // Filter jobs with score > 0 first, then sort
+      const filteredJobs = response.data.filter(job => (job.cfo_score || 0) > 0)
+      const sortedJobs = sortJobs(filteredJobs, get().sort)
+      
+      // Calculate pagination for filtered jobs
+      const totalFilteredJobs = filteredJobs.length
+      const totalPages = Math.ceil(totalFilteredJobs / jobsPerPage)
       const startIndex = (currentPage - 1) * jobsPerPage
       const endIndex = startIndex + jobsPerPage
       const paginatedJobs = sortedJobs.slice(startIndex, endIndex)
       
       set({
-        jobs: response.data,
+        jobs: filteredJobs,
         paginatedJobs,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
+        totalJobs: totalFilteredJobs,
+        totalPages,
         isLoading: false,
       })
     } catch (error) {
@@ -183,17 +193,22 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const { currentPage, jobsPerPage } = get()
       const response = await jobService.getJobsByScore(score, { page: currentPage, pageSize: jobsPerPage })
       
-      // Sort all jobs and then paginate
-      const sortedJobs = sortJobs(response.data, get().sort)
+      // Filter jobs with score > 0 first, then sort
+      const filteredJobs = response.data.filter(job => (job.cfo_score || 0) > 0)
+      const sortedJobs = sortJobs(filteredJobs, get().sort)
+      
+      // Calculate pagination for filtered jobs
+      const totalFilteredJobs = filteredJobs.length
+      const totalPages = Math.ceil(totalFilteredJobs / jobsPerPage)
       const startIndex = (currentPage - 1) * jobsPerPage
       const endIndex = startIndex + jobsPerPage
       const paginatedJobs = sortedJobs.slice(startIndex, endIndex)
       
       set({
-        jobs: response.data,
+        jobs: filteredJobs,
         paginatedJobs,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
+        totalJobs: totalFilteredJobs,
+        totalPages,
         isLoading: false,
       })
     } catch (error) {
@@ -211,17 +226,22 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const { currentPage, jobsPerPage } = get()
       const response = await jobService.getJobsByLocation(location, { page: currentPage, pageSize: jobsPerPage })
       
-      // Sort all jobs and then paginate
-      const sortedJobs = sortJobs(response.data, get().sort)
+      // Filter jobs with score > 0 first, then sort
+      const filteredJobs = response.data.filter(job => (job.cfo_score || 0) > 0)
+      const sortedJobs = sortJobs(filteredJobs, get().sort)
+      
+      // Calculate pagination for filtered jobs
+      const totalFilteredJobs = filteredJobs.length
+      const totalPages = Math.ceil(totalFilteredJobs / jobsPerPage)
       const startIndex = (currentPage - 1) * jobsPerPage
       const endIndex = startIndex + jobsPerPage
       const paginatedJobs = sortedJobs.slice(startIndex, endIndex)
       
       set({
-        jobs: response.data,
+        jobs: filteredJobs,
         paginatedJobs,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
+        totalJobs: totalFilteredJobs,
+        totalPages,
         isLoading: false,
       })
     } catch (error) {
