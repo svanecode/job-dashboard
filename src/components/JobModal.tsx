@@ -204,13 +204,7 @@ export default function JobModal() {
               </div>
 
               {/* Tags (if any) */}
-              {selectedJob.job_info && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full px-2.5 py-1 text-xs bg-white/5 text-slate-300 ring-1 ring-white/10">
-                    {selectedJob.job_info}
-                  </span>
-                </div>
-              )}
+              {/* Removed job_info display */}
 
               {/* Description */}
               <div className="mt-4">
