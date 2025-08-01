@@ -1,25 +1,62 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ExternalLink, MapPin, Building2, Calendar, Send, Copy, Check } from 'lucide-react'
+import { X, ExternalLink, Building2, MapPin, Calendar, Star } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import ScoreBar from './ScoreBar'
-import { formatDate, copyToClipboard, getScoreLabel } from '@/utils/format'
-import { useState } from 'react'
+import { formatDate, copyToClipboard } from '@/utils/format'
+import { handleModalKeyDown, createFocusTrap } from '@/utils/keyboard'
+import { useState, useEffect, useRef } from 'react'
 
 export default function JobModal() {
   const { selectedJob, isModalOpen, closeJobModal } = useJobStore()
-  const [copied, setCopied] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const previousActiveElement = useRef<HTMLElement | null>(null)
 
-  const handleCopyJob = async () => {
-    if (!selectedJob) return
+  // Focus management
+  useEffect(() => {
+    if (isModalOpen) {
+      previousActiveElement.current = document.activeElement as HTMLElement
+      modalRef.current?.focus()
+    } else {
+      previousActiveElement.current?.focus()
+    }
+  }, [isModalOpen])
+
+  // Keyboard handlers
+  useEffect(() => {
+    if (!isModalOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      handleModalKeyDown(event, handleOpenJob, closeJobModal)
+    }
+
+    const handleFocusTrap = createFocusTrap(modalRef)
+
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keydown', handleFocusTrap)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keydown', handleFocusTrap)
+    }
+  }, [isModalOpen])
+
+  const handleOpenJob = () => {
+    if (selectedJob?.job_url) {
+      window.open(selectedJob.job_url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const handleCopyLink = async () => {
+    if (!selectedJob?.job_url) return
     
-    const text = `${selectedJob.company || 'Ukendt firma'} - ${selectedJob.title || 'Ingen titel'}`
-    const success = await copyToClipboard(text)
-    
+    const success = await copyToClipboard(selectedJob.job_url)
     if (success) {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2000)
     }
   }
 
@@ -46,115 +83,127 @@ export default function JobModal() {
             transition={{ type: 'spring', damping: 18, stiffness: 220 }}
             className="fixed inset-4 z-50 flex items-center justify-center"
           >
-            <div className="card p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div
+              ref={modalRef}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="job-title"
+              className="fixed centered modal max-w-[720px] w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-lg p-5 sm:p-6 text-slate-200 overflow-hidden"
+            >
               {/* Header */}
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex-1">
-                  <h2 className="font-heading text-2xl font-semibold text-white mb-2">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 min-w-0">
+                  <h1 
+                    id="job-title"
+                    className="text-xl sm:text-2xl font-semibold tracking-tight text-white break-words"
+                  >
                     {selectedJob.title || 'Ingen titel'}
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <ScoreBar score={selectedJob.cfo_score} className="w-20" />
-                      <span className="text-sm text-slate-400">
-                        {selectedJob.cfo_score !== null ? `${selectedJob.cfo_score}/3` : '—'}
-                      </span>
-                    </div>
-                    <span className="text-slate-400 text-sm">
-                      ID: {selectedJob.job_id}
+                  </h1>
+                  <div className="flex items-center gap-3 mt-2">
+                    <ScoreBar score={selectedJob.cfo_score} />
+                    <span className="text-xs text-slate-400 tabular-nums">
+                      {selectedJob.cfo_score !== null ? `${selectedJob.cfo_score}/3` : '—'}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={closeJobModal}
-                  className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-ring"
+                  className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none ml-4 flex-shrink-0"
+                  aria-label="Luk modal"
                 >
-                  <X className="size-4" />
+                  <X className="size-4" aria-hidden="true" />
                 </button>
               </div>
 
-              {/* Company & Location */}
-              <div className="grid gap-4 sm:grid-cols-2 mb-6">
-                <div className="flex items-center gap-3">
-                  <Building2 className="size-5 text-slate-400" />
-                  <div>
-                    <p className="text-slate-400 text-sm">Firma</p>
-                    <p className="text-white font-medium">
-                      {selectedJob.company || 'Ukendt firma'}
-                    </p>
-                  </div>
+              {/* Meta line */}
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+                <div className="flex items-center gap-1">
+                  <Building2 className="size-4" aria-hidden="true" />
+                  <span className="break-words">
+                    {selectedJob.company || 'Ukendt firma'}
+                  </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="size-5 text-slate-400" />
-                  <div>
-                    <p className="text-slate-400 text-sm">Lokation</p>
-                    <p className="text-white font-medium">
-                      {selectedJob.location || 'Ukendt lokation'}
-                    </p>
-                  </div>
+                <span aria-hidden="true">•</span>
+                <div className="flex items-center gap-1">
+                  <MapPin className="size-4" aria-hidden="true" />
+                  <span className="break-words">
+                    {selectedJob.location || 'Ukendt lokation'}
+                  </span>
                 </div>
+                <span aria-hidden="true">•</span>
+                <div className="flex items-center gap-1">
+                  <Calendar className="size-4" aria-hidden="true" />
+                  <span className="tabular-nums">
+                    {formatDate(selectedJob.publication_date)}
+                  </span>
+                </div>
+                {selectedJob.cfo_score !== null && selectedJob.cfo_score > 0 && (
+                  <>
+                    <span aria-hidden="true">•</span>
+                    <div className="flex items-center gap-1">
+                      <Star className="size-4" aria-hidden="true" />
+                      <span>Prioritet</span>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Publication Date & Score */}
-              <div className="grid gap-4 sm:grid-cols-2 mb-6">
-                <div className="flex items-center gap-3">
-                  <Calendar className="size-5 text-slate-400" />
-                  <div>
-                    <p className="text-slate-400 text-sm">Publiceret</p>
-                    <p className="text-white font-medium">
-                      {formatDate(selectedJob.publication_date)}
-                    </p>
-                  </div>
+              {/* Tags (if any) */}
+              {selectedJob.job_info && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full px-2.5 py-1 text-xs bg-white/5 text-slate-300 ring-1 ring-white/10">
+                    {selectedJob.job_info}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-slate-400 text-sm mb-2">Prioritet</p>
-                  <p className="text-white font-medium">
-                    {getScoreLabel(selectedJob.cfo_score)}
-                  </p>
-                </div>
-              </div>
+              )}
 
               {/* Description */}
-              <div className="mb-6">
-                <h3 className="text-slate-300 font-medium mb-3">Beskrivelse</h3>
+              <div className="mt-4">
                 <div className="bg-white/5 rounded-lg p-4">
-                  <p className="text-slate-200 leading-relaxed">
-                    {selectedJob.description || 'Ingen beskrivelse tilgængelig'}
-                  </p>
+                  {selectedJob.description ? (
+                    <div>
+                      <p className={`text-slate-200 leading-relaxed break-words ${
+                        isExpanded ? '' : 'line-clamp-6'
+                      }`}>
+                        {selectedJob.description}
+                      </p>
+                      {selectedJob.description.length > 300 && (
+                        <button
+                          onClick={() => setIsExpanded(!isExpanded)}
+                          className="mt-2 text-sm text-slate-400 hover:text-slate-200 underline-offset-2 hover:underline focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                        >
+                          {isExpanded ? 'Vis mindre' : 'Vis mere'}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-slate-400 italic">
+                      Ingen beskrivelse tilgængelig.
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Footer */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/10">
-                <button
-                  onClick={handleCopyJob}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-colors focus-ring"
-                >
-                  {copied ? (
-                    <Check className="size-4 text-green-400" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                  {copied ? 'Kopieret!' : 'Kopier firma+titel'}
-                </button>
-                <button
-                  onClick={closeJobModal}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-colors focus-ring"
-                >
-                  <Send className="size-4" />
-                  Send til CRM
-                </button>
+              {/* Footer actions */}
+              <div className="flex items-center gap-3 mt-6 pt-4 border-t border-white/10">
                 {selectedJob.job_url && (
                   <a
                     href={selectedJob.job_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-kpmg-500 text-white font-medium rounded-lg hover:bg-kpmg-600 transition-colors focus-ring"
+                    className="inline-flex items-center gap-2 rounded-lg bg-kpmg-700 hover:bg-kpmg-500 px-4 py-2 text-sm font-medium text-white transition focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
                   >
-                    <ExternalLink className="size-4" />
+                    <ExternalLink className="size-4" aria-hidden="true" />
                     Åbn jobopslag
                   </a>
                 )}
+                <button
+                  onClick={handleCopyLink}
+                  className="ml-auto text-sm text-slate-400 hover:text-slate-200 underline-offset-2 hover:underline focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                >
+                  {linkCopied ? 'Link kopieret!' : 'Kopiér link'}
+                </button>
               </div>
             </div>
           </motion.div>

@@ -8,7 +8,7 @@ interface ScoreBarProps {
 export default function ScoreBar({ score, className = '' }: ScoreBarProps) {
   if (score === null) {
     return (
-      <div className={`flex items-center gap-2 min-w-[110px] ${className}`}>
+      <div className={`flex items-center gap-2 ${className}`}>
         <div className="grid grid-cols-3 gap-[2px] w-16 h-[6px]">
           {[1, 2, 3].map((i) => (
             <div
@@ -17,7 +17,7 @@ export default function ScoreBar({ score, className = '' }: ScoreBarProps) {
             />
           ))}
         </div>
-        <span className="text-[11px] text-slate-400 tabular-nums">—</span>
+        <span className="text-xs text-slate-400 tabular-nums">—</span>
       </div>
     )
   }
@@ -41,7 +41,7 @@ export default function ScoreBar({ score, className = '' }: ScoreBarProps) {
 
   return (
     <div 
-      className={`flex items-center gap-2 min-w-[110px] ${className}`}
+      className={`flex items-center gap-2 ${className}`}
       role="progressbar" 
       aria-label={`Score ${score} af 3`} 
       aria-valuenow={score} 
@@ -56,7 +56,7 @@ export default function ScoreBar({ score, className = '' }: ScoreBarProps) {
           />
         ))}
       </div>
-      <span className="text-[11px] text-slate-400 tabular-nums">
+      <span className="text-xs text-slate-400 tabular-nums">
         {score}/3
       </span>
     </div>
