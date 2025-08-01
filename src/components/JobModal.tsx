@@ -141,9 +141,6 @@ export default function JobModal() {
 
                     <div className="flex items-center gap-3 text-xs text-slate-400">
                       <ScoreBar score={selectedJob.cfo_score} />
-                      <span className="tabular-nums">
-                        {selectedJob.cfo_score !== null ? `${selectedJob.cfo_score}/3` : '—'}
-                      </span>
                     </div>
 
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">

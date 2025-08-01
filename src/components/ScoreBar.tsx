@@ -17,7 +17,6 @@ export default function ScoreBar({ score, className = '' }: ScoreBarProps) {
             />
           ))}
         </div>
-        <span className="text-xs text-slate-400 tabular-nums">—</span>
       </div>
     )
   }
@@ -40,12 +39,12 @@ export default function ScoreBar({ score, className = '' }: ScoreBarProps) {
   const segmentColors = getSegmentColors(score)
 
   return (
-    <div 
+    <div
       className={`flex items-center gap-2 ${className}`}
-      role="progressbar" 
-      aria-label={`Score ${score} af 3`} 
-      aria-valuenow={score} 
-      aria-valuemin={0} 
+      role="progressbar"
+      aria-label={`Score ${score} af 3`}
+      aria-valuenow={score}
+      aria-valuemin={0}
       aria-valuemax={3}
     >
       <div className="grid grid-cols-3 gap-[2px] w-16 h-[6px]">
@@ -56,9 +55,6 @@ export default function ScoreBar({ score, className = '' }: ScoreBarProps) {
           />
         ))}
       </div>
-      <span className="text-xs text-slate-400 tabular-nums">
-        {score}/3
-      </span>
     </div>
   )
 } 

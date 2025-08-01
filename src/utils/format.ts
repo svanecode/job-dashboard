@@ -34,9 +34,15 @@ export const getDaysAgo = (dateString: string | null): number => {
   try {
     const date = new Date(dateString)
     const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
+    
+    // Reset time to start of day for accurate day comparison
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    
+    const diffTime = startOfToday.getTime() - startOfDate.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    
+    return Math.abs(diffDays)
   } catch {
     return 0
   }
