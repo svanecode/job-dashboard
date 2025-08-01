@@ -16,11 +16,11 @@ interface PaginatedResponse {
 }
 
 export const jobService = {
-  // Hent alle jobs med pagination (kun ikke-slettede jobs med CFO score)
+  // Hent alle jobs med pagination (kun ikke-slettede jobs med CFO score > 0)
   async getAllJobs(params?: PaginationParams): Promise<PaginatedResponse> {
     if (!supabase) {
       // Fallback til mock data hvis Supabase ikke er konfigureret
-      const scoredJobs = mockJobs.filter(job => job.cfo_score !== null);
+      const scoredJobs = mockJobs.filter(job => (job.cfo_score || 0) > 0);
       const page = params?.page || 1;
       const pageSize = params?.pageSize || 20;
       const startIndex = (page - 1) * pageSize;
@@ -45,7 +45,7 @@ export const jobService = {
       .from('jobs')
       .select('*', { count: 'exact', head: true })
       .is('deleted_at', null)
-      .not('cfo_score', 'is', null);
+      .gt('cfo_score', 0);
 
     if (countError) {
       console.error('Error counting jobs:', countError);
@@ -63,7 +63,7 @@ export const jobService = {
       .from('jobs')
       .select('*')
       .is('deleted_at', null)
-      .not('cfo_score', 'is', null) // Kun jobs med CFO score
+      .gt('cfo_score', 0) // Kun jobs med CFO score > 0
       .order('cfo_score', { ascending: false })
       .order('publication_date', { ascending: false })
       .range(from, to);
@@ -174,7 +174,7 @@ export const jobService = {
       // Fallback til mock data med lokal søgning
       const searchLower = query.toLowerCase();
       const scoredJobs = mockJobs.filter(job => 
-        job.cfo_score !== null && (
+        (job.cfo_score || 0) > 0 && (
           (job.title?.toLowerCase().includes(searchLower) || false) ||
           (job.company?.toLowerCase().includes(searchLower) || false) ||
           (job.description?.toLowerCase().includes(searchLower) || false)
@@ -205,7 +205,7 @@ export const jobService = {
       .from('jobs')
       .select('*', { count: 'exact', head: true })
       .is('deleted_at', null)
-      .not('cfo_score', 'is', null)
+      .gt('cfo_score', 0)
       .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`);
 
     if (countError) {
@@ -224,7 +224,7 @@ export const jobService = {
       .from('jobs')
       .select('*')
       .is('deleted_at', null)
-      .not('cfo_score', 'is', null)
+      .gt('cfo_score', 0)
       .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`)
       .order('cfo_score', { ascending: false })
       .order('publication_date', { ascending: false })
@@ -327,7 +327,7 @@ export const jobService = {
       // Fallback til mock data
       const locationLower = location.toLowerCase();
       const scoredJobs = mockJobs.filter(job => 
-        job.cfo_score !== null && (job.location?.toLowerCase().includes(locationLower) || false)
+        (job.cfo_score || 0) > 0 && (job.location?.toLowerCase().includes(locationLower) || false)
       );
       
       const page = params?.page || 1;
@@ -355,7 +355,7 @@ export const jobService = {
       .select('*', { count: 'exact', head: true })
       .ilike('location', `%${location}%`)
       .is('deleted_at', null)
-      .not('cfo_score', 'is', null);
+      .gt('cfo_score', 0);
 
     if (countError) {
       console.error('Error counting jobs by location:', countError);
@@ -374,7 +374,7 @@ export const jobService = {
       .select('*')
       .ilike('location', `%${location}%`)
       .is('deleted_at', null)
-      .not('cfo_score', 'is', null)
+      .gt('cfo_score', 0)
       .order('cfo_score', { ascending: false })
       .order('publication_date', { ascending: false })
       .range(from, to);
