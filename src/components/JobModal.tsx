@@ -10,7 +10,6 @@ import { useState, useEffect, useRef } from 'react'
 
 export default function JobModal() {
   const { selectedJob, isModalOpen, closeJobModal, paginatedJobs, openJobModal } = useJobStore()
-  const [isExpanded, setIsExpanded] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
@@ -24,11 +23,6 @@ export default function JobModal() {
       previousActiveElement.current?.focus()
     }
   }, [isModalOpen])
-
-  // Reset expanded state when job changes
-  useEffect(() => {
-    setIsExpanded(false)
-  }, [selectedJob?.id])
 
   // Keyboard handlers
   useEffect(() => {
@@ -93,13 +87,17 @@ export default function JobModal() {
     return `for ${daysAgo} dage siden`
   }
 
+  const truncateDescription = (description: string, maxLength: number = 300) => {
+    if (description.length <= maxLength) return description
+    return description.substring(0, maxLength).trim() + '...'
+  }
+
   if (!selectedJob) return null
 
   const hasNavigation = paginatedJobs.length > 1
   const currentIndex = paginatedJobs.findIndex(job => job.id === selectedJob.id)
   const canGoPrevious = currentIndex > 0
   const canGoNext = currentIndex < paginatedJobs.length - 1
-  const shouldShowGradient = !isExpanded && selectedJob.description && selectedJob.description.length > 300
 
   return (
     <AnimatePresence>
@@ -221,24 +219,9 @@ export default function JobModal() {
               <div className="mt-4">
                 <div className="bg-white/5 rounded-lg p-4">
                   {selectedJob.description ? (
-                    <div className="relative">
-                      <p className={`text-slate-200 leading-relaxed break-words max-w-[70ch] ${
-                        isExpanded ? '' : 'line-clamp-6'
-                      }`}>
-                        {selectedJob.description}
-                      </p>
-                      {shouldShowGradient && (
-                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/40 to-transparent rounded-b-lg" />
-                      )}
-                      {selectedJob.description.length > 300 && (
-                        <button
-                          onClick={() => setIsExpanded(!isExpanded)}
-                          className="mt-2 text-sm text-slate-300 hover:text-white underline-offset-2 hover:underline focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                        >
-                          {isExpanded ? 'Vis mindre' : 'Vis mere'}
-                        </button>
-                      )}
-                    </div>
+                    <p className="text-slate-200 leading-relaxed break-words max-w-[70ch]">
+                      {truncateDescription(selectedJob.description)}
+                    </p>
                   ) : (
                     <p className="text-slate-400 italic">
                       Ingen beskrivelse tilgængelig.
