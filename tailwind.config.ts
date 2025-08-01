@@ -45,7 +45,7 @@ const config: Config = {
           '100%': { opacity: '1' },
         },
         slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         scaleIn: {
@@ -53,8 +53,8 @@ const config: Config = {
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
         expand: {
-          '0%': { maxHeight: '0', opacity: '0' },
-          '100%': { maxHeight: 'var(--max-height)', opacity: '1' },
+          '0%': { opacity: '0', height: '0' },
+          '100%': { opacity: '1', height: 'auto' },
         },
       },
     },

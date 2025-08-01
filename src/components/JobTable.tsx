@@ -1,23 +1,40 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   ExternalLink, 
   MapPin, 
   Building2, 
-  Calendar
+  Calendar,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import { Job } from '@/types/job'
 import ScoreBar from './ScoreBar'
 import { formatDate, truncateText } from '@/utils/format'
+import { sortJobs, getAriaSort, type SortConfig, type SortKey } from '@/utils/sort'
 
 export default function JobTable() {
   const { paginatedJobs, openJobModal } = useJobStore()
+  const [sort, setSort] = useState<SortConfig>({ key: 'score', dir: 'desc' })
+
+  const handleSort = (key: SortKey) => {
+    setSort(prev => {
+      if (prev.key === key) {
+        return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      }
+      return { key, dir: 'desc' }
+    })
+  }
 
   const handleRowClick = (job: Job) => {
     openJobModal(job)
   }
+
+  // Sort the jobs
+  const sortedJobs = sortJobs(paginatedJobs, sort)
 
   if (paginatedJobs.length === 0) {
     return (
@@ -44,118 +61,165 @@ export default function JobTable() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.2 }}
-      className="card overflow-hidden"
+      className="card overflow-x-hidden"
     >
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-white/5 sticky top-0 backdrop-blur-sm">
+      <div className="overflow-x-hidden">
+        <table className="table-fixed w-full">
+          <thead className="bg-black/30 backdrop-blur-sm sticky top-0">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Score
+              <th className="w-[130px] px-4 py-4">
+                <button
+                  onClick={() => handleSort('score')}
+                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                  aria-sort={getAriaSort('score', sort)}
+                >
+                  Score
+                  {sort.key === 'score' && (
+                    sort.dir === 'asc' ? 
+                      <ChevronUp className="size-3" /> : 
+                      <ChevronDown className="size-3" />
+                  )}
+                </button>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Firma
+              <th className="md:w-[22%] px-4 py-4">
+                <button
+                  onClick={() => handleSort('company')}
+                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                  aria-sort={getAriaSort('company', sort)}
+                >
+                  Firma
+                  {sort.key === 'company' && (
+                    sort.dir === 'asc' ? 
+                      <ChevronUp className="size-3" /> : 
+                      <ChevronDown className="size-3" />
+                  )}
+                </button>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Titel
+              <th className="md:w-[32%] px-4 py-4">
+                <button
+                  onClick={() => handleSort('title')}
+                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                  aria-sort={getAriaSort('title', sort)}
+                >
+                  Titel
+                  {sort.key === 'title' && (
+                    sort.dir === 'asc' ? 
+                      <ChevronUp className="size-3" /> : 
+                      <ChevronDown className="size-3" />
+                  )}
+                </button>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Lokation
+              <th className="md:w-[16%] px-4 py-4">
+                <button
+                  onClick={() => handleSort('location')}
+                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                  aria-sort={getAriaSort('location', sort)}
+                >
+                  Lokation
+                  {sort.key === 'location' && (
+                    sort.dir === 'asc' ? 
+                      <ChevronUp className="size-3" /> : 
+                      <ChevronDown className="size-3" />
+                  )}
+                </button>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Dato
+              <th className="w-[11%] px-4 py-4">
+                <button
+                  onClick={() => handleSort('date')}
+                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                  aria-sort={getAriaSort('date', sort)}
+                >
+                  Dato
+                  {sort.key === 'date' && (
+                    sort.dir === 'asc' ? 
+                      <ChevronUp className="size-3" /> : 
+                      <ChevronDown className="size-3" />
+                  )}
+                </button>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Link
+              <th className="w-[7%] px-4 py-4">
+                <span className="sr-only">Link</span>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Uddrag
+              <th className="hidden md:table-cell md:w-[12%] px-4 py-4">
+                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Uddrag</span>
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {paginatedJobs.map((job, index) => (
+            {sortedJobs.map((job, index) => (
               <motion.tr
                 key={job.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
                 onClick={() => handleRowClick(job)}
-                className="hover:bg-white/3 transition-colors cursor-pointer group"
+                className="hover:bg-white/5 transition-colors cursor-pointer group"
               >
                 {/* Score */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-3">
-                    <ScoreBar score={job.cfo_score} className="w-16" />
-                    <span className="text-xs text-slate-400">
-                      {job.cfo_score !== null ? `${job.cfo_score}/3` : '—'}
-                    </span>
-                  </div>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <ScoreBar score={job.cfo_score} />
                 </td>
 
                 {/* Company */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="size-4 text-slate-400" />
-                    <span className="text-slate-200 font-medium">
+                <td className="px-4 py-4 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Building2 className="size-4 text-slate-400 flex-shrink-0" />
+                    <span className="text-slate-200 font-medium truncate">
                       {job.company || 'Ukendt firma'}
                     </span>
                   </div>
                 </td>
 
                 {/* Title */}
-                <td className="px-6 py-4">
-                  <div className="max-w-xs">
-                    <span className="text-slate-200 font-medium">
-                      {job.title || 'Ingen titel'}
-                    </span>
-                  </div>
+                <td className="px-4 py-4 min-w-0">
+                  <span className="text-slate-200 font-medium line-clamp-1">
+                    {job.title || 'Ingen titel'}
+                  </span>
                 </td>
 
                 {/* Location */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="size-4 text-slate-400" />
-                    <span className="text-slate-200">
+                <td className="px-4 py-4 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MapPin className="size-4 text-slate-400 flex-shrink-0" />
+                    <span className="text-slate-200 truncate">
                       {job.location || 'Ukendt lokation'}
                     </span>
                   </div>
                 </td>
 
                 {/* Date */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <Calendar className="size-4 text-slate-400" />
-                    <span className="text-slate-200">
+                    <span className="text-slate-200 tabular-nums text-sm">
                       {formatDate(job.publication_date)}
                     </span>
                   </div>
                 </td>
 
                 {/* Link */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-nowrap">
                   {job.job_url ? (
                     <a
                       href={job.job_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-slate-400 hover:text-white transition-colors group/link"
+                      className="inline-flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                      aria-label="Åbn opslag"
                     >
-                      <ExternalLink className="size-4 group-hover/link:scale-110 transition-transform" />
+                      <ExternalLink className="size-4" />
                     </a>
                   ) : (
-                    <span className="text-slate-500">Ingen link</span>
+                    <span className="text-slate-500 text-sm">—</span>
                   )}
                 </td>
 
                 {/* Excerpt */}
-                <td className="px-6 py-4">
-                  <div className="max-w-xs">
-                    <p className="text-slate-300 text-sm line-clamp-2">
-                      {truncateText(job.description, 80)}
-                    </p>
-                  </div>
+                <td className="hidden md:table-cell px-4 py-4 min-w-0">
+                  <p className="text-slate-300 text-sm line-clamp-1">
+                    {truncateText(job.description, 60)}
+                  </p>
                 </td>
               </motion.tr>
             ))}
