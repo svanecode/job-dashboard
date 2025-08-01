@@ -6,6 +6,7 @@ const config: Config = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -15,6 +16,12 @@ const config: Config = {
         ink: '#0B0F14',
         panel: 'rgba(18,22,28,0.6)',
         border: 'rgba(255,255,255,0.08)',
+        kpmg: {
+          900: '#00338D',
+          700: '#005EB8',
+          500: '#0091DA',
+          300: '#6EC1E4',
+        },
         slate: {
           200: '#e2e8f0',
           300: '#cbd5e1',
@@ -30,6 +37,7 @@ const config: Config = {
         'fade-in': 'fadeIn 0.3s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
+        'expand': 'expand 0.2s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -43,6 +51,10 @@ const config: Config = {
         scaleIn: {
           '0%': { opacity: '0', transform: 'scale(0.95)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        expand: {
+          '0%': { maxHeight: '0', opacity: '0' },
+          '100%': { maxHeight: 'var(--max-height)', opacity: '1' },
         },
       },
     },

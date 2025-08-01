@@ -74,13 +74,14 @@ export const useJobStore = create<JobStore>((set, get) => ({
   applyFilters: () => {
     const { filters } = get();
     
-    // Apply filters based on current filters
-    if (filters.score !== undefined) {
+    // For now, we'll use the most specific filter
+    // In a real implementation, you'd want to combine filters
+    if (filters.searchText) {
+      get().searchJobs(filters.searchText);
+    } else if (filters.score !== undefined) {
       get().fetchJobsByScore(filters.score);
     } else if (filters.location) {
       get().fetchJobsByLocation(filters.location);
-    } else if (filters.searchText) {
-      get().searchJobs(filters.searchText);
     } else {
       get().fetchJobs();
     }

@@ -20,4 +20,5 @@ export interface JobFilters {
   score?: number;
   location?: string;
   searchText?: string;
+  daysAgo?: number;
 } 
