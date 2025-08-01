@@ -47,16 +47,16 @@ export default function JobModal() {
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
+      <div className="bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <ScoreBadge score={selectedJob.cfo_score} />
-              <h2 className="text-xl font-semibold text-gray-900">{selectedJob.title || 'Ingen titel'}</h2>
+              <h2 className="text-xl font-semibold text-white">{selectedJob.title || 'Ingen titel'}</h2>
             </div>
             <button
               onClick={closeJobModal}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-300 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -68,28 +68,28 @@ export default function JobModal() {
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
                 Firma
               </h3>
-              <p className="text-lg font-medium text-gray-900">{selectedJob.company || 'Ukendt firma'}</p>
+              <p className="text-lg font-medium text-white">{selectedJob.company || 'Ukendt firma'}</p>
             </div>
             
             <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
                 Lokation
               </h3>
-              <p className="text-lg text-gray-900">{selectedJob.location || 'Ukendt lokation'}</p>
+              <p className="text-lg text-white">{selectedJob.location || 'Ukendt lokation'}</p>
             </div>
             
             <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
                 Publiceringsdato
               </h3>
-              <p className="text-lg text-gray-900">{selectedJob.publication_date ? formatDate(selectedJob.publication_date) : 'Ukendt dato'}</p>
+              <p className="text-lg text-white">{selectedJob.publication_date ? formatDate(selectedJob.publication_date) : 'Ukendt dato'}</p>
             </div>
             
             <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
                 Prioritet
               </h3>
               <ScoreBadge score={selectedJob.cfo_score} />
@@ -97,11 +97,11 @@ export default function JobModal() {
           </div>
 
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
               Jobbeskrivelse
             </h3>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-900 whitespace-pre-wrap">{selectedJob.description || 'Ingen beskrivelse tilgængelig'}</p>
+            <div className="bg-gray-700 rounded-lg p-4">
+              <p className="text-gray-200 whitespace-pre-wrap">{selectedJob.description || 'Ingen beskrivelse tilgængelig'}</p>
             </div>
           </div>
 
@@ -125,13 +125,13 @@ export default function JobModal() {
             )}
             <button
               onClick={handleSendToCRM}
-              className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-medium"
+              className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors font-medium"
             >
               Send til CRM
             </button>
             <button
               onClick={closeJobModal}
-              className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium"
+              className="flex-1 bg-gray-700 text-gray-200 px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors font-medium"
             >
               Luk
             </button>

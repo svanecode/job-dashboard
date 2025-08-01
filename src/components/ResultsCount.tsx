@@ -10,14 +10,14 @@ export default function ResultsCount() {
 
   return (
     <div className="mb-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-400">
         {isFiltered ? (
           <>
-            Viser <span className="font-medium">{filteredCount}</span> af <span className="font-medium">{totalJobs}</span> jobs
+            Viser <span className="font-medium text-white">{filteredCount}</span> af <span className="font-medium text-white">{totalJobs}</span> jobs
           </>
         ) : (
           <>
-            Viser alle <span className="font-medium">{totalJobs}</span> jobs
+            Viser alle <span className="font-medium text-white">{totalJobs}</span> jobs
           </>
         )}
       </p>

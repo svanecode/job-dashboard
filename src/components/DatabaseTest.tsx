@@ -62,13 +62,13 @@ export default function DatabaseTest() {
 
   if (isLoading) {
     return (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 mb-6">
         <div className="flex items-center">
           <svg className="animate-spin h-5 w-5 text-blue-400 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span className="text-blue-800">Tester database forbindelse...</span>
+          <span className="text-blue-300">Tester database forbindelse...</span>
         </div>
       </div>
     );
@@ -76,15 +76,15 @@ export default function DatabaseTest() {
 
   if (!isConnected) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 mb-6">
         <div className="flex items-start">
           <svg className="h-5 w-5 text-red-400 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h3 className="text-sm font-medium text-red-800">Database forbindelse fejlede</h3>
-            <p className="text-sm text-red-700 mt-1">{error}</p>
-            <div className="mt-3 text-sm text-red-700">
+            <h3 className="text-sm font-medium text-red-300">Database forbindelse fejlede</h3>
+            <p className="text-sm text-red-400 mt-1">{error}</p>
+            <div className="mt-3 text-sm text-red-400">
               <p><strong>Tjek:</strong></p>
               <ul className="list-disc list-inside mt-1 space-y-1">
                 <li>At du har oprettet en .env.local fil</li>
@@ -100,26 +100,26 @@ export default function DatabaseTest() {
   }
 
   return (
-    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+    <div className="bg-green-900/20 border border-green-700 rounded-lg p-4 mb-6">
       <div className="flex items-start">
         <svg className="h-5 w-5 text-green-400 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div className="flex-1">
-          <h3 className="text-sm font-medium text-green-800">Database forbindelse succesfuld! 🎉</h3>
-          <p className="text-sm text-green-700 mt-1">
-            Fundet <strong>{jobCount}</strong> jobs i databasen
+          <h3 className="text-sm font-medium text-green-300">Database forbindelse succesfuld! 🎉</h3>
+          <p className="text-sm text-green-400 mt-1">
+            Fundet <strong className="text-green-200">{jobCount}</strong> jobs i databasen
           </p>
           
           {sampleJobs.length > 0 && (
             <div className="mt-3">
-              <p className="text-sm font-medium text-green-800 mb-2">Sample jobs:</p>
+              <p className="text-sm font-medium text-green-300 mb-2">Sample jobs:</p>
               <div className="space-y-2">
                 {sampleJobs.map((job) => (
-                  <div key={job.id} className="bg-white rounded p-2 text-sm">
-                    <div className="font-medium">{job.title || 'Ingen titel'}</div>
-                    <div className="text-gray-600">{job.company || 'Ukendt firma'}</div>
-                    <div className="text-gray-500 text-xs">
+                  <div key={job.id} className="bg-gray-700 rounded p-2 text-sm">
+                    <div className="font-medium text-white">{job.title || 'Ingen titel'}</div>
+                    <div className="text-gray-300">{job.company || 'Ukendt firma'}</div>
+                    <div className="text-gray-400 text-xs">
                       Score: {job.cfo_score ?? 'Ikke scoret'} | 
                       Dato: {job.publication_date || 'Ukendt'}
                     </div>

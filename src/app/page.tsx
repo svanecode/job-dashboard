@@ -17,14 +17,14 @@ export default function Home() {
   }, [fetchJobs]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-white mb-2">
             KPMG CFO Interim Dashboard
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-300">
             Find virksomheder der har behov for CFO Interim Assistance
           </p>
         </div>
@@ -34,7 +34,7 @@ export default function Home() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="mb-6 bg-red-900/20 border border-red-700 rounded-lg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -42,7 +42,7 @@ export default function Home() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-800">{error}</p>
+                <p className="text-sm text-red-300">{error}</p>
               </div>
             </div>
           </div>
@@ -50,7 +50,7 @@ export default function Home() {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="mb-6 bg-blue-900/20 border border-blue-700 rounded-lg p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <svg className="animate-spin h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@ export default function Home() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-blue-800">Henter jobs...</p>
+                <p className="text-sm text-blue-300">Henter jobs...</p>
               </div>
             </div>
           </div>
