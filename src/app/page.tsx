@@ -9,7 +9,6 @@ import JobTable from '@/components/JobTable'
 import JobModal from '@/components/JobModal'
 import ResultsCount from '@/components/ResultsCount'
 import Pagination from '@/components/Pagination'
-import ConnectionStatus from '@/components/ConnectionStatus'
 
 export default function Home() {
   const { 
@@ -49,11 +48,6 @@ export default function Home() {
             Find virksomheder der har behov for CFO Interim Assistance
           </p>
         </motion.div>
-
-        {/* Connection Status */}
-        <div className="mb-6">
-          <ConnectionStatus />
-        </div>
 
         {/* Error Message */}
         {error && (
