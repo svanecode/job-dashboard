@@ -6,6 +6,7 @@ import ResultsCount from '@/components/ResultsCount';
 import JobTable from '@/components/JobTable';
 import JobModal from '@/components/JobModal';
 import ConnectionStatus from '@/components/ConnectionStatus';
+import DatabaseTest from '@/components/DatabaseTest';
 import { useJobStore } from '@/store/jobStore';
 
 export default function Home() {
@@ -27,6 +28,9 @@ export default function Home() {
             Find virksomheder der har behov for CFO Interim Assistance
           </p>
         </div>
+
+        {/* Database Test */}
+        <DatabaseTest />
 
         {/* Error Message */}
         {error && (
