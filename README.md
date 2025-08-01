@@ -49,8 +49,9 @@ Dashboardet giver cheferne mulighed for at:
 - **Framework**: Next.js 14 (App Router)
 - **Styling**: Tailwind CSS
 - **State Management**: Zustand
+- **Database**: Supabase (PostgreSQL)
 - **TypeScript**: Fuldt type-sikret
-- **Mock Data**: 10 jobopslag lokalt
+- **Mock Data**: 10 jobopslag lokalt (kan skiftes til Supabase)
 
 ## 📦 Installation
 
@@ -72,6 +73,15 @@ npm run dev
 
 4. Åbn [http://localhost:3000](http://localhost:3000) i din browser
 
+## 🗄️ Supabase Setup
+
+For at bruge Supabase som database:
+
+1. Følg guiden i [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
+2. Opret en `.env.local` fil med dine Supabase credentials
+3. Kør SQL scriptet i `supabase/schema.sql`
+4. Dashboardet vil automatisk bruge Supabase i stedet for mock data
+
 ## 📁 Projektstruktur
 
 ```
@@ -84,10 +94,15 @@ src/
 │   ├── FilterBar.tsx      # Søge og filtrering
 │   ├── JobModal.tsx       # Jobdetaljer modal
 │   ├── JobTable.tsx       # Jobtabel
+│   ├── ResultsCount.tsx   # Resultat tæller
 │   ├── ScoreBadge.tsx     # Score badge komponent
 │   └── StatsOverview.tsx  # Statistik oversigt
 ├── data/
 │   └── mockJobs.ts        # Mock job data
+├── lib/
+│   └── supabase.ts        # Supabase klient
+├── services/
+│   └── jobService.ts      # Database service
 ├── store/
 │   └── jobStore.ts        # Zustand store
 └── types/
@@ -128,13 +143,14 @@ npm start
 
 ## 📝 TODO
 
-- [ ] Integrer med rigtig API
+- [x] Integrer med Supabase database
 - [ ] Tilføj CRM integration
 - [ ] Implementer bruger authentication
 - [ ] Tilføj eksport funktionalitet
 - [ ] Tilføj notifikationer
 - [ ] Implementer caching
 - [ ] Tilføj unit tests
+- [ ] Tilføj admin panel til job management
 
 ## 🤝 Bidrag
 
