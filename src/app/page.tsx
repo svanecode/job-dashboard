@@ -6,6 +6,7 @@ import { useJobStore } from '@/store/jobStore'
 import StatCard from '@/components/StatCard'
 import FilterBar from '@/components/FilterBar'
 import JobTable from '@/components/JobTable'
+import JobModal from '@/components/JobModal'
 import ResultsCount from '@/components/ResultsCount'
 import Pagination from '@/components/Pagination'
 import ConnectionStatus from '@/components/ConnectionStatus'
@@ -126,6 +127,9 @@ export default function Home() {
           <Pagination />
         </div>
       </div>
+
+      {/* Job Modal */}
+      <JobModal />
     </main>
   )
 }
