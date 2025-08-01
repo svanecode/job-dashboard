@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   ExternalLink, 
@@ -13,30 +12,28 @@ import {
 import { useJobStore } from '@/store/jobStore'
 import { Job } from '@/types/job'
 import ScoreBar from './ScoreBar'
-import { formatDate, truncateText } from '@/utils/format'
-import { sortJobs, getAriaSort, type SortConfig, type SortKey } from '@/utils/sort'
+import { formatDate } from '@/utils/format'
+import { getAriaSort, type SortKey, type SortDirection } from '@/utils/sort'
 
 export default function JobTable() {
-  const { paginatedJobs, openJobModal } = useJobStore()
-  const [sort, setSort] = useState<SortConfig>({ key: 'score', dir: 'desc' })
+  const { paginatedJobs, openJobModal, sort, setSort } = useJobStore()
 
   const handleSort = (key: SortKey) => {
-    setSort(prev => {
-      if (prev.key === key) {
-        return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-      }
-      return { key, dir: 'desc' }
-    })
+    const newSort = {
+      key,
+      dir: (sort.key === key && sort.dir === 'asc' ? 'desc' : 'desc') as SortDirection
+    }
+    setSort(newSort)
   }
 
   const handleRowClick = (job: Job) => {
     openJobModal(job)
   }
 
-  // Sort the jobs
-  const sortedJobs = sortJobs(paginatedJobs, sort)
+  // Filter jobs with score > 0
+  const filteredJobs = paginatedJobs.filter(job => (job.cfo_score || 0) > 0)
 
-  if (paginatedJobs.length === 0) {
+  if (filteredJobs.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -81,7 +78,7 @@ export default function JobTable() {
                   )}
                 </button>
               </th>
-              <th className="md:w-[22%] px-4 py-4">
+              <th className="md:w-[28%] px-4 py-4">
                 <button
                   onClick={() => handleSort('company')}
                   className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
@@ -95,7 +92,7 @@ export default function JobTable() {
                   )}
                 </button>
               </th>
-              <th className="md:w-[32%] px-4 py-4">
+              <th className="md:w-[40%] px-4 py-4">
                 <button
                   onClick={() => handleSort('title')}
                   className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
@@ -109,7 +106,7 @@ export default function JobTable() {
                   )}
                 </button>
               </th>
-              <th className="md:w-[16%] px-4 py-4">
+              <th className="md:w-[20%] px-4 py-4">
                 <button
                   onClick={() => handleSort('location')}
                   className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
@@ -123,7 +120,7 @@ export default function JobTable() {
                   )}
                 </button>
               </th>
-              <th className="w-[11%] px-4 py-4">
+              <th className="w-[12%] px-4 py-4">
                 <button
                   onClick={() => handleSort('date')}
                   className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
@@ -137,16 +134,13 @@ export default function JobTable() {
                   )}
                 </button>
               </th>
-              <th className="w-[7%] px-4 py-4">
+              <th className="w-[8%] px-4 py-4">
                 <span className="sr-only">Link</span>
-              </th>
-              <th className="hidden md:table-cell md:w-[12%] px-4 py-4">
-                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Uddrag</span>
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {sortedJobs.map((job, index) => (
+            {filteredJobs.map((job, index) => (
               <motion.tr
                 key={job.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -213,13 +207,6 @@ export default function JobTable() {
                   ) : (
                     <span className="text-slate-500 text-sm">—</span>
                   )}
-                </td>
-
-                {/* Excerpt */}
-                <td className="hidden md:table-cell px-4 py-4 min-w-0">
-                  <p className="text-slate-300 text-sm line-clamp-1">
-                    {truncateText(job.description, 60)}
-                  </p>
                 </td>
               </motion.tr>
             ))}

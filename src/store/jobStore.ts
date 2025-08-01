@@ -1,213 +1,275 @@
-import { create } from 'zustand';
-import { Job, JobFilters } from '@/types/job';
-import { jobService } from '@/services/jobService';
+import { create } from 'zustand'
+import { Job, JobFilters } from '@/types/job'
+import { jobService } from '@/services/jobService'
+import { mockJobs } from '@/data/mockJobs'
+import { sortJobs, type SortConfig } from '@/utils/sort'
 
 interface JobStore {
-  jobs: Job[];
-  filteredJobs: Job[];
-  paginatedJobs: Job[];
-  selectedJob: Job | null;
-  filters: JobFilters;
-  isModalOpen: boolean;
-  isLoading: boolean;
-  error: string | null;
-  currentPage: number;
-  jobsPerPage: number;
-  totalJobs: number;
-  totalPages: number;
+  // Data
+  jobs: Job[]
+  paginatedJobs: Job[]
+  totalJobs: number
+  totalPages: number
+  currentPage: number
+  jobsPerPage: number
+  
+  // UI State
+  isLoading: boolean
+  error: string | null
+  selectedJob: Job | null
+  isModalOpen: boolean
+  
+  // Filters
+  filters: JobFilters
+  
+  // Sorting
+  sort: SortConfig
   
   // Actions
-  setJobs: (jobs: Job[]) => void;
-  setFilters: (filters: JobFilters) => void;
-  setSelectedJob: (job: Job | null) => void;
-  setIsModalOpen: (isOpen: boolean) => void;
-  openJobModal: (job: Job) => void;
-  closeJobModal: () => void;
-  applyFilters: () => void;
-  resetFilters: () => void;
-  setCurrentPage: (page: number) => void;
+  setFilters: (filters: Partial<JobFilters>) => void
+  resetFilters: () => void
+  applyFilters: () => void
+  setCurrentPage: (page: number) => void
+  setSort: (sort: SortConfig) => void
   
-  // Async actions
-  fetchJobs: () => Promise<void>;
-  fetchJobsByScore: (score: number) => Promise<void>;
-  fetchJobsByLocation: (location: string) => Promise<void>;
-  searchJobs: (query: string) => Promise<void>;
-  createJob: (job: Omit<Job, 'id'>) => Promise<void>;
-  updateJob: (id: number, updates: Partial<Job>) => Promise<void>;
-  deleteJob: (id: number) => Promise<void>;
+  // Data fetching
+  fetchJobs: () => Promise<void>
+  searchJobs: (query: string) => Promise<void>
+  fetchJobsByScore: (score: number) => Promise<void>
+  fetchJobsByLocation: (location: string) => Promise<void>
+  
+  // CRUD operations
+  createJob: (job: Omit<Job, 'id'>) => Promise<void>
+  updateJob: (id: number, job: Partial<Job>) => Promise<void>
+  deleteJob: (id: number) => Promise<void>
+  
+  // Modal
+  openJobModal: (job: Job) => void
+  closeJobModal: () => void
 }
 
 export const useJobStore = create<JobStore>((set, get) => ({
+  // Initial state
   jobs: [],
-  filteredJobs: [],
   paginatedJobs: [],
-  selectedJob: null,
-  filters: {},
-  isModalOpen: false,
-  isLoading: false,
-  error: null,
-  currentPage: 1,
-  jobsPerPage: 20,
   totalJobs: 0,
   totalPages: 0,
-
-  setJobs: (jobs) => set({ jobs }),
+  currentPage: 1,
+  jobsPerPage: 20,
   
-  setFilters: (filters) => {
-    set({ filters, currentPage: 1 }); // Reset to first page when filters change
-    get().applyFilters();
+  isLoading: false,
+  error: null,
+  selectedJob: null,
+  isModalOpen: false,
+  
+  filters: {
+    score: undefined,
+    location: '',
+    searchText: '',
+    daysAgo: undefined,
   },
   
-  setSelectedJob: (job) => set({ selectedJob: job }),
+  sort: { key: 'score', dir: 'desc' },
   
-  setIsModalOpen: (isOpen) => set({ isModalOpen: isOpen }),
+  // Filter actions
+  setFilters: (newFilters) => {
+    set((state) => ({
+      filters: { ...state.filters, ...newFilters },
+      currentPage: 1, // Reset to first page when filters change
+    }))
+  },
   
-  openJobModal: (job) => set({ selectedJob: job, isModalOpen: true }),
-  
-  closeJobModal: () => set({ selectedJob: null, isModalOpen: false }),
-  
-  setCurrentPage: (page: number) => {
-    set({ currentPage: page });
-    get().applyFilters();
+  resetFilters: () => {
+    set((state) => ({
+      filters: {
+        score: undefined,
+        location: '',
+        searchText: '',
+        daysAgo: undefined,
+      },
+      currentPage: 1,
+    }))
   },
   
   applyFilters: () => {
-    const { filters } = get();
+    const { filters, sort } = get()
     
     // For now, we'll use the most specific filter
     // In a real implementation, you'd want to combine filters
     if (filters.searchText) {
-      get().searchJobs(filters.searchText);
+      get().searchJobs(filters.searchText)
     } else if (filters.score !== undefined) {
-      get().fetchJobsByScore(filters.score);
+      get().fetchJobsByScore(filters.score)
     } else if (filters.location) {
-      get().fetchJobsByLocation(filters.location);
+      get().fetchJobsByLocation(filters.location)
     } else {
-      get().fetchJobs();
+      get().fetchJobs()
     }
   },
   
-  resetFilters: () => {
-    set({ filters: {}, currentPage: 1 });
-    get().fetchJobs();
+  setCurrentPage: (page) => {
+    set({ currentPage: page })
+    get().applyFilters() // Re-fetch data for new page
   },
-
-  // Async actions
+  
+  setSort: (newSort) => {
+    set({ sort: newSort })
+    // Re-sort all jobs with new sort config
+    const { jobs } = get()
+    const sortedJobs = sortJobs(jobs, newSort)
+    set({ paginatedJobs: sortedJobs })
+  },
+  
+  // Data fetching
   fetchJobs: async () => {
-    const { currentPage, jobsPerPage } = get();
-    set({ isLoading: true, error: null });
-    
+    set({ isLoading: true, error: null })
     try {
-      const response = await jobService.getAllJobs({ page: currentPage, pageSize: jobsPerPage });
-      set({ 
+      const { currentPage, jobsPerPage } = get()
+      const response = await jobService.getAllJobs({ page: currentPage, pageSize: jobsPerPage })
+      
+      // Sort all jobs and then paginate
+      const sortedJobs = sortJobs(response.data, get().sort)
+      const startIndex = (currentPage - 1) * jobsPerPage
+      const endIndex = startIndex + jobsPerPage
+      const paginatedJobs = sortedJobs.slice(startIndex, endIndex)
+      
+      set({
         jobs: response.data,
-        paginatedJobs: response.data,
+        paginatedJobs,
         totalJobs: response.total,
         totalPages: response.totalPages,
-        isLoading: false 
-      });
+        isLoading: false,
+      })
     } catch (error) {
-      set({ error: 'Fejl ved hentning af jobs', isLoading: false });
-      console.error('Error fetching jobs:', error);
+      console.error('Error fetching jobs:', error)
+      set({
+        error: 'Fejl ved indlæsning af jobs',
+        isLoading: false,
+      })
     }
   },
-
-  fetchJobsByScore: async (score: number) => {
-    const { currentPage, jobsPerPage } = get();
-    set({ isLoading: true, error: null });
-    
-    try {
-      const response = await jobService.getJobsByScore(score, { page: currentPage, pageSize: jobsPerPage });
-      set({ 
-        jobs: response.data,
-        paginatedJobs: response.data,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
-        isLoading: false 
-      });
-    } catch (error) {
-      set({ error: 'Fejl ved hentning af jobs', isLoading: false });
-      console.error('Error fetching jobs by score:', error);
-    }
-  },
-
-  fetchJobsByLocation: async (location: string) => {
-    const { currentPage, jobsPerPage } = get();
-    set({ isLoading: true, error: null });
-    
-    try {
-      const response = await jobService.getJobsByLocation(location, { page: currentPage, pageSize: jobsPerPage });
-      set({ 
-        jobs: response.data,
-        paginatedJobs: response.data,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
-        isLoading: false 
-      });
-    } catch (error) {
-      set({ error: 'Fejl ved hentning af jobs', isLoading: false });
-      console.error('Error fetching jobs by location:', error);
-    }
-  },
-
+  
   searchJobs: async (query: string) => {
-    const { currentPage, jobsPerPage } = get();
-    set({ isLoading: true, error: null });
-    
+    set({ isLoading: true, error: null })
     try {
-      const response = await jobService.searchJobs(query, { page: currentPage, pageSize: jobsPerPage });
-      set({ 
+      const { currentPage, jobsPerPage } = get()
+      const response = await jobService.searchJobs(query, { page: currentPage, pageSize: jobsPerPage })
+      
+      // Sort all jobs and then paginate
+      const sortedJobs = sortJobs(response.data, get().sort)
+      const startIndex = (currentPage - 1) * jobsPerPage
+      const endIndex = startIndex + jobsPerPage
+      const paginatedJobs = sortedJobs.slice(startIndex, endIndex)
+      
+      set({
         jobs: response.data,
-        paginatedJobs: response.data,
+        paginatedJobs,
         totalJobs: response.total,
         totalPages: response.totalPages,
-        isLoading: false 
-      });
+        isLoading: false,
+      })
     } catch (error) {
-      set({ error: 'Fejl ved søgning', isLoading: false });
-      console.error('Error searching jobs:', error);
+      console.error('Error searching jobs:', error)
+      set({
+        error: 'Fejl ved søgning',
+        isLoading: false,
+      })
     }
   },
-
-  createJob: async (job: Omit<Job, 'id'>) => {
-    set({ isLoading: true, error: null });
+  
+  fetchJobsByScore: async (score: number) => {
+    set({ isLoading: true, error: null })
     try {
-      const newJob = await jobService.createJob(job);
-      const { jobs } = get();
-      const updatedJobs = [newJob, ...jobs];
-      set({ jobs: updatedJobs, isLoading: false });
-      get().fetchJobs(); // Refresh with current pagination
+      const { currentPage, jobsPerPage } = get()
+      const response = await jobService.getJobsByScore(score, { page: currentPage, pageSize: jobsPerPage })
+      
+      // Sort all jobs and then paginate
+      const sortedJobs = sortJobs(response.data, get().sort)
+      const startIndex = (currentPage - 1) * jobsPerPage
+      const endIndex = startIndex + jobsPerPage
+      const paginatedJobs = sortedJobs.slice(startIndex, endIndex)
+      
+      set({
+        jobs: response.data,
+        paginatedJobs,
+        totalJobs: response.total,
+        totalPages: response.totalPages,
+        isLoading: false,
+      })
     } catch (error) {
-      set({ error: 'Fejl ved oprettelse af job', isLoading: false });
-      console.error('Error creating job:', error);
+      console.error('Error fetching jobs by score:', error)
+      set({
+        error: 'Fejl ved indlæsning af jobs',
+        isLoading: false,
+      })
     }
   },
-
-  updateJob: async (id: number, updates: Partial<Job>) => {
-    set({ isLoading: true, error: null });
+  
+  fetchJobsByLocation: async (location: string) => {
+    set({ isLoading: true, error: null })
     try {
-      const updatedJob = await jobService.updateJob(id, updates);
-      const { jobs } = get();
-      const updatedJobs = jobs.map(job => job.id === id ? updatedJob : job);
-      set({ jobs: updatedJobs, isLoading: false });
-      get().fetchJobs(); // Refresh with current pagination
+      const { currentPage, jobsPerPage } = get()
+      const response = await jobService.getJobsByLocation(location, { page: currentPage, pageSize: jobsPerPage })
+      
+      // Sort all jobs and then paginate
+      const sortedJobs = sortJobs(response.data, get().sort)
+      const startIndex = (currentPage - 1) * jobsPerPage
+      const endIndex = startIndex + jobsPerPage
+      const paginatedJobs = sortedJobs.slice(startIndex, endIndex)
+      
+      set({
+        jobs: response.data,
+        paginatedJobs,
+        totalJobs: response.total,
+        totalPages: response.totalPages,
+        isLoading: false,
+      })
     } catch (error) {
-      set({ error: 'Fejl ved opdatering af job', isLoading: false });
-      console.error('Error updating job:', error);
+      console.error('Error fetching jobs by location:', error)
+      set({
+        error: 'Fejl ved indlæsning af jobs',
+        isLoading: false,
+      })
     }
   },
-
-  deleteJob: async (id: number) => {
-    set({ isLoading: true, error: null });
+  
+  // CRUD operations
+  createJob: async (job) => {
     try {
-      await jobService.deleteJob(id);
-      const { jobs } = get();
-      const updatedJobs = jobs.filter(job => job.id !== id);
-      set({ jobs: updatedJobs, isLoading: false });
-      get().fetchJobs(); // Refresh with current pagination
+      await jobService.createJob(job)
+      get().applyFilters() // Refresh data
     } catch (error) {
-      set({ error: 'Fejl ved sletning af job', isLoading: false });
-      console.error('Error deleting job:', error);
+      console.error('Error creating job:', error)
+      set({ error: 'Fejl ved oprettelse af job' })
     }
-  }
-})); 
+  },
+  
+  updateJob: async (id, job) => {
+    try {
+      await jobService.updateJob(id, job)
+      get().applyFilters() // Refresh data
+    } catch (error) {
+      console.error('Error updating job:', error)
+      set({ error: 'Fejl ved opdatering af job' })
+    }
+  },
+  
+  deleteJob: async (id) => {
+    try {
+      await jobService.deleteJob(id)
+      get().applyFilters() // Refresh data
+    } catch (error) {
+      console.error('Error deleting job:', error)
+      set({ error: 'Fejl ved sletning af job' })
+    }
+  },
+  
+  // Modal actions
+  openJobModal: (job) => {
+    set({ selectedJob: job, isModalOpen: true })
+  },
+  
+  closeJobModal: () => {
+    set({ selectedJob: null, isModalOpen: false })
+  },
+})) 

@@ -3,11 +3,10 @@ export const formatDate = (dateString: string | null): string => {
   
   try {
     const date = new Date(dateString)
-    return date.toLocaleDateString('da-DK', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit'
-    })
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}-${month}-${year}`
   } catch {
     return '—'
   }
