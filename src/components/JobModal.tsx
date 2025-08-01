@@ -9,7 +9,7 @@ import { handleModalKeyDown, createFocusTrap } from '@/utils/keyboard'
 import { useState, useEffect, useRef } from 'react'
 
 export default function JobModal() {
-  const { selectedJob, isModalOpen, closeJobModal, paginatedJobs } = useJobStore()
+  const { selectedJob, isModalOpen, closeJobModal, paginatedJobs, openJobModal } = useJobStore()
   const [isExpanded, setIsExpanded] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
@@ -71,9 +71,7 @@ export default function JobModal() {
     const currentIndex = paginatedJobs.findIndex(job => job.id === selectedJob.id)
     if (currentIndex > 0) {
       const previousJob = paginatedJobs[currentIndex - 1]
-      // This would need to be implemented in the store
-      // For now, we'll just close the modal
-      closeJobModal()
+      openJobModal(previousJob)
     }
   }
 
@@ -83,9 +81,7 @@ export default function JobModal() {
     const currentIndex = paginatedJobs.findIndex(job => job.id === selectedJob.id)
     if (currentIndex < paginatedJobs.length - 1) {
       const nextJob = paginatedJobs[currentIndex + 1]
-      // This would need to be implemented in the store
-      // For now, we'll just close the modal
-      closeJobModal()
+      openJobModal(nextJob)
     }
   }
 
@@ -103,6 +99,7 @@ export default function JobModal() {
   const currentIndex = paginatedJobs.findIndex(job => job.id === selectedJob.id)
   const canGoPrevious = currentIndex > 0
   const canGoNext = currentIndex < paginatedJobs.length - 1
+  const shouldShowGradient = !isExpanded && selectedJob.description && selectedJob.description.length > 300
 
   return (
     <AnimatePresence>
@@ -230,7 +227,7 @@ export default function JobModal() {
                       }`}>
                         {selectedJob.description}
                       </p>
-                      {!isExpanded && selectedJob.description.length > 300 && (
+                      {shouldShowGradient && (
                         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/40 to-transparent rounded-b-lg" />
                       )}
                       {selectedJob.description.length > 300 && (
