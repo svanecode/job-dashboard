@@ -1,13 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Flame, Bolt, Layers, TrendingUp } from 'lucide-react'
+import { Flame, Bolt, Layers, TrendingUp, Briefcase } from 'lucide-react'
 
 interface StatCardProps {
   title: string
   value: number
   tone: 'success' | 'warn' | 'muted' | 'info'
-  icon: 'flame' | 'bolt' | 'stack' | 'trending'
+  icon: 'flame' | 'bolt' | 'stack' | 'trending' | 'briefcase'
 }
 
 const iconMap = {
@@ -15,6 +15,7 @@ const iconMap = {
   bolt: Bolt,
   stack: Layers,
   trending: TrendingUp,
+  briefcase: Briefcase,
 }
 
 const toneStyles = {
