@@ -3,8 +3,10 @@ import { useJobStore } from '@/store/jobStore';
 
 export default function ResultsCount() {
   const { filteredJobs, jobs } = useJobStore();
-  
-  const totalJobs = jobs.length;
+
+  // Only count jobs with CFO score
+  const scoredJobs = jobs.filter(job => job.cfo_score !== null);
+  const totalJobs = scoredJobs.length;
   const filteredCount = filteredJobs.length;
   const isFiltered = filteredCount !== totalJobs;
 

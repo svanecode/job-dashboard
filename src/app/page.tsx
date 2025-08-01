@@ -4,9 +4,9 @@ import StatsOverview from '@/components/StatsOverview';
 import FilterBar from '@/components/FilterBar';
 import ResultsCount from '@/components/ResultsCount';
 import JobTable from '@/components/JobTable';
+import Pagination from '@/components/Pagination';
 import JobModal from '@/components/JobModal';
 import ConnectionStatus from '@/components/ConnectionStatus';
-import DatabaseTest from '@/components/DatabaseTest';
 import { useJobStore } from '@/store/jobStore';
 
 export default function Home() {
@@ -29,8 +29,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Database Test */}
-        <DatabaseTest />
+        
 
         {/* Error Message */}
         {error && (
@@ -74,11 +73,14 @@ export default function Home() {
         {/* Results Count */}
         <ResultsCount />
 
-        {/* Job Table */}
-        <JobTable />
+                       {/* Job Table */}
+               <JobTable />
 
-        {/* Job Modal */}
-        <JobModal />
+               {/* Pagination */}
+               <Pagination />
+
+               {/* Job Modal */}
+               <JobModal />
 
         {/* Connection Status */}
         <ConnectionStatus />

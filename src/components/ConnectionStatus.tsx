@@ -22,7 +22,7 @@ export default function ConnectionStatus() {
            .limit(1);
 
          setIsConnected(!dbError);
-       } catch (error) {
+       } catch {
         setIsConnected(false);
       } finally {
         setIsLoading(false);

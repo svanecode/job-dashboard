@@ -4,7 +4,7 @@ import ScoreBadge from './ScoreBadge';
 import { Job } from '@/types/job';
 
 export default function JobTable() {
-  const { filteredJobs, openJobModal } = useJobStore();
+  const { paginatedJobs, openJobModal } = useJobStore();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('da-DK');
@@ -14,7 +14,7 @@ export default function JobTable() {
     openJobModal(job);
   };
 
-  if (filteredJobs.length === 0) {
+  if (paginatedJobs.length === 0) {
     return (
       <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-8 text-center">
         <div className="flex flex-col items-center space-y-4">
@@ -54,8 +54,8 @@ export default function JobTable() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-gray-800 divide-y divide-gray-700">
-            {filteredJobs.map((job) => (
+                          <tbody className="bg-gray-800 divide-y divide-gray-700">
+                  {paginatedJobs.map((job) => (
               <tr
                 key={job.id}
                 onClick={() => handleRowClick(job)}

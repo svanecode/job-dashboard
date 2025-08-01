@@ -5,11 +5,14 @@ import { jobService } from '@/services/jobService';
 interface JobStore {
   jobs: Job[];
   filteredJobs: Job[];
+  paginatedJobs: Job[];
   selectedJob: Job | null;
   filters: JobFilters;
   isModalOpen: boolean;
   isLoading: boolean;
   error: string | null;
+  currentPage: number;
+  jobsPerPage: number;
   
   // Actions
   setJobs: (jobs: Job[]) => void;
@@ -20,6 +23,7 @@ interface JobStore {
   closeJobModal: () => void;
   applyFilters: () => void;
   resetFilters: () => void;
+  setCurrentPage: (page: number) => void;
   
   // Async actions
   fetchJobs: () => Promise<void>;
@@ -32,16 +36,19 @@ interface JobStore {
 export const useJobStore = create<JobStore>((set, get) => ({
   jobs: [],
   filteredJobs: [],
+  paginatedJobs: [],
   selectedJob: null,
   filters: {},
   isModalOpen: false,
   isLoading: false,
   error: null,
+  currentPage: 1,
+  jobsPerPage: 20,
 
   setJobs: (jobs) => set({ jobs }),
   
   setFilters: (filters) => {
-    set({ filters });
+    set({ filters, currentPage: 1 }); // Reset to first page when filters change
     get().applyFilters();
   },
   
@@ -53,9 +60,16 @@ export const useJobStore = create<JobStore>((set, get) => ({
   
   closeJobModal: () => set({ selectedJob: null, isModalOpen: false }),
   
+  setCurrentPage: (page: number) => {
+    set({ currentPage: page });
+    get().applyFilters();
+  },
+  
   applyFilters: () => {
-    const { jobs, filters } = get();
-    let filtered = [...jobs];
+    const { jobs, filters, currentPage, jobsPerPage } = get();
+    
+    // First, filter out jobs without CFO score
+    let filtered = jobs.filter(job => job.cfo_score !== null);
 
     // Filter by score
     if (filters.score !== undefined) {
@@ -91,11 +105,16 @@ export const useJobStore = create<JobStore>((set, get) => ({
       return dateB - dateA;
     });
 
-    set({ filteredJobs: filtered });
+    // Apply pagination
+    const startIndex = (currentPage - 1) * jobsPerPage;
+    const endIndex = startIndex + jobsPerPage;
+    const paginated = filtered.slice(startIndex, endIndex);
+
+    set({ filteredJobs: filtered, paginatedJobs: paginated });
   },
   
   resetFilters: () => {
-    set({ filters: {} });
+    set({ filters: {}, currentPage: 1 });
     get().applyFilters();
   },
 
@@ -104,7 +123,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const jobs = await jobService.getAllJobs();
-      set({ jobs, filteredJobs: jobs, isLoading: false });
+      set({ jobs, isLoading: false });
+      get().applyFilters(); // Apply filters and pagination
     } catch (error) {
       set({ error: 'Fejl ved hentning af jobs', isLoading: false });
       console.error('Error fetching jobs:', error);
@@ -115,7 +135,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const jobs = await jobService.searchJobs(query);
-      set({ jobs, filteredJobs: jobs, isLoading: false });
+      set({ jobs, isLoading: false });
+      get().applyFilters(); // Apply filters and pagination
     } catch (error) {
       set({ error: 'Fejl ved søgning', isLoading: false });
       console.error('Error searching jobs:', error);
@@ -128,7 +149,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const newJob = await jobService.createJob(job);
       const { jobs } = get();
       const updatedJobs = [newJob, ...jobs];
-      set({ jobs: updatedJobs, filteredJobs: updatedJobs, isLoading: false });
+      set({ jobs: updatedJobs, isLoading: false });
+      get().applyFilters(); // Apply filters and pagination
     } catch (error) {
       set({ error: 'Fejl ved oprettelse af job', isLoading: false });
       console.error('Error creating job:', error);
