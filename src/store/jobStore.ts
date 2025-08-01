@@ -37,6 +37,7 @@ interface JobStore {
   searchJobs: (query: string) => Promise<void>
   fetchJobsByScore: (score: number) => Promise<void>
   fetchJobsByLocation: (location: string) => Promise<void>
+  fetchJobsByDate: (daysAgo: number) => Promise<void>
   
   // CRUD operations
   createJob: (job: Omit<Job, 'id'>) => Promise<void>
@@ -94,14 +95,15 @@ export const useJobStore = create<JobStore>((set, get) => ({
   applyFilters: () => {
     const { filters } = get()
     
-    // For now, we'll use the most specific filter
-    // In a real implementation, you'd want to combine filters
+    // Apply filters in priority order
     if (filters.searchText) {
       get().searchJobs(filters.searchText)
     } else if (filters.score !== undefined) {
       get().fetchJobsByScore(filters.score)
     } else if (filters.location) {
       get().fetchJobsByLocation(filters.location)
+    } else if (filters.daysAgo !== undefined) {
+      get().fetchJobsByDate(filters.daysAgo)
     } else {
       get().fetchJobs()
     }
@@ -216,6 +218,32 @@ export const useJobStore = create<JobStore>((set, get) => ({
       })
     } catch (error) {
       console.error('Error fetching jobs by location:', error)
+      set({
+        error: 'Fejl ved indlæsning af jobs',
+        isLoading: false,
+      })
+    }
+  },
+  
+  fetchJobsByDate: async (daysAgo: number) => {
+    set({ isLoading: true, error: null })
+    try {
+      const { currentPage, jobsPerPage, sort } = get()
+      const response = await jobService.getJobsByDate(daysAgo, { 
+        page: currentPage, 
+        pageSize: jobsPerPage,
+        sort 
+      })
+      
+      set({
+        jobs: response.data,
+        paginatedJobs: response.data,
+        totalJobs: response.total,
+        totalPages: response.totalPages,
+        isLoading: false,
+      })
+    } catch (error) {
+      console.error('Error fetching jobs by date:', error)
       set({
         error: 'Fejl ved indlæsning af jobs',
         isLoading: false,

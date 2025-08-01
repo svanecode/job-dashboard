@@ -510,6 +510,119 @@ export const jobService = {
     };
   },
 
+  // Filtrer jobs efter dato med pagination
+  async getJobsByDate(daysAgo: number, params?: PaginationParams): Promise<PaginatedResponse> {
+    if (!supabase) {
+      // Fallback til mock data
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+      const scoredJobs = mockJobs.filter(job => 
+        (job.cfo_score || 0) > 0 && 
+        job.publication_date && 
+        new Date(job.publication_date) >= cutoffDate
+      );
+      
+      const page = params?.page || 1;
+      const pageSize = params?.pageSize || 20;
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      
+      return {
+        data: scoredJobs.slice(startIndex, endIndex),
+        total: scoredJobs.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(scoredJobs.length / pageSize)
+      };
+    }
+
+    const page = params?.page || 1;
+    const pageSize = params?.pageSize || 20;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const sort = params?.sort || { key: 'date', dir: 'desc' };
+
+    // Calculate cutoff date
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+    const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+
+    // Først hent total count for date filter
+    const { count, error: countError } = await supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .gte('publication_date', cutoffDateString)
+      .is('deleted_at', null)
+      .gt('cfo_score', 0);
+
+    if (countError) {
+      console.error('Error counting jobs by date:', countError);
+      return {
+        data: [],
+        total: 0,
+        page,
+        pageSize,
+        totalPages: 0
+      };
+    }
+
+    // Build query with date filter and sorting
+    let query = supabase
+      .from('jobs')
+      .select('*')
+      .gte('publication_date', cutoffDateString)
+      .is('deleted_at', null)
+      .gt('cfo_score', 0);
+
+    // Apply sorting
+    switch (sort.key) {
+      case 'score':
+        query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
+        break;
+      case 'company':
+        query = query.order('company', { ascending: sort.dir === 'asc' });
+        break;
+      case 'title':
+        query = query.order('title', { ascending: sort.dir === 'asc' });
+        break;
+      case 'location':
+        query = query.order('location', { ascending: sort.dir === 'asc' });
+        break;
+      case 'date':
+        query = query.order('publication_date', { ascending: sort.dir === 'asc' });
+        break;
+      default:
+        query = query.order('publication_date', { ascending: false });
+    }
+
+    // Add secondary sort for stable sorting
+    if (sort.key !== 'date') {
+      query = query.order('publication_date', { ascending: false });
+    }
+
+    // Apply pagination
+    const { data, error } = await query.range(from, to);
+
+    if (error) {
+      console.error('Error filtering jobs by date:', error);
+      return {
+        data: [],
+        total: count || 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count || 0) / pageSize)
+      };
+    }
+
+    return {
+      data: data || [],
+      total: count || 0,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count || 0) / pageSize)
+    };
+  },
+
   // Hent jobs med høj prioritet (score 3) med pagination
   async getHighPriorityJobs(params?: PaginationParams): Promise<PaginatedResponse> {
     if (!supabase) {

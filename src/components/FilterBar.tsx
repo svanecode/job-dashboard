@@ -3,26 +3,36 @@
 import { motion } from 'framer-motion'
 import { Search, MapPin, Filter, RotateCcw, Calendar } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
+import { useEffect } from 'react'
 
 export default function FilterBar() {
-  const { filters, setFilters, resetFilters } = useJobStore()
+  const { filters, setFilters, resetFilters, applyFilters } = useJobStore()
+
+  // Apply filters when they change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      applyFilters()
+    }, 300) // Debounce search
+
+    return () => clearTimeout(timeoutId)
+  }, [filters, applyFilters])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ ...filters, searchText: e.target.value })
+    setFilters({ searchText: e.target.value })
   }
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ ...filters, location: e.target.value })
+    setFilters({ location: e.target.value })
   }
 
   const handleScoreChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const score = e.target.value === '' ? undefined : parseInt(e.target.value)
-    setFilters({ ...filters, score })
+    setFilters({ score })
   }
 
   const handleDaysChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const days = e.target.value === '' ? undefined : parseInt(e.target.value)
-    setFilters({ ...filters, daysAgo: days })
+    setFilters({ daysAgo: days })
   }
 
   return (
@@ -69,7 +79,6 @@ export default function FilterBar() {
             <option value="3">Score 3 - Akut</option>
             <option value="2">Score 2 - Høj</option>
             <option value="1">Score 1 - Medium</option>
-            <option value="0">Score 0 - Lav</option>
           </select>
           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
             <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,9 +97,10 @@ export default function FilterBar() {
           >
             <option value="">Alle datoer</option>
             <option value="1">Seneste 24 timer</option>
+            <option value="3">Seneste 3 dage</option>
             <option value="7">Seneste 7 dage</option>
+            <option value="14">Seneste 14 dage</option>
             <option value="30">Seneste 30 dage</option>
-            <option value="90">Seneste 90 dage</option>
           </select>
           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
             <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
