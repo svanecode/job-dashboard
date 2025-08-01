@@ -13,6 +13,10 @@ interface JobStore {
   currentPage: number
   jobsPerPage: number
   
+  // Statistics (across all pages)
+  totalUrgentJobs: number
+  totalHighPriorityJobs: number
+  
   // UI State
   isLoading: boolean
   error: string | null
@@ -57,6 +61,10 @@ export const useJobStore = create<JobStore>((set, get) => ({
   totalPages: 0,
   currentPage: 1,
   jobsPerPage: 20,
+  
+  // Statistics (across all pages)
+  totalUrgentJobs: 0,
+  totalHighPriorityJobs: 0,
   
   isLoading: false,
   error: null,
@@ -131,11 +139,23 @@ export const useJobStore = create<JobStore>((set, get) => ({
         sort 
       })
       
+      // Calculate statistics from all jobs (not just current page)
+      const allJobsResponse = await jobService.getAllJobs({ 
+        page: 1, 
+        pageSize: 1000, // Get all jobs for statistics
+        sort 
+      })
+      
+      const totalUrgentJobs = allJobsResponse.data.filter(job => job.cfo_score === 3).length
+      const totalHighPriorityJobs = allJobsResponse.data.filter(job => job.cfo_score === 2).length
+      
       set({
         jobs: response.data,
         paginatedJobs: response.data,
         totalJobs: response.total,
         totalPages: response.totalPages,
+        totalUrgentJobs,
+        totalHighPriorityJobs,
         isLoading: false,
       })
     } catch (error) {

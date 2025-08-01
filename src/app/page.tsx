@@ -14,6 +14,8 @@ export default function Home() {
   const { 
     jobs, 
     totalJobs, 
+    totalUrgentJobs,
+    totalHighPriorityJobs,
     fetchJobs, 
     isLoading, 
     error 
@@ -22,10 +24,6 @@ export default function Home() {
   useEffect(() => {
     fetchJobs()
   }, [fetchJobs])
-
-  // Calculate stats from current page jobs
-  const urgentJobs = jobs.filter(job => job.cfo_score === 3).length
-  const highPriorityJobs = jobs.filter(job => job.cfo_score === 2).length
 
   return (
     <main className="bg-radial relative min-h-screen text-slate-200">
@@ -85,21 +83,21 @@ export default function Home() {
         >
           <StatCard 
             title="Akut behov" 
-            value={urgentJobs} 
+            value={totalUrgentJobs} 
             tone="success" 
             icon="flame" 
           />
           <StatCard 
             title="Høj prioritet" 
-            value={highPriorityJobs} 
+            value={totalHighPriorityJobs} 
             tone="warn" 
             icon="bolt" 
           />
           <StatCard 
             title="Total jobs" 
             value={totalJobs} 
-            tone="muted" 
-            icon="stack" 
+            tone="info" 
+            icon="briefcase" 
           />
         </motion.section>
 
