@@ -1,7 +1,9 @@
 export const handleModalKeyDown = (
   event: KeyboardEvent,
   onOpenJob: () => void,
-  onClose: () => void
+  onClose: () => void,
+  onPreviousJob?: () => void,
+  onNextJob?: () => void
 ) => {
   switch (event.key) {
     case 'Escape':
@@ -13,10 +15,22 @@ export const handleModalKeyDown = (
       event.preventDefault()
       onOpenJob()
       break
+    case 'ArrowLeft':
+      if (onPreviousJob) {
+        event.preventDefault()
+        onPreviousJob()
+      }
+      break
+    case 'ArrowRight':
+      if (onNextJob) {
+        event.preventDefault()
+        onNextJob()
+      }
+      break
   }
 }
 
-export const createFocusTrap = (modalRef: React.RefObject<HTMLElement>) => {
+export const createFocusTrap = (modalRef: React.RefObject<HTMLElement | null>) => {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key !== 'Tab') return
 
