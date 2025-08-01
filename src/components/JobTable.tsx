@@ -62,33 +62,37 @@ export default function JobTable() {
                 className="hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <ScoreBadge score={job.score} />
+                  <ScoreBadge score={job.cfo_score} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{job.company}</div>
+                  <div className="text-sm font-medium text-gray-900">{job.company || 'Ukendt firma'}</div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 font-medium">{job.title}</div>
+                  <div className="text-sm text-gray-900 font-medium">{job.title || 'Ingen titel'}</div>
                   <div className="text-sm text-gray-500 truncate max-w-xs">
-                    {job.description.substring(0, 100)}...
+                    {job.description ? job.description.substring(0, 100) + '...' : 'Ingen beskrivelse'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{job.location}</div>
+                  <div className="text-sm text-gray-900">{job.location || 'Ukendt lokation'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{formatDate(job.publication_date)}</div>
+                  <div className="text-sm text-gray-900">{job.publication_date ? formatDate(job.publication_date) : 'Ukendt dato'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <a
-                    href={job.job_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    Åbn →
-                  </a>
+                  {job.job_url ? (
+                    <a
+                      href={job.job_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Åbn →
+                    </a>
+                  ) : (
+                    <span className="text-gray-400 text-sm">Ingen link</span>
+                  )}
                 </td>
               </tr>
             ))}

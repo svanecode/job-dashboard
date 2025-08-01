@@ -25,8 +25,8 @@ interface JobStore {
   fetchJobs: () => Promise<void>;
   searchJobs: (query: string) => Promise<void>;
   createJob: (job: Omit<Job, 'id'>) => Promise<void>;
-  updateJob: (id: string, updates: Partial<Job>) => Promise<void>;
-  deleteJob: (id: string) => Promise<void>;
+  updateJob: (id: number, updates: Partial<Job>) => Promise<void>;
+  deleteJob: (id: number) => Promise<void>;
 }
 
 export const useJobStore = create<JobStore>((set, get) => ({
@@ -59,13 +59,13 @@ export const useJobStore = create<JobStore>((set, get) => ({
 
     // Filter by score
     if (filters.score !== undefined) {
-      filtered = filtered.filter(job => job.score === filters.score);
+      filtered = filtered.filter(job => job.cfo_score === filters.score);
     }
 
     // Filter by location
     if (filters.location) {
       filtered = filtered.filter(job => 
-        job.location.toLowerCase().includes(filters.location!.toLowerCase())
+        job.location?.toLowerCase().includes(filters.location!.toLowerCase()) || false
       );
     }
 
@@ -73,18 +73,22 @@ export const useJobStore = create<JobStore>((set, get) => ({
     if (filters.searchText) {
       const searchLower = filters.searchText.toLowerCase();
       filtered = filtered.filter(job =>
-        job.title.toLowerCase().includes(searchLower) ||
-        job.company.toLowerCase().includes(searchLower) ||
-        job.description.toLowerCase().includes(searchLower)
+        (job.title?.toLowerCase().includes(searchLower) || false) ||
+        (job.company?.toLowerCase().includes(searchLower) || false) ||
+        (job.description?.toLowerCase().includes(searchLower) || false)
       );
     }
 
     // Sort by score DESC, then by date DESC
     filtered.sort((a, b) => {
-      if (b.score !== a.score) {
-        return b.score - a.score;
+      const scoreA = a.cfo_score ?? -1;
+      const scoreB = b.cfo_score ?? -1;
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
       }
-      return new Date(b.publication_date).getTime() - new Date(a.publication_date).getTime();
+      const dateA = a.publication_date ? new Date(a.publication_date).getTime() : 0;
+      const dateB = b.publication_date ? new Date(b.publication_date).getTime() : 0;
+      return dateB - dateA;
     });
 
     set({ filteredJobs: filtered });
@@ -131,7 +135,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     }
   },
 
-  updateJob: async (id: string, updates: Partial<Job>) => {
+  updateJob: async (id: number, updates: Partial<Job>) => {
     set({ isLoading: true, error: null });
     try {
       const updatedJob = await jobService.updateJob(id, updates);
@@ -145,7 +149,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     }
   },
 
-  deleteJob: async (id: string) => {
+  deleteJob: async (id: number) => {
     set({ isLoading: true, error: null });
     try {
       await jobService.deleteJob(id);

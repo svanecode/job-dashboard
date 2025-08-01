@@ -3,7 +3,7 @@ import { Job } from '@/types/job';
 import { mockJobs } from '@/data/mockJobs';
 
 export const jobService = {
-  // Hent alle jobs
+  // Hent alle jobs (kun ikke-slettede jobs)
   async getAllJobs(): Promise<Job[]> {
     if (!supabase) {
       // Fallback til mock data hvis Supabase ikke er konfigureret
@@ -13,7 +13,8 @@ export const jobService = {
     const { data, error } = await supabase
       .from('jobs')
       .select('*')
-      .order('score', { ascending: false })
+      .is('deleted_at', null) // Kun ikke-slettede jobs
+      .order('cfo_score', { ascending: false })
       .order('publication_date', { ascending: false });
 
     if (error) {
@@ -26,7 +27,7 @@ export const jobService = {
   },
 
   // Hent job efter ID
-  async getJobById(id: string): Promise<Job | null> {
+  async getJobById(id: number): Promise<Job | null> {
     if (!supabase) {
       // Fallback til mock data
       return mockJobs.find(job => job.id === id) || null;
@@ -36,6 +37,7 @@ export const jobService = {
       .from('jobs')
       .select('*')
       .eq('id', id)
+      .is('deleted_at', null)
       .single();
 
     if (error) {
@@ -47,7 +49,7 @@ export const jobService = {
   },
 
   // Opret nyt job
-  async createJob(job: Omit<Job, 'id'>): Promise<Job> {
+  async createJob(job: Omit<Job, 'id' | 'created_at' | 'deleted_at' | 'scored_at' | 'job_info' | 'last_seen'>): Promise<Job> {
     if (!supabase) {
       throw new Error('Supabase not configured');
     }
@@ -67,7 +69,7 @@ export const jobService = {
   },
 
   // Opdater job
-  async updateJob(id: string, updates: Partial<Job>): Promise<Job> {
+  async updateJob(id: number, updates: Partial<Job>): Promise<Job> {
     if (!supabase) {
       throw new Error('Supabase not configured');
     }
@@ -87,15 +89,15 @@ export const jobService = {
     return data;
   },
 
-  // Slet job
-  async deleteJob(id: string): Promise<void> {
+  // Slet job (soft delete)
+  async deleteJob(id: number): Promise<void> {
     if (!supabase) {
       throw new Error('Supabase not configured');
     }
 
     const { error } = await supabase
       .from('jobs')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) {
@@ -110,17 +112,18 @@ export const jobService = {
       // Fallback til mock data med lokal søgning
       const searchLower = query.toLowerCase();
       return mockJobs.filter(job =>
-        job.title.toLowerCase().includes(searchLower) ||
-        job.company.toLowerCase().includes(searchLower) ||
-        job.description.toLowerCase().includes(searchLower)
+        (job.title?.toLowerCase().includes(searchLower) || false) ||
+        (job.company?.toLowerCase().includes(searchLower) || false) ||
+        (job.description?.toLowerCase().includes(searchLower) || false)
       );
     }
 
     const { data, error } = await supabase
       .from('jobs')
       .select('*')
+      .is('deleted_at', null)
       .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`)
-      .order('score', { ascending: false })
+      .order('cfo_score', { ascending: false })
       .order('publication_date', { ascending: false });
 
     if (error) {
@@ -135,13 +138,14 @@ export const jobService = {
   async getJobsByScore(score: number): Promise<Job[]> {
     if (!supabase) {
       // Fallback til mock data
-      return mockJobs.filter(job => job.score === score);
+      return mockJobs.filter(job => job.cfo_score === score);
     }
 
     const { data, error } = await supabase
       .from('jobs')
       .select('*')
-      .eq('score', score)
+      .eq('cfo_score', score)
+      .is('deleted_at', null)
       .order('publication_date', { ascending: false });
 
     if (error) {
@@ -158,7 +162,7 @@ export const jobService = {
       // Fallback til mock data
       const locationLower = location.toLowerCase();
       return mockJobs.filter(job => 
-        job.location.toLowerCase().includes(locationLower)
+        job.location?.toLowerCase().includes(locationLower) || false
       );
     }
 
@@ -166,12 +170,34 @@ export const jobService = {
       .from('jobs')
       .select('*')
       .ilike('location', `%${location}%`)
-      .order('score', { ascending: false })
+      .is('deleted_at', null)
+      .order('cfo_score', { ascending: false })
       .order('publication_date', { ascending: false });
 
     if (error) {
       console.error('Error filtering jobs by location:', error);
       throw error;
+    }
+
+    return data || [];
+  },
+
+  // Hent jobs med høj prioritet (score 3)
+  async getHighPriorityJobs(): Promise<Job[]> {
+    if (!supabase) {
+      return mockJobs.filter(job => job.cfo_score === 3);
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('cfo_score', 3)
+      .is('deleted_at', null)
+      .order('publication_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching high priority jobs:', error);
+      return [];
     }
 
     return data || [];

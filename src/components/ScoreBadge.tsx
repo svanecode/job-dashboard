@@ -1,10 +1,10 @@
 interface ScoreBadgeProps {
-  score: number;
+  score: number | null;
   className?: string;
 }
 
 export default function ScoreBadge({ score, className = '' }: ScoreBadgeProps) {
-  const getScoreColor = (score: number) => {
+  const getScoreColor = (score: number | null) => {
     switch (score) {
       case 3:
         return 'bg-green-100 text-green-800 border-green-200';
@@ -19,7 +19,7 @@ export default function ScoreBadge({ score, className = '' }: ScoreBadgeProps) {
     }
   };
 
-  const getScoreText = (score: number) => {
+  const getScoreText = (score: number | null) => {
     switch (score) {
       case 3:
         return '🔥 Akut';
@@ -30,7 +30,7 @@ export default function ScoreBadge({ score, className = '' }: ScoreBadgeProps) {
       case 0:
         return '❌ Lav';
       default:
-        return '❓ Ukendt';
+        return '❓ Ikke scoret';
     }
   };
 
