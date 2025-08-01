@@ -1,10 +1,12 @@
 import { supabase } from '@/lib/supabase';
 import { Job } from '@/types/job';
 import { mockJobs } from '@/data/mockJobs';
+import { type SortConfig } from '@/utils/sort';
 
 interface PaginationParams {
   page: number;
   pageSize: number;
+  sort?: SortConfig;
 }
 
 interface PaginatedResponse {
@@ -39,6 +41,7 @@ export const jobService = {
     const pageSize = params?.pageSize || 20;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const sort = params?.sort || { key: 'score', dir: 'desc' };
 
     // Først hent total count
     const { count, error: countError } = await supabase
@@ -58,15 +61,41 @@ export const jobService = {
       };
     }
 
-    // Derefter hent paginated data
-    const { data, error } = await supabase
+    // Build query with sorting
+    let query = supabase
       .from('jobs')
       .select('*')
       .is('deleted_at', null)
-      .gt('cfo_score', 0) // Kun jobs med CFO score > 0
-      .order('cfo_score', { ascending: false })
-      .order('publication_date', { ascending: false })
-      .range(from, to);
+      .gt('cfo_score', 0);
+
+    // Apply sorting
+    switch (sort.key) {
+      case 'score':
+        query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
+        break;
+      case 'company':
+        query = query.order('company', { ascending: sort.dir === 'asc' });
+        break;
+      case 'title':
+        query = query.order('title', { ascending: sort.dir === 'asc' });
+        break;
+      case 'location':
+        query = query.order('location', { ascending: sort.dir === 'asc' });
+        break;
+      case 'date':
+        query = query.order('publication_date', { ascending: sort.dir === 'asc' });
+        break;
+      default:
+        query = query.order('cfo_score', { ascending: false });
+    }
+
+    // Add secondary sort for stable sorting
+    if (sort.key !== 'date') {
+      query = query.order('publication_date', { ascending: false });
+    }
+
+    // Apply pagination
+    const { data, error } = await query.range(from, to);
 
     if (error) {
       console.error('Error fetching jobs:', error);
@@ -199,6 +228,7 @@ export const jobService = {
     const pageSize = params?.pageSize || 20;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const sort = params?.sort || { key: 'score', dir: 'desc' };
 
     // Først hent total count for søgning
     const { count, error: countError } = await supabase
@@ -219,16 +249,42 @@ export const jobService = {
       };
     }
 
-    // Derefter hent paginated søgeresultater
-    const { data, error } = await supabase
+    // Build query with search and sorting
+    let searchQuery = supabase
       .from('jobs')
       .select('*')
       .is('deleted_at', null)
       .gt('cfo_score', 0)
-      .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`)
-      .order('cfo_score', { ascending: false })
-      .order('publication_date', { ascending: false })
-      .range(from, to);
+      .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`);
+
+    // Apply sorting
+    switch (sort.key) {
+      case 'score':
+        searchQuery = searchQuery.order('cfo_score', { ascending: sort.dir === 'asc' });
+        break;
+      case 'company':
+        searchQuery = searchQuery.order('company', { ascending: sort.dir === 'asc' });
+        break;
+      case 'title':
+        searchQuery = searchQuery.order('title', { ascending: sort.dir === 'asc' });
+        break;
+      case 'location':
+        searchQuery = searchQuery.order('location', { ascending: sort.dir === 'asc' });
+        break;
+      case 'date':
+        searchQuery = searchQuery.order('publication_date', { ascending: sort.dir === 'asc' });
+        break;
+      default:
+        searchQuery = searchQuery.order('cfo_score', { ascending: false });
+    }
+
+    // Add secondary sort for stable sorting
+    if (sort.key !== 'date') {
+      searchQuery = searchQuery.order('publication_date', { ascending: false });
+    }
+
+    // Apply pagination
+    const { data, error } = await searchQuery.range(from, to);
 
     if (error) {
       console.error('Error searching jobs:', error);
@@ -273,6 +329,7 @@ export const jobService = {
     const pageSize = params?.pageSize || 20;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const sort = params?.sort || { key: 'date', dir: 'desc' };
 
     // Først hent total count for score filter
     const { count, error: countError } = await supabase
@@ -292,14 +349,41 @@ export const jobService = {
       };
     }
 
-    // Derefter hent paginated data
-    const { data, error } = await supabase
+    // Build query with score filter and sorting
+    let query = supabase
       .from('jobs')
       .select('*')
       .eq('cfo_score', score)
-      .is('deleted_at', null)
-      .order('publication_date', { ascending: false })
-      .range(from, to);
+      .is('deleted_at', null);
+
+    // Apply sorting
+    switch (sort.key) {
+      case 'score':
+        query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
+        break;
+      case 'company':
+        query = query.order('company', { ascending: sort.dir === 'asc' });
+        break;
+      case 'title':
+        query = query.order('title', { ascending: sort.dir === 'asc' });
+        break;
+      case 'location':
+        query = query.order('location', { ascending: sort.dir === 'asc' });
+        break;
+      case 'date':
+        query = query.order('publication_date', { ascending: sort.dir === 'asc' });
+        break;
+      default:
+        query = query.order('publication_date', { ascending: false });
+    }
+
+    // Add secondary sort for stable sorting
+    if (sort.key !== 'date') {
+      query = query.order('publication_date', { ascending: false });
+    }
+
+    // Apply pagination
+    const { data, error } = await query.range(from, to);
 
     if (error) {
       console.error('Error filtering jobs by score:', error);
@@ -348,6 +432,7 @@ export const jobService = {
     const pageSize = params?.pageSize || 20;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const sort = params?.sort || { key: 'score', dir: 'desc' };
 
     // Først hent total count for location filter
     const { count, error: countError } = await supabase
@@ -368,16 +453,42 @@ export const jobService = {
       };
     }
 
-    // Derefter hent paginated data
-    const { data, error } = await supabase
+    // Build query with location filter and sorting
+    let query = supabase
       .from('jobs')
       .select('*')
       .ilike('location', `%${location}%`)
       .is('deleted_at', null)
-      .gt('cfo_score', 0)
-      .order('cfo_score', { ascending: false })
-      .order('publication_date', { ascending: false })
-      .range(from, to);
+      .gt('cfo_score', 0);
+
+    // Apply sorting
+    switch (sort.key) {
+      case 'score':
+        query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
+        break;
+      case 'company':
+        query = query.order('company', { ascending: sort.dir === 'asc' });
+        break;
+      case 'title':
+        query = query.order('title', { ascending: sort.dir === 'asc' });
+        break;
+      case 'location':
+        query = query.order('location', { ascending: sort.dir === 'asc' });
+        break;
+      case 'date':
+        query = query.order('publication_date', { ascending: sort.dir === 'asc' });
+        break;
+      default:
+        query = query.order('cfo_score', { ascending: false });
+    }
+
+    // Add secondary sort for stable sorting
+    if (sort.key !== 'date') {
+      query = query.order('publication_date', { ascending: false });
+    }
+
+    // Apply pagination
+    const { data, error } = await query.range(from, to);
 
     if (error) {
       console.error('Error filtering jobs by location:', error);

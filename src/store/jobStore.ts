@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { Job, JobFilters } from '@/types/job'
 import { jobService } from '@/services/jobService'
 import { mockJobs } from '@/data/mockJobs'
-import { sortJobs, type SortConfig } from '@/utils/sort'
+import { type SortConfig } from '@/utils/sort'
 
 interface JobStore {
   // Data
@@ -114,25 +114,24 @@ export const useJobStore = create<JobStore>((set, get) => ({
   
   setSort: (newSort) => {
     set({ sort: newSort })
-    // Re-sort all jobs with new sort config
-    const { jobs } = get()
-    const sortedJobs = sortJobs(jobs, newSort)
-    set({ paginatedJobs: sortedJobs })
+    // Re-fetch data with new sort config
+    get().applyFilters()
   },
   
   // Data fetching
   fetchJobs: async () => {
     set({ isLoading: true, error: null })
     try {
-      const { currentPage, jobsPerPage } = get()
-      const response = await jobService.getAllJobs({ page: currentPage, pageSize: jobsPerPage })
-      
-      // Sort jobs with current sort config
-      const sortedJobs = sortJobs(response.data, get().sort)
+      const { currentPage, jobsPerPage, sort } = get()
+      const response = await jobService.getAllJobs({ 
+        page: currentPage, 
+        pageSize: jobsPerPage,
+        sort 
+      })
       
       set({
         jobs: response.data,
-        paginatedJobs: sortedJobs,
+        paginatedJobs: response.data,
         totalJobs: response.total,
         totalPages: response.totalPages,
         isLoading: false,
@@ -149,15 +148,16 @@ export const useJobStore = create<JobStore>((set, get) => ({
   searchJobs: async (query: string) => {
     set({ isLoading: true, error: null })
     try {
-      const { currentPage, jobsPerPage } = get()
-      const response = await jobService.searchJobs(query, { page: currentPage, pageSize: jobsPerPage })
-      
-      // Sort jobs with current sort config
-      const sortedJobs = sortJobs(response.data, get().sort)
+      const { currentPage, jobsPerPage, sort } = get()
+      const response = await jobService.searchJobs(query, { 
+        page: currentPage, 
+        pageSize: jobsPerPage,
+        sort 
+      })
       
       set({
         jobs: response.data,
-        paginatedJobs: sortedJobs,
+        paginatedJobs: response.data,
         totalJobs: response.total,
         totalPages: response.totalPages,
         isLoading: false,
@@ -174,15 +174,16 @@ export const useJobStore = create<JobStore>((set, get) => ({
   fetchJobsByScore: async (score: number) => {
     set({ isLoading: true, error: null })
     try {
-      const { currentPage, jobsPerPage } = get()
-      const response = await jobService.getJobsByScore(score, { page: currentPage, pageSize: jobsPerPage })
-      
-      // Sort jobs with current sort config
-      const sortedJobs = sortJobs(response.data, get().sort)
+      const { currentPage, jobsPerPage, sort } = get()
+      const response = await jobService.getJobsByScore(score, { 
+        page: currentPage, 
+        pageSize: jobsPerPage,
+        sort 
+      })
       
       set({
         jobs: response.data,
-        paginatedJobs: sortedJobs,
+        paginatedJobs: response.data,
         totalJobs: response.total,
         totalPages: response.totalPages,
         isLoading: false,
@@ -199,15 +200,16 @@ export const useJobStore = create<JobStore>((set, get) => ({
   fetchJobsByLocation: async (location: string) => {
     set({ isLoading: true, error: null })
     try {
-      const { currentPage, jobsPerPage } = get()
-      const response = await jobService.getJobsByLocation(location, { page: currentPage, pageSize: jobsPerPage })
-      
-      // Sort jobs with current sort config
-      const sortedJobs = sortJobs(response.data, get().sort)
+      const { currentPage, jobsPerPage, sort } = get()
+      const response = await jobService.getJobsByLocation(location, { 
+        page: currentPage, 
+        pageSize: jobsPerPage,
+        sort 
+      })
       
       set({
         jobs: response.data,
-        paginatedJobs: sortedJobs,
+        paginatedJobs: response.data,
         totalJobs: response.total,
         totalPages: response.totalPages,
         isLoading: false,
