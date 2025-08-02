@@ -31,16 +31,11 @@ export default function DescriptionClamp({
   }, [text, lines]);
 
   return (
-    <div
-      className={clsx(
-        "relative rounded-lg border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden",
-        className
-      )}
-    >
+    <div className={clsx("relative overflow-hidden", className)}>
       <p
         ref={pRef}
         className={clsx(
-          "p-3 text-slate-200/90 break-words leading-relaxed",
+          "text-[14px] text-slate-200/90 leading-relaxed break-words",
           !expanded && `line-clamp-${lines}`
         )}
         style={{
@@ -53,32 +48,30 @@ export default function DescriptionClamp({
         {text || "Ingen beskrivelse tilgængelig."}
       </p>
 
-      {/* Fade – kun når clamped & ikke expanded */}
+      {/* Glass fade – kun når clamped & ikke expanded */}
       {!expanded && clamped && (
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
           style={{
             WebkitMaskImage: "linear-gradient(to top, black, transparent)",
             maskImage: "linear-gradient(to top, black, transparent)",
-            background: "inherit",
-            backdropFilter: "inherit",
           }}
           aria-hidden
         />
       )}
 
+      {/* Inline toggle – kun når clamped */}
       {clamped && (
-        <button
-          type="button"
-          onClick={() => setExpanded(v => !v)}
-          className="absolute bottom-2 right-2 z-10 rounded-md px-2 py-1 text-xs
-                     text-slate-100 bg-black/35 hover:bg-black/45 border border-white/10
-                     backdrop-blur-sm transition-all duration-200 focus-visible:outline-none
-                     focus-visible:ring-2 focus-visible:ring-white/20"
-          aria-expanded={expanded}
-        >
-          {expanded ? "Vis mindre" : "Vis mere"}
-        </button>
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setExpanded(v => !v)}
+            className="text-[13px] text-slate-300 hover:text-slate-100 underline underline-offset-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            aria-expanded={expanded}
+          >
+            {expanded ? "Vis mindre" : "Vis mere"}
+          </button>
+        </div>
       )}
     </div>
   );

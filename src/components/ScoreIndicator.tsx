@@ -1,12 +1,12 @@
 'use client'
 
-interface ScoreBarsProps {
+interface ScoreIndicatorProps {
   level: 1 | 2 | 3
   size?: 'sm' | 'md'
   className?: string
 }
 
-export default function ScoreBars({ level, size = 'md', className = '' }: ScoreBarsProps) {
+export default function ScoreIndicator({ level, size = 'md', className = '' }: ScoreIndicatorProps) {
   const sizeClasses = {
     sm: 'gap-1.5',
     md: 'gap-2'
@@ -51,11 +51,8 @@ export default function ScoreBars({ level, size = 'md', className = '' }: ScoreB
   return (
     <div 
       className={`flex items-center ${sizeClasses[size]} ${className}`}
-      role="progressbar"
       aria-label={`Score ${level} af 3`}
-      aria-valuenow={level}
-      aria-valuemin={0}
-      aria-valuemax={3}
+      role="img"
     >
       {circles.map((circle, index) => (
         <div 

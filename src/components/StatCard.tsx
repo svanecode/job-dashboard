@@ -9,6 +9,7 @@ interface StatCardProps {
   count: number
   level: 1 | 2 | 3
   icon?: 'flame' | 'trend' | 'bag'
+  compact?: boolean
 }
 
 const iconMap = {
@@ -23,7 +24,7 @@ const descriptionMap = {
   1: 'Lav relevans (junior)'
 }
 
-export default function StatCard({ title, count, level, icon = 'bag' }: StatCardProps) {
+export default function StatCard({ title, count, level, icon = 'bag', compact = false }: StatCardProps) {
   const IconComponent = iconMap[icon]
 
   // Get icon background color based on level
@@ -36,6 +37,43 @@ export default function StatCard({ title, count, level, icon = 'bag' }: StatCard
       default:
         return 'bg-white/5 ring-white/10'
     }
+  }
+
+  if (compact) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="group relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.03] to-white/[0.01] backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-all duration-200 ease-out hover:-translate-y-[2px] hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)] focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+      >
+        {/* Subtle radial gradient for depth */}
+        <div className="absolute inset-0 bg-gradient-radial from-white/[0.02] via-transparent to-transparent rounded-2xl pointer-events-none" />
+        
+        <div className="relative p-3">
+          {/* Header row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`grid place-items-center w-8 h-8 rounded-full ${getIconBgColor(level)} transition-all duration-200 group-hover:scale-[1.02]`}>
+                <IconComponent className="w-4 h-4 text-slate-300 opacity-80" />
+              </div>
+              <h3 className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">{title}</h3>
+            </div>
+            <ScoreBars level={level} size="sm" className="transition-all duration-200 group-hover:scale-105 -mt-0.5" />
+          </div>
+
+          {/* Count and Description */}
+          <div className="mt-2">
+            <p className="text-3xl font-semibold tracking-tight text-white leading-none tabular-nums">
+              {count.toLocaleString()}
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500 leading-none">
+              {level} – {descriptionMap[level as keyof typeof descriptionMap]}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    )
   }
 
   return (

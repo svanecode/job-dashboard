@@ -4,6 +4,41 @@ import { jobService } from '@/services/jobService'
 import { mockJobs } from '@/data/mockJobs'
 import { type SortConfig } from '@/utils/sort'
 
+// URL synchronization utilities
+const parseFiltersFromURL = (): Partial<JobFilters> => {
+  if (typeof window === 'undefined') return {}
+  
+  const urlParams = new URLSearchParams(window.location.search)
+  return {
+    searchText: urlParams.get('q') || undefined,
+    location: urlParams.get('loc') || undefined,
+    score: urlParams.get('score') ? parseInt(urlParams.get('score')!) : undefined,
+    daysAgo: urlParams.get('days') ? parseInt(urlParams.get('days')!) : undefined,
+  }
+}
+
+const updateURLWithFilters = (filters: JobFilters) => {
+  if (typeof window === 'undefined') return
+  
+  const url = new URL(window.location.href)
+  const params = url.searchParams
+  
+  // Clear existing filter params
+  params.delete('q')
+  params.delete('loc')
+  params.delete('score')
+  params.delete('days')
+  
+  // Add new filter params
+  if (filters.searchText) params.set('q', filters.searchText)
+  if (filters.location) params.set('loc', filters.location)
+  if (filters.score !== undefined) params.set('score', filters.score.toString())
+  if (filters.daysAgo !== undefined) params.set('days', filters.daysAgo.toString())
+  
+  // Update URL without full navigation
+  window.history.replaceState({}, '', url.toString())
+}
+
 interface JobStore {
   // Data
   jobs: Job[]
@@ -26,16 +61,19 @@ interface JobStore {
   
   // Filters
   filters: JobFilters
+  stagedFilters?: JobFilters
   
   // Sorting
   sort: SortConfig
   
   // Actions
   setFilters: (filters: Partial<JobFilters>) => void
+  setStagedFilters: (filters: JobFilters) => void
   resetFilters: () => void
-  applyFilters: () => void
+  applyFilters: (payload?: JobFilters) => void
   setCurrentPage: (page: number) => void
   setSort: (sort: SortConfig) => void
+  initializeFromURL: () => void
   
   // Data fetching
   fetchJobs: () => Promise<void>
@@ -80,40 +118,95 @@ export const useJobStore = create<JobStore>((set, get) => ({
     daysAgo: undefined,
   },
   
+  stagedFilters: undefined,
+  
   sort: { key: 'score', dir: 'desc' },
+  
+  // Initialize filters from URL
+  initializeFromURL: () => {
+    const urlFilters = parseFiltersFromURL()
+    if (Object.keys(urlFilters).length > 0) {
+      set((state) => ({
+        filters: { ...state.filters, ...urlFilters }
+      }))
+      // Apply filters after initialization
+      setTimeout(() => get().applyFilters(), 100)
+    }
+  },
   
   // Filter actions
   setFilters: (newFilters) => {
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters },
-      currentPage: 1, // Reset to first page when filters change
-    }))
+    set((state) => {
+      let updatedFilters = { ...state.filters, ...newFilters }
+      
+      // Handle score toggle: if same score is selected, remove it
+      if ('score' in newFilters && newFilters.score === state.filters.score) {
+        updatedFilters = { ...updatedFilters, score: undefined }
+      }
+      
+      // Update URL with new filters (debounced)
+      if (typeof window !== 'undefined') {
+        clearTimeout((window as Window & { filterTimeout?: NodeJS.Timeout }).filterTimeout)
+        ;(window as Window & { filterTimeout?: NodeJS.Timeout }).filterTimeout = setTimeout(() => {
+          updateURLWithFilters(updatedFilters)
+        }, 300)
+      }
+      
+      return {
+        filters: updatedFilters,
+        currentPage: 1, // Reset to first page when filters change
+      }
+    })
+  },
+  
+  setStagedFilters: (stagedFilters) => {
+    set({ stagedFilters })
   },
   
   resetFilters: () => {
+    const emptyFilters = {
+      score: undefined,
+      location: '',
+      searchText: '',
+      daysAgo: undefined,
+    }
+    
     set((state) => ({
-      filters: {
-        score: undefined,
-        location: '',
-        searchText: '',
-        daysAgo: undefined,
-      },
+      filters: emptyFilters,
+      stagedFilters: emptyFilters,
       currentPage: 1,
     }))
+    
+    // Clear URL params
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      const params = url.searchParams
+      params.delete('q')
+      params.delete('loc')
+      params.delete('score')
+      params.delete('days')
+      window.history.replaceState({}, '', url.toString())
+    }
+    
+    // Fetch all jobs again after resetting filters
+    get().fetchJobs()
   },
   
-  applyFilters: () => {
-    const { filters } = get()
+  applyFilters: (payload) => {
+    const filtersToApply = payload ?? get().stagedFilters ?? get().filters
+    
+    // Update actual filters with staged filters
+    set({ filters: filtersToApply, stagedFilters: filtersToApply })
     
     // Apply filters in priority order
-    if (filters.searchText) {
-      get().searchJobs(filters.searchText)
-    } else if (filters.score !== undefined) {
-      get().fetchJobsByScore(filters.score)
-    } else if (filters.location) {
-      get().fetchJobsByLocation(filters.location)
-    } else if (filters.daysAgo !== undefined) {
-      get().fetchJobsByDate(filters.daysAgo)
+    if (filtersToApply.searchText) {
+      get().searchJobs(filtersToApply.searchText)
+    } else if (filtersToApply.score !== undefined) {
+      get().fetchJobsByScore(filtersToApply.score)
+    } else if (filtersToApply.location) {
+      get().fetchJobsByLocation(filtersToApply.location)
+    } else if (filtersToApply.daysAgo !== undefined) {
+      get().fetchJobsByDate(filtersToApply.daysAgo)
     } else {
       get().fetchJobs()
     }

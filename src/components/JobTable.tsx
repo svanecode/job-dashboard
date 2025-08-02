@@ -12,11 +12,28 @@ import {
 import { useJobStore } from '@/store/jobStore'
 import { Job } from '@/types/job'
 import ScoreBar from './ScoreBar'
+import CardRow from './CardRow'
+import JobSheet from './JobSheet'
+import VirtualJobList from './VirtualJobList'
 import { formatDate } from '@/utils/format'
 import { getAriaSort, type SortKey, type SortDirection } from '@/utils/sort'
+import { useState } from 'react'
+
+// Skeleton component for loading state
+function SkeletonCard() {
+  return (
+    <div className="card-mobile h-[92px] animate-pulse bg-white/[0.03] p-3">
+      <div className="h-3 bg-white/10 rounded w-1/3 mb-2"></div>
+      <div className="h-4 bg-white/10 rounded w-2/3 mb-2"></div>
+      <div className="h-3 bg-white/10 rounded w-1/2"></div>
+    </div>
+  )
+}
 
 export default function JobTable() {
-  const { paginatedJobs, openJobModal, sort, setSort } = useJobStore()
+  const { paginatedJobs, openJobModal, sort, setSort, isLoading } = useJobStore()
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   const handleSort = (key: SortKey) => {
     const newSort = {
@@ -30,7 +47,17 @@ export default function JobTable() {
     openJobModal(job)
   }
 
-  if (paginatedJobs.length === 0) {
+  const handleCardClick = (job: Job) => {
+    setSelectedJob(job)
+    setIsSheetOpen(true)
+  }
+
+  const handleSheetClose = () => {
+    setIsSheetOpen(false)
+    setSelectedJob(null)
+  }
+
+  if (paginatedJobs.length === 0 && !isLoading) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -51,165 +78,238 @@ export default function JobTable() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.2 }}
-      className="card overflow-x-hidden"
-    >
-      <div className="overflow-x-hidden">
-        <table className="table-fixed w-full">
-          <thead className="bg-black/30 backdrop-blur-sm sticky top-0">
-            <tr>
-              <th className="w-[130px] px-4 py-4">
-                <button
-                  onClick={() => handleSort('score')}
-                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                  aria-sort={getAriaSort('score', sort)}
+    <>
+      {/* Desktop Table - Hidden on mobile */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="hidden md:block card overflow-x-hidden"
+      >
+        <div className="overflow-x-hidden">
+          <table className="table-fixed w-full">
+            <thead className="bg-black/30 backdrop-blur-sm sticky top-0">
+              <tr>
+                <th className="w-[130px] px-4 py-4">
+                  <button
+                    onClick={() => handleSort('score')}
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    aria-sort={getAriaSort('score', sort)}
+                  >
+                    Score
+                    {sort.key === 'score' && (
+                      sort.dir === 'asc' ? 
+                        <ChevronUp className="size-3" /> : 
+                        <ChevronDown className="size-3" />
+                    )}
+                  </button>
+                </th>
+                <th className="md:w-[28%] px-4 py-4">
+                  <button
+                    onClick={() => handleSort('company')}
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    aria-sort={getAriaSort('company', sort)}
+                  >
+                    Firma
+                    {sort.key === 'company' && (
+                      sort.dir === 'asc' ? 
+                        <ChevronUp className="size-3" /> : 
+                        <ChevronDown className="size-3" />
+                    )}
+                  </button>
+                </th>
+                <th className="md:w-[40%] px-4 py-4">
+                  <button
+                    onClick={() => handleSort('title')}
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    aria-sort={getAriaSort('title', sort)}
+                  >
+                    Titel
+                    {sort.key === 'title' && (
+                      sort.dir === 'asc' ? 
+                        <ChevronUp className="size-3" /> : 
+                        <ChevronDown className="size-3" />
+                    )}
+                  </button>
+                </th>
+                <th className="md:w-[20%] px-4 py-4">
+                  <button
+                    onClick={() => handleSort('location')}
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    aria-sort={getAriaSort('location', sort)}
+                  >
+                    Lokation
+                    {sort.key === 'location' && (
+                      sort.dir === 'asc' ? 
+                        <ChevronUp className="size-3" /> : 
+                        <ChevronDown className="size-3" />
+                    )}
+                  </button>
+                </th>
+                <th className="w-[12%] px-4 py-4">
+                  <button
+                    onClick={() => handleSort('date')}
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    aria-sort={getAriaSort('date', sort)}
+                  >
+                    Dato
+                    {sort.key === 'date' && (
+                      sort.dir === 'asc' ? 
+                        <ChevronUp className="size-3" /> : 
+                        <ChevronDown className="size-3" />
+                    )}
+                  </button>
+                </th>
+                <th className="w-[8%] px-4 py-4">
+                  <span className="sr-only">Link</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {paginatedJobs.map((job, index) => (
+                <motion.tr
+                  key={job.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                  onClick={() => handleRowClick(job)}
+                  className="hover:bg-white/5 transition-colors cursor-pointer group"
                 >
-                  Score
-                  {sort.key === 'score' && (
-                    sort.dir === 'asc' ? 
-                      <ChevronUp className="size-3" /> : 
-                      <ChevronDown className="size-3" />
-                  )}
-                </button>
-              </th>
-              <th className="md:w-[28%] px-4 py-4">
-                <button
-                  onClick={() => handleSort('company')}
-                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                  aria-sort={getAriaSort('company', sort)}
-                >
-                  Firma
-                  {sort.key === 'company' && (
-                    sort.dir === 'asc' ? 
-                      <ChevronUp className="size-3" /> : 
-                      <ChevronDown className="size-3" />
-                  )}
-                </button>
-              </th>
-              <th className="md:w-[40%] px-4 py-4">
-                <button
-                  onClick={() => handleSort('title')}
-                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                  aria-sort={getAriaSort('title', sort)}
-                >
-                  Titel
-                  {sort.key === 'title' && (
-                    sort.dir === 'asc' ? 
-                      <ChevronUp className="size-3" /> : 
-                      <ChevronDown className="size-3" />
-                  )}
-                </button>
-              </th>
-              <th className="md:w-[20%] px-4 py-4">
-                <button
-                  onClick={() => handleSort('location')}
-                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                  aria-sort={getAriaSort('location', sort)}
-                >
-                  Lokation
-                  {sort.key === 'location' && (
-                    sort.dir === 'asc' ? 
-                      <ChevronUp className="size-3" /> : 
-                      <ChevronDown className="size-3" />
-                  )}
-                </button>
-              </th>
-              <th className="w-[12%] px-4 py-4">
-                <button
-                  onClick={() => handleSort('date')}
-                  className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                  aria-sort={getAriaSort('date', sort)}
-                >
-                  Dato
-                  {sort.key === 'date' && (
-                    sort.dir === 'asc' ? 
-                      <ChevronUp className="size-3" /> : 
-                      <ChevronDown className="size-3" />
-                  )}
-                </button>
-              </th>
-              <th className="w-[8%] px-4 py-4">
-                <span className="sr-only">Link</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
+                  {/* Score */}
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <ScoreBar score={job.cfo_score} />
+                  </td>
+
+                  {/* Company */}
+                  <td className="px-4 py-4 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Building2 className="size-4 text-slate-400 flex-shrink-0" />
+                      <span className="text-slate-200 font-medium truncate">
+                        {job.company || 'Ukendt firma'}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Title */}
+                  <td className="px-4 py-4 min-w-0">
+                    <span className="text-slate-200 font-medium line-clamp-1">
+                      {job.title || 'Ingen titel'}
+                    </span>
+                  </td>
+
+                  {/* Location */}
+                  <td className="px-4 py-4 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <MapPin className="size-4 text-slate-400 flex-shrink-0" />
+                      <span className="text-slate-200 truncate">
+                        {job.location || 'Ukendt lokation'}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Date */}
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="size-4 text-slate-400" />
+                      <span className="text-slate-200 tabular-nums text-sm">
+                        {formatDate(job.publication_date)}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Link */}
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    {job.job_url ? (
+                      <a
+                        href={job.job_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                        aria-label="Åbn opslag"
+                      >
+                        <ExternalLink className="size-4" />
+                      </a>
+                    ) : (
+                      <span className="text-slate-500 text-sm">—</span>
+                    )}
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
+
+      {/* Mobile Card List - Hidden on desktop */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="md:hidden px-4 with-fab-bottom"
+      >
+        {isLoading ? (
+          // Skeleton loading state
+          <div className="grid gap-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
+              >
+                <SkeletonCard />
+              </motion.div>
+            ))}
+          </div>
+        ) : paginatedJobs.length > 250 ? (
+          // Virtual list for large datasets
+          <div className="h-[calc(100vh-300px)]">
+            <VirtualJobList 
+              jobs={paginatedJobs} 
+              onOpen={handleCardClick} 
+            />
+          </div>
+        ) : (
+          // Regular grid for smaller datasets
+          <div className="grid gap-3">
             {paginatedJobs.map((job, index) => (
-              <motion.tr
+              <motion.div
                 key={job.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
-                onClick={() => handleRowClick(job)}
-                className="hover:bg-white/5 transition-colors cursor-pointer group"
               >
-                {/* Score */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <ScoreBar score={job.cfo_score} />
-                </td>
-
-                {/* Company */}
-                <td className="px-4 py-4 min-w-0">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Building2 className="size-4 text-slate-400 flex-shrink-0" />
-                    <span className="text-slate-200 font-medium truncate">
-                      {job.company || 'Ukendt firma'}
-                    </span>
-                  </div>
-                </td>
-
-                {/* Title */}
-                <td className="px-4 py-4 min-w-0">
-                  <span className="text-slate-200 font-medium line-clamp-1">
-                    {job.title || 'Ingen titel'}
-                  </span>
-                </td>
-
-                {/* Location */}
-                <td className="px-4 py-4 min-w-0">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <MapPin className="size-4 text-slate-400 flex-shrink-0" />
-                    <span className="text-slate-200 truncate">
-                      {job.location || 'Ukendt lokation'}
-                    </span>
-                  </div>
-                </td>
-
-                {/* Date */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="size-4 text-slate-400" />
-                    <span className="text-slate-200 tabular-nums text-sm">
-                      {formatDate(job.publication_date)}
-                    </span>
-                  </div>
-                </td>
-
-                {/* Link */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  {job.job_url ? (
-                    <a
-                      href={job.job_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                      aria-label="Åbn opslag"
-                    >
-                      <ExternalLink className="size-4" />
-                    </a>
-                  ) : (
-                    <span className="text-slate-500 text-sm">—</span>
-                  )}
-                </td>
-              </motion.tr>
+                <CardRow
+                  title={job.title || 'Ingen titel'}
+                  company={job.company || 'Ukendt firma'}
+                  location={job.location || 'Ukendt lokation'}
+                  date={job.publication_date || ''}
+                  score={job.cfo_score || 0}
+                  excerpt={job.description || ''}
+                  onOpen={() => handleCardClick(job)}
+                />
+              </motion.div>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </motion.div>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Job Sheet Modal */}
+      {selectedJob && (
+        <JobSheet
+          open={isSheetOpen}
+          onClose={handleSheetClose}
+          title={selectedJob.title || 'Ingen titel'}
+          company={selectedJob.company || 'Ukendt firma'}
+          location={selectedJob.location || 'Ukendt lokation'}
+          date={selectedJob.publication_date || ''}
+          score={selectedJob.cfo_score || 0}
+          description={selectedJob.description || ''}
+          jobUrl={selectedJob.job_url || undefined}
+          tags={[]}
+        />
+      )}
+    </>
   )
 } 

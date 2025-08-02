@@ -7,6 +7,47 @@ body {
   background: #0B0F14;
 }
 
+/* Prevent horizontal scroll on mobile */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Mobile gutters and safe area support */
+:root {
+  --gutter: 16px;
+  --fab-offset: 96px; /* approx FAB + margin */
+}
+
+@media (min-width: 640px) {
+  :root {
+    --gutter: 20px;
+  }
+}
+
+.container-mobile {
+  padding-left: calc(var(--gutter) + env(safe-area-inset-left));
+  padding-right: calc(var(--gutter) + env(safe-area-inset-right));
+}
+
+/* Desktop override for container-mobile */
+@media (min-width: 768px) {
+  .container-mobile {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.with-fab-bottom {
+  padding-bottom: calc(var(--fab-offset) + env(safe-area-inset-bottom));
+}
+
+/* Remove FAB bottom padding on desktop */
+@media (min-width: 768px) {
+  .with-fab-bottom {
+    padding-bottom: 0;
+  }
+}
+
 /* Radial gradient background */
 .bg-radial {
   background:
@@ -32,6 +73,10 @@ body {
     @apply rounded-2xl border border-white/10 bg-panel backdrop-blur-md shadow-[0_0_0_1px_rgba(255,255,255,0.03)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.06)] transition-all duration-200;
   }
 
+  .card-mobile {
+    @apply rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md;
+  }
+
   .soft-divider {
     @apply border-t border-white/10;
   }
@@ -44,6 +89,37 @@ body {
   /* Glassmorphism inputs */
   .glass-input {
     @apply bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-slate-200 placeholder-slate-400 focus-ring hover:border-white/20 transition-colors;
+  }
+
+  /* Touch targets for mobile */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Remove tap highlight on mobile */
+  .tap-highlight-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Text balance for better readability */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Tabular numbers for dates */
+  .tabnums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 
   /* Score badges */
@@ -107,6 +183,13 @@ body {
   -webkit-line-clamp: 6;
 }
 
+.line-clamp-8 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
@@ -131,4 +214,16 @@ body {
 .mask-fade-top {
   -webkit-mask-image: linear-gradient(to top, black, transparent);
           mask-image: linear-gradient(to top, black, transparent);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

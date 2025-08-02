@@ -6,52 +6,80 @@ interface ScoreBarProps {
 }
 
 export default function ScoreBar({ score, className = '' }: ScoreBarProps) {
-  if (score === null) {
-    return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        <div className="grid grid-cols-3 gap-[2px] w-16 h-[6px]">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="bg-white/6 ring-1 ring-white/10 rounded-full"
-            />
-          ))}
-        </div>
-      </div>
-    )
-  }
+  const getCircles = (score: number | null) => {
+    if (score === null || score === 0) {
+      return [
+        { filled: false, color: 'bg-white/10' },
+        { filled: false, color: 'bg-white/10' },
+        { filled: false, color: 'bg-white/10' }
+      ]
+    }
 
-  const getSegmentColors = (score: number) => {
     switch (score) {
       case 3:
-        return ['bg-kpmg-900', 'bg-kpmg-700', 'bg-kpmg-500']
+        return [
+          { filled: true, color: 'bg-kpmg-500' }, // Venstre - lyseblå
+          { filled: true, color: 'bg-kpmg-700' }, // Midter - mørkere
+          { filled: true, color: 'bg-kpmg-900' }  // Højre - endnu mørkere
+        ]
       case 2:
-        return ['bg-kpmg-700', 'bg-kpmg-500', 'bg-white/6']
+        return [
+          { filled: true, color: 'bg-kpmg-500' }, // Venstre - lyseblå
+          { filled: true, color: 'bg-kpmg-700' }, // Midter - mørkere
+          { filled: false, color: 'bg-white/10' } // Højre - tom
+        ]
       case 1:
-        return ['bg-kpmg-500', 'bg-white/6', 'bg-white/6']
-      case 0:
-        return ['bg-white/6', 'bg-white/6', 'bg-white/6']
+        return [
+          { filled: true, color: 'bg-kpmg-500' }, // Venstre - lyseblå
+          { filled: false, color: 'bg-white/10' }, // Midter - tom
+          { filled: false, color: 'bg-white/10' }  // Højre - tom
+        ]
       default:
-        return ['bg-white/6', 'bg-white/6', 'bg-white/6']
+        return [
+          { filled: false, color: 'bg-white/10' },
+          { filled: false, color: 'bg-white/10' },
+          { filled: false, color: 'bg-white/10' }
+        ]
     }
   }
 
-  const segmentColors = getSegmentColors(score)
+  const circles = getCircles(score)
 
   return (
     <div
       className={`flex items-center gap-2 ${className}`}
       role="progressbar"
-      aria-label={`Score ${score} af 3`}
-      aria-valuenow={score}
+      aria-label={`Score ${score || 0} af 3`}
+      aria-valuenow={score || 0}
       aria-valuemin={0}
       aria-valuemax={3}
     >
-      <div className="grid grid-cols-3 gap-[2px] w-16 h-[6px]">
-        {segmentColors.map((color, index) => (
-          <div
+      <div className="flex items-center gap-1.5">
+        {circles.map((circle, index) => (
+          <div 
             key={index}
-            className={`${color} ring-1 ring-white/10 rounded-full transition-all duration-300`}
+            className={`
+              size-2.5 
+              ${circle.color} 
+              rounded-full 
+              transition-all duration-300 ease-out
+              ${circle.filled 
+                ? 'shadow-[0_0_8px_rgba(0,0,0,0.3)] ring-1 ring-white/20' 
+                : 'ring-1 ring-white/10'
+              }
+              ${circle.filled && circle.color.includes('kpmg-500') 
+                ? 'shadow-[0_0_8px_rgba(0,145,218,0.25)]' 
+                : ''
+              }
+              ${circle.filled && circle.color.includes('kpmg-700') 
+                ? 'shadow-[0_0_10px_rgba(0,94,184,0.3)]' 
+                : ''
+              }
+              ${circle.filled && circle.color.includes('kpmg-900') 
+                ? 'shadow-[0_0_12px_rgba(0,51,141,0.4)]' 
+                : ''
+              }
+            `}
           />
         ))}
       </div>

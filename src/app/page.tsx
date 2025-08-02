@@ -3,8 +3,9 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useJobStore } from '@/store/jobStore'
-import StatCard from '@/components/StatCard'
+import ScoreSummaryCard from '@/components/ScoreSummaryCard'
 import FilterBar from '@/components/FilterBar'
+import MobileFilterBar from '@/components/MobileFilterBar'
 import JobTable from '@/components/JobTable'
 import JobModal from '@/components/JobModal'
 import ResultsCount from '@/components/ResultsCount'
@@ -19,12 +20,20 @@ export default function Home() {
     totalLowPriorityJobs,
     fetchJobs, 
     isLoading, 
-    error 
+    error,
+    initializeFromURL,
+    setFilters,
+    applyFilters
   } = useJobStore()
 
   useEffect(() => {
+    // Initialize filters from URL first
+    initializeFromURL()
+    // Then fetch jobs
     fetchJobs()
-  }, [fetchJobs])
+  }, [fetchJobs, initializeFromURL])
+
+
 
   return (
     <main className="bg-radial relative min-h-screen text-slate-200">
@@ -32,88 +41,87 @@ export default function Home() {
       <div className="noise" />
       
       {/* Main content */}
-      <div className="container mx-auto max-w-7xl px-4 py-8 sm:py-10 relative z-10">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <h1 className="font-heading text-3xl sm:text-4xl tracking-tight text-white mb-2">
-            KPMG CFO Dashboard
-          </h1>
-          <p className="text-slate-400 text-lg">
-            Find virksomheder der har behov for CFO Interim Assistance
-          </p>
-        </motion.div>
-
-        {/* Error Message */}
-        {error && (
+      <div className="relative z-10">
+        {/* Header - Mobile container, Desktop centered */}
+        <div className="container-mobile md:container mx-auto py-6 md:py-10">
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="card p-4 mb-6 border-red-400/20 bg-red-400/5"
+            transition={{ duration: 0.5 }}
+            className="mb-8"
           >
-            <p className="text-red-300 font-medium">Fejl: {error}</p>
+            <h1 className="font-heading text-3xl sm:text-4xl tracking-tight text-white mb-2">
+              KPMG CFO Dashboard
+            </h1>
+            <p className="text-slate-400 text-lg">
+              Find virksomheder der har behov for CFO Interim Assistance
+            </p>
           </motion.div>
-        )}
 
-        {/* Loading State */}
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="card p-8 text-center mb-6"
-          >
-            <div className="flex flex-col items-center space-y-4">
-              <div className="size-12 rounded-full bg-white/5 flex items-center justify-center">
-                <div className="size-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+          {/* Error Message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="card p-4 mb-6 border-red-400/20 bg-red-400/5"
+            >
+              <p className="text-red-300 font-medium">Fejl: {error}</p>
+            </motion.div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="card p-8 text-center mb-6"
+            >
+              <div className="flex flex-col items-center space-y-4">
+                <div className="size-12 rounded-full bg-white/5 flex items-center justify-center">
+                  <div className="size-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                </div>
+                <p className="text-slate-300">Indlæser jobs...</p>
               </div>
-              <p className="text-slate-300">Indlæser jobs...</p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* KPI Overview */}
-        <section className="grid gap-4 sm:grid-cols-3 mb-8">
-          <StatCard 
-            title="Akut behov" 
-            icon="flame" 
-            count={totalUrgentJobs} 
-            level={3} 
-          />
-          <StatCard 
-            title="Høj prioritet" 
-            icon="trend" 
-            count={totalHighPriorityJobs} 
-            level={2} 
-          />
-          <StatCard 
-            title="Lav relevans" 
-            icon="bag" 
-            count={totalLowPriorityJobs} 
-            level={1} 
-          />
-        </section>
-
-        {/* Filter Bar */}
-        <FilterBar />
-
-        {/* Results Count */}
-        <div className="mb-4">
-          <ResultsCount />
+            </motion.div>
+          )}
         </div>
 
-        {/* Job Table */}
-        <div className="mb-6">
-          <JobTable />
-        </div>
+        {/* Main content area - All components with same width */}
+        <div className="container-mobile md:container mx-auto">
+          {/* Score Summary Card */}
+          <section className="mb-3 md:mb-4">
+            <ScoreSummaryCard
+              count3={totalUrgentJobs}
+              count2={totalHighPriorityJobs}
+              count1={totalLowPriorityJobs}
+            />
+          </section>
 
-        {/* Pagination */}
-        <div className="mb-6">
-          <Pagination />
+          {/* Desktop Filter Bar - Floating glass card */}
+          <section className="mt-4 md:mt-6 mb-6">
+            <FilterBar />
+          </section>
+
+          {/* Results Count */}
+          <div className="mb-4">
+            <ResultsCount />
+          </div>
+
+          {/* Job Table - Handles responsive display internally */}
+          <div className="mb-6">
+            <JobTable />
+          </div>
+
+          {/* Pagination */}
+          <div className="mb-6">
+            <Pagination />
+          </div>
         </div>
+      </div>
+
+      {/* Mobile Filter Bar - Hidden on desktop */}
+      <div className="md:hidden">
+        <MobileFilterBar />
       </div>
 
       {/* Job Modal */}
