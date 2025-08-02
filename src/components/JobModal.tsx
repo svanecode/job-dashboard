@@ -1,9 +1,10 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ExternalLink, Building2, MapPin, Calendar, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, ExternalLink, Building2, MapPin, Calendar, Clock, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import ScoreBar from './ScoreBar'
+import DescriptionClamp from './DescriptionClamp'
 import { formatDate, copyToClipboard, getDaysAgo } from '@/utils/format'
 import { handleModalKeyDown, createFocusTrap } from '@/utils/keyboard'
 import { useState, useEffect, useRef } from 'react'
@@ -87,11 +88,6 @@ export default function JobModal() {
     return `for ${daysAgo} dage siden`
   }
 
-  const truncateDescription = (description: string, maxLength: number = 300) => {
-    if (description.length <= maxLength) return description
-    return description.substring(0, maxLength).trim() + '...'
-  }
-
   if (!selectedJob) return null
 
   const hasNavigation = paginatedJobs.length > 1
@@ -117,7 +113,7 @@ export default function JobModal() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 250 }}
             className="fixed inset-4 z-50 flex items-center justify-center"
           >
             <div
@@ -126,43 +122,54 @@ export default function JobModal() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="job-title"
-              className="max-w-[720px] w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_10px_50px_-10px_rgba(0,0,0,0.6)] p-5 sm:p-6 text-slate-200 overflow-hidden"
+              className="relative max-w-[720px] w-full rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md shadow-[0_10px_50px_-10px_rgba(0,0,0,0.6)] p-5 sm:p-6 text-slate-200 overflow-hidden"
             >
+              {/* Radial gradient background */}
+              <div className="absolute inset-0 bg-gradient-radial from-blue-500/5 via-transparent to-transparent pointer-events-none" />
+
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="relative flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
-                  <header className="space-y-2">
+                  <header className="space-y-3">
                     <h1 
                       id="job-title"
-                      className="text-2xl font-semibold tracking-tight text-white [text-wrap:balance] max-w-[56ch] leading-tight"
+                      className="text-2xl font-semibold tracking-tight [text-wrap:balance] max-w-[56ch] leading-tight"
                     >
-                      {selectedJob.title || 'Ingen titel'}
+                      <span className="text-white">
+                        {selectedJob.title?.split(' - ')[0] || selectedJob.title || 'Ingen titel'}
+                      </span>
+                      {selectedJob.title?.includes(' - ') && (
+                        <span className="block text-slate-200 mt-1">
+                          {selectedJob.title.split(' - ').slice(1).join(' - ')}
+                        </span>
+                      )}
                     </h1>
 
                     <div className="flex items-center gap-3 text-xs text-slate-400">
                       <ScoreBar score={selectedJob.cfo_score} />
                     </div>
 
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
-                      <span className="inline-flex items-center gap-1">
+                    {/* Enhanced meta-line with icons and better spacing */}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+                      <span className="inline-flex items-center gap-1.5">
                         <Building2 className="size-4 opacity-70" aria-hidden="true" />
-                        <span className="break-words">
+                        <span className="break-words font-medium">
                           {selectedJob.company || 'Ukendt firma'}
                         </span>
                       </span>
-                      <span aria-hidden="true">•</span>
-                      <span className="inline-flex items-center gap-1">
+                      <span aria-hidden="true" className="text-slate-500">•</span>
+                      <span className="inline-flex items-center gap-1.5">
                         <MapPin className="size-4 opacity-70" aria-hidden="true" />
                         <span className="break-words">
                           {selectedJob.location || 'Ukendt lokation'}
                         </span>
                       </span>
-                      <span aria-hidden="true">•</span>
-                      <span className="inline-flex items-center gap-1 tabular-nums">
+                      <span aria-hidden="true" className="text-slate-500">•</span>
+                      <span className="inline-flex items-center gap-1.5 tabular-nums">
                         <Calendar className="size-4 opacity-70" aria-hidden="true" />
                         {formatDate(selectedJob.publication_date)}
                       </span>
-                      <span className="text-slate-500">
+                      <span className="text-slate-500 text-xs ml-1">
                         ({getRelativeTime(selectedJob.publication_date)})
                       </span>
                     </div>
@@ -176,7 +183,7 @@ export default function JobModal() {
                       <button
                         onClick={handlePreviousJob}
                         disabled={!canGoPrevious}
-                        className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:scale-105"
                         aria-label="Forrige job"
                       >
                         <ChevronLeft className="size-4" aria-hidden="true" />
@@ -184,7 +191,7 @@ export default function JobModal() {
                       <button
                         onClick={handleNextJob}
                         disabled={!canGoNext}
-                        className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:scale-105"
                         aria-label="Næste job"
                       >
                         <ChevronRight className="size-4" aria-hidden="true" />
@@ -195,7 +202,7 @@ export default function JobModal() {
                   {/* Close button */}
                   <button
                     onClick={closeJobModal}
-                    className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none hover:shadow-lg hover:scale-105"
                     aria-label="Luk modal"
                   >
                     <X className="size-4" aria-hidden="true" />
@@ -203,23 +210,12 @@ export default function JobModal() {
                 </div>
               </div>
 
-              {/* Tags (if any) */}
-              {/* Removed job_info display */}
-
-              {/* Description */}
-              <div className="mt-4">
-                <div className="bg-white/5 rounded-lg p-4">
-                  {selectedJob.description ? (
-                    <p className="text-slate-200 leading-relaxed break-words max-w-[70ch]">
-                      {truncateDescription(selectedJob.description)}
-                    </p>
-                  ) : (
-                    <p className="text-slate-400 italic">
-                      Ingen beskrivelse tilgængelig.
-                    </p>
-                  )}
-                </div>
-              </div>
+              {/* Description with fade effect */}
+              <DescriptionClamp 
+                text={selectedJob.description || undefined} 
+                lines={6} 
+                className="mt-4" 
+              />
 
               {/* Footer actions - sticky for long content */}
               <div className="sticky bottom-0 -mx-6 px-6 py-3 bg-black/40 backdrop-blur supports-[backdrop-filter]:bg-black/30 mt-6 border-t border-white/10">
@@ -229,17 +225,30 @@ export default function JobModal() {
                       href={selectedJob.job_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-lg bg-kpmg-700 hover:bg-kpmg-500 px-4 py-2 text-sm font-medium text-white transition focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                      className="inline-flex items-center gap-2 rounded-lg bg-[#005EB8] hover:bg-[#0091DA] px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none hover:shadow-lg hover:shadow-blue-500/25"
                     >
                       <ExternalLink className="size-4" aria-hidden="true" />
                       Åbn jobopslag
                     </a>
                   )}
+                  
+                  {/* Copy link as icon button with tooltip */}
                   <button
                     onClick={handleCopyLink}
-                    className="ml-auto text-sm text-slate-400 hover:text-slate-200 underline-offset-2 hover:underline focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    className="ml-auto size-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none hover:shadow-lg hover:scale-105 group relative"
+                    aria-label="Kopiér link"
+                    title={linkCopied ? 'Link kopieret!' : 'Kopiér link'}
                   >
-                    {linkCopied ? 'Link kopieret!' : 'Kopiér link'}
+                    {linkCopied ? (
+                      <Check className="size-4 text-green-400" aria-hidden="true" />
+                    ) : (
+                      <Copy className="size-4" aria-hidden="true" />
+                    )}
+                    
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-black/90 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+                      {linkCopied ? 'Link kopieret!' : 'Kopiér link'}
+                    </div>
                   </button>
                 </div>
               </div>

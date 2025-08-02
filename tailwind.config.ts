@@ -39,6 +39,9 @@ const config: Config = {
         'scale-in': 'scaleIn 0.2s ease-out',
         'expand': 'expand 0.2s ease-out',
       },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0' },
@@ -59,7 +62,9 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/line-clamp'),
+  ],
 }
 
 export default config 

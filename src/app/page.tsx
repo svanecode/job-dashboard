@@ -16,6 +16,7 @@ export default function Home() {
     totalJobs, 
     totalUrgentJobs,
     totalHighPriorityJobs,
+    totalLowPriorityJobs,
     fetchJobs, 
     isLoading, 
     error 
@@ -74,32 +75,27 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* Stats Overview */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid gap-4 sm:grid-cols-3 mb-8"
-        >
+        {/* KPI Overview */}
+        <section className="grid gap-4 sm:grid-cols-3 mb-8">
           <StatCard 
             title="Akut behov" 
-            value={totalUrgentJobs} 
-            tone="success" 
             icon="flame" 
+            count={totalUrgentJobs} 
+            level={3} 
           />
           <StatCard 
             title="Høj prioritet" 
-            value={totalHighPriorityJobs} 
-            tone="warn" 
-            icon="bolt" 
+            icon="trend" 
+            count={totalHighPriorityJobs} 
+            level={2} 
           />
           <StatCard 
-            title="Total jobs" 
-            value={totalJobs} 
-            tone="info" 
-            icon="briefcase" 
+            title="Lav relevans" 
+            icon="bag" 
+            count={totalLowPriorityJobs} 
+            level={1} 
           />
-        </motion.section>
+        </section>
 
         {/* Filter Bar */}
         <FilterBar />
