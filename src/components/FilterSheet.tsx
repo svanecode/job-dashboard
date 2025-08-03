@@ -261,8 +261,8 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                   >
                     <option value="">Alle scores</option>
                     <option value="3">Score 3 - Akut</option>
-                    <option value="2">Score 2 - Høj</option>
-                    <option value="1">Score 1 - Medium</option>
+                    <option value="2">Score 2 - Relevant</option>
+                    <option value="1">Score 1 - Lav</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                     <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

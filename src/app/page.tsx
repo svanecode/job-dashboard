@@ -36,14 +36,14 @@ export default function Home() {
 
 
   return (
-    <main className="bg-radial relative min-h-screen text-slate-200">
+    <main className="bg-radial relative min-h-screen text-slate-200 overflow-x-hidden w-full max-w-full">
       {/* Noise overlay */}
       <div className="noise" />
       
       {/* Main content */}
-      <div className="relative z-10">
+      <div className="relative z-10 overflow-x-hidden w-full max-w-full">
         {/* Header - Mobile container, Desktop centered */}
-        <div className="container-mobile md:container mx-auto py-6 md:py-10">
+        <div className="container-mobile md:container mx-auto py-6 md:py-10 overflow-hidden w-full max-w-full">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -87,7 +87,7 @@ export default function Home() {
         </div>
 
         {/* Main content area - All components with same width */}
-        <div className="container-mobile md:container mx-auto">
+        <div className="container-mobile md:container mx-auto overflow-hidden w-full max-w-full">
           {/* Score Summary Card */}
           <section className="mb-3 md:mb-4">
             <ScoreSummaryCard

@@ -1,8 +1,8 @@
 'use client'
 
-import { MapPin, Calendar } from 'lucide-react'
-import ScoreBars from './ScoreBars'
+import { MapPin, Calendar, Building2 } from 'lucide-react'
 import DescriptionClamp from './DescriptionClamp'
+import ScoreBadge from './ScoreBadge'
 import { formatDate } from '@/utils/format'
 
 interface CardRowProps {
@@ -25,43 +25,65 @@ export default function CardRow({
   onOpen 
 }: CardRowProps) {
   return (
-    <button
+    <div
       onClick={onOpen}
-      className="w-full card-mobile p-3 text-left overflow-hidden tap-highlight-none active:scale-[0.99] transition shadow-[0_8px_30px_rgba(0,0,0,0.25)] hover:border-white/15 select-none"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
+      className="w-full rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm p-4 text-left overflow-hidden tap-highlight-none active:scale-[0.99] transition-all duration-200 shadow-md hover:shadow-lg hover:border-white/30 select-none cursor-pointer max-w-full"
+      style={{ maxWidth: '100%', width: '100%' }}
       role="button"
+      tabIndex={0}
       aria-label={`Åbn jobopslag: ${title} hos ${company}`}
     >
-      {/* Company */}
-      <div className="text-[13px] text-slate-300 leading-none">
-        {company || 'Ukendt firma'}
+      {/* Header with company and score badge */}
+      <div className="flex items-start justify-between mb-3 min-w-0 w-full">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Building2 className="size-4 text-slate-400" />
+          <span className="text-sm text-slate-300 font-medium truncate min-w-0">
+            {company || 'Ukendt firma'}
+          </span>
+        </div>
+        
+        {/* Score badge */}
+        <div className="ml-2">
+          <ScoreBadge score={score} size="sm" />
+        </div>
       </div>
 
       {/* Title */}
-      <div className="mt-0.5 text-[15px] font-medium text-white leading-snug line-clamp-2 break-words">
-        {title || 'Ingen titel'}
+      <div className="mb-3 min-w-0 w-full">
+        <h3 className="text-base font-semibold text-white leading-tight line-clamp-2 break-words">
+          {title || 'Ingen titel'}
+        </h3>
       </div>
 
-      {/* Meta line: Location + Date + Score */}
-      <div className="mt-1 flex items-center gap-x-2 gap-y-1 text-[13px] text-slate-400 leading-none">
-        <span className="inline-flex items-center gap-1">
-          <MapPin className="size-3.5 align-middle opacity-80" />
-          {location || 'Ukendt lokation'}
-        </span>
-        {date && <span>•</span>}
-        <span className="inline-flex items-center gap-1 tabnums">
-          <Calendar className="size-3.5 align-middle opacity-80" />
-          {formatDate(date)}
-        </span>
-        {/* Score in right side */}
-        <span className="ml-auto">
-          <ScoreBars level={score as 1 | 2 | 3} size="sm" className="translate-y-[1px] md:translate-y-0" />
-        </span>
+      {/* Meta line: Location + Date */}
+      <div className="flex items-center gap-2 text-sm text-slate-400 mb-3 min-w-0 w-full">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <MapPin className="size-4 opacity-70" />
+          <span className="truncate min-w-0">
+            {location || 'Ukendt lokation'}
+          </span>
+        </div>
+        
+        {date && (
+          <div className="flex items-center gap-1.5 tabular-nums">
+            <Calendar className="size-4 opacity-70" />
+            <span className="truncate">{formatDate(date)}</span>
+          </div>
+        )}
       </div>
 
       {/* Excerpt */}
       {excerpt && (
-        <DescriptionClamp text={excerpt} lines={3} className="mt-2" />
+        <div className="text-sm text-slate-300 leading-relaxed min-w-0 w-full">
+          <DescriptionClamp text={excerpt} lines={2} className="text-slate-300" />
+        </div>
       )}
-    </button>
+    </div>
   )
 } 

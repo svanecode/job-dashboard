@@ -1,31 +1,53 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { 
-  ExternalLink, 
-  MapPin, 
-  Building2, 
-  Calendar,
-  ChevronUp,
-  ChevronDown
-} from 'lucide-react'
+import { ChevronUp, ChevronDown, Building2, MapPin, Calendar, ExternalLink } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import { Job } from '@/types/job'
-import ScoreBar from './ScoreBar'
-import CardRow from './CardRow'
-import JobSheet from './JobSheet'
-import VirtualJobList from './VirtualJobList'
+import { SortKey, SortDirection, getAriaSort } from '@/utils/sort'
 import { formatDate } from '@/utils/format'
-import { getAriaSort, type SortKey, type SortDirection } from '@/utils/sort'
+import CardRow from './CardRow'
+import VirtualJobList from './VirtualJobList'
+import ScoreBadge from './ScoreBadge'
+import JobSheet from './JobSheet'
 import { useState } from 'react'
 
 // Skeleton component for loading state
 function SkeletonCard() {
   return (
-    <div className="card-mobile h-[92px] animate-pulse bg-white/[0.03] p-3">
-      <div className="h-3 bg-white/10 rounded w-1/3 mb-2"></div>
-      <div className="h-4 bg-white/10 rounded w-2/3 mb-2"></div>
-      <div className="h-3 bg-white/10 rounded w-1/2"></div>
+    <div className="w-full rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm p-4 animate-pulse max-w-full overflow-hidden">
+      {/* Header with company and score badge */}
+      <div className="flex items-start justify-between mb-3 min-w-0 w-full">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="size-4 bg-white/10 rounded"></div>
+          <div className="h-4 bg-white/10 rounded w-1/3"></div>
+        </div>
+        <div className="h-6 bg-white/10 rounded-full w-16"></div>
+      </div>
+
+      {/* Title */}
+      <div className="mb-3 min-w-0 w-full">
+        <div className="h-5 bg-white/10 rounded w-3/4 mb-2"></div>
+        <div className="h-5 bg-white/10 rounded w-1/2"></div>
+      </div>
+
+      {/* Meta line */}
+      <div className="flex items-center gap-2 mb-3 min-w-0 w-full">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <div className="size-4 bg-white/10 rounded"></div>
+          <div className="h-4 bg-white/10 rounded w-20"></div>
+        </div>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="size-4 bg-white/10 rounded"></div>
+          <div className="h-4 bg-white/10 rounded w-16"></div>
+        </div>
+      </div>
+
+      {/* Excerpt */}
+      <div className="space-y-2 min-w-0 w-full">
+        <div className="h-4 bg-white/10 rounded w-full"></div>
+        <div className="h-4 bg-white/10 rounded w-2/3"></div>
+      </div>
     </div>
   )
 }
@@ -84,13 +106,13 @@ export default function JobTable() {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="hidden md:block card overflow-x-hidden"
+        className="hidden lg:block card overflow-hidden"
       >
-        <div className="overflow-x-hidden">
-          <table className="table-fixed w-full">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-full">
             <thead className="bg-black/30 backdrop-blur-sm sticky top-0">
               <tr>
-                <th className="w-[130px] px-4 py-4">
+                <th className="w-[10%] px-4 py-4">
                   <button
                     onClick={() => handleSort('score')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
@@ -104,7 +126,7 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="md:w-[28%] px-4 py-4">
+                <th className="w-[18%] px-4 py-4">
                   <button
                     onClick={() => handleSort('company')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
@@ -118,7 +140,7 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="md:w-[40%] px-4 py-4">
+                <th className="w-[32%] px-4 py-4">
                   <button
                     onClick={() => handleSort('title')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
@@ -132,7 +154,7 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="md:w-[20%] px-4 py-4">
+                <th className="w-[20%] px-4 py-4">
                   <button
                     onClick={() => handleSort('location')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
@@ -177,38 +199,38 @@ export default function JobTable() {
                 >
                   {/* Score */}
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <ScoreBar score={job.cfo_score} />
+                    <ScoreBadge score={job.cfo_score || 0} />
                   </td>
 
                   {/* Company */}
-                  <td className="px-4 py-4 min-w-0">
+                  <td className="px-4 py-4 min-w-0 w-[18%]">
                     <div className="flex items-center gap-2 min-w-0">
                       <Building2 className="size-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-slate-200 font-medium truncate">
+                      <span className="text-slate-200 font-medium truncate text-sm">
                         {job.company || 'Ukendt firma'}
                       </span>
                     </div>
                   </td>
 
                   {/* Title */}
-                  <td className="px-4 py-4 min-w-0">
-                    <span className="text-slate-200 font-medium line-clamp-1">
+                  <td className="px-4 py-4 min-w-0 w-[32%]">
+                    <span className="text-slate-200 font-medium line-clamp-1 text-sm">
                       {job.title || 'Ingen titel'}
                     </span>
                   </td>
 
                   {/* Location */}
-                  <td className="px-4 py-4 min-w-0">
+                  <td className="px-4 py-4 min-w-0 w-[20%]">
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="size-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-slate-200 truncate">
+                      <span className="text-slate-200 truncate text-sm">
                         {job.location || 'Ukendt lokation'}
                       </span>
                     </div>
                   </td>
 
                   {/* Date */}
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4 whitespace-nowrap w-[12%]">
                     <div className="flex items-center gap-2">
                       <Calendar className="size-4 text-slate-400" />
                       <span className="text-slate-200 tabular-nums text-sm">
@@ -218,7 +240,7 @@ export default function JobTable() {
                   </td>
 
                   {/* Link */}
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4 whitespace-nowrap w-[8%]">
                     {job.job_url ? (
                       <a
                         href={job.job_url}
@@ -246,17 +268,18 @@ export default function JobTable() {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
-        className="md:hidden px-4 with-fab-bottom"
+        className="lg:hidden pb-20 with-fab-bottom overflow-hidden w-full max-w-full"
       >
         {isLoading ? (
           // Skeleton loading state
-          <div className="grid gap-3">
+          <div className="grid gap-4 w-full max-w-full">
             {Array.from({ length: 6 }).map((_, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
+                className="w-full max-w-full"
               >
                 <SkeletonCard />
               </motion.div>
@@ -264,7 +287,7 @@ export default function JobTable() {
           </div>
         ) : paginatedJobs.length > 250 ? (
           // Virtual list for large datasets
-          <div className="h-[calc(100vh-300px)]">
+          <div className="h-[calc(100vh-300px)] overflow-hidden w-full max-w-full">
             <VirtualJobList 
               jobs={paginatedJobs} 
               onOpen={handleCardClick} 
@@ -272,13 +295,14 @@ export default function JobTable() {
           </div>
         ) : (
           // Regular grid for smaller datasets
-          <div className="grid gap-3">
+          <div className="grid gap-4 w-full max-w-full">
             {paginatedJobs.map((job, index) => (
               <motion.div
                 key={job.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
+                className="w-full max-w-full"
               >
                 <CardRow
                   title={job.title || 'Ingen titel'}

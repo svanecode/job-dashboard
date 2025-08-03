@@ -36,12 +36,12 @@ export default function FilterBarDesktop() {
   }
 
   return (
-    <div className="hidden md:block sticky top-3 z-40">
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] px-3.5 py-2.5">
+    <div className="hidden md:block sticky top-3 z-40 overflow-hidden">
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] px-3.5 py-2.5 overflow-hidden">
         <form onSubmit={onSubmit}>
-          <div className="grid grid-cols-[2fr,1.3fr,1fr,1fr,auto,auto] gap-2.5">
+          <div className="grid grid-cols-[2fr,1.3fr,1fr,1fr,auto,auto] gap-2.5 min-w-0">
             {/* Søg */}
-            <div className="relative">
+            <div className="relative min-w-0">
               <Search className={icon} />
               <input
                 aria-label="Søg i jobopslag"
@@ -53,7 +53,7 @@ export default function FilterBarDesktop() {
             </div>
 
             {/* Lokation */}
-            <div className="relative">
+            <div className="relative min-w-0">
               <MapPin className={icon} />
               <input
                 aria-label="Lokation"
@@ -65,7 +65,7 @@ export default function FilterBarDesktop() {
             </div>
 
             {/* Score */}
-            <div className="relative">
+            <div className="relative min-w-0">
               <Filter className={icon} />
               <select
                 aria-label="Score"
@@ -85,7 +85,7 @@ export default function FilterBarDesktop() {
             </div>
 
             {/* Dato */}
-            <div className="relative">
+            <div className="relative min-w-0">
               <Calendar className={icon} />
               <select
                 aria-label="Dato"
@@ -107,7 +107,7 @@ export default function FilterBarDesktop() {
             </div>
 
             {/* Nulstil */}
-            <div className="flex items-center">
+            <div className="flex items-center flex-shrink-0">
               <button
                 type="button"
                 onClick={onReset}
@@ -119,7 +119,7 @@ export default function FilterBarDesktop() {
             </div>
 
             {/* Anvend */}
-            <div className="flex items-center">
+            <div className="flex items-center flex-shrink-0">
               <button
                 type="submit"
                 disabled={!dirty}

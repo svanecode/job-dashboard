@@ -31,18 +31,21 @@ export default function DescriptionClamp({
   }, [text, lines]);
 
   return (
-    <div className={clsx("relative overflow-hidden", className)}>
+    <div className={clsx("relative overflow-hidden w-full", className)}>
       <p
         ref={pRef}
         className={clsx(
-          "text-[14px] text-slate-200/90 leading-relaxed break-words",
+          "text-[14px] text-slate-200/90 leading-relaxed break-words w-full min-w-0",
           !expanded && `line-clamp-${lines}`
         )}
         style={{
           display: !expanded ? '-webkit-box' : 'block',
           WebkitBoxOrient: !expanded ? 'vertical' : undefined,
           WebkitLineClamp: !expanded ? lines : undefined,
-          overflow: !expanded ? 'hidden' : 'visible'
+          overflow: !expanded ? 'hidden' : 'visible',
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word',
+          maxWidth: '100%'
         }}
       >
         {text || "Ingen beskrivelse tilgængelig."}
@@ -62,7 +65,7 @@ export default function DescriptionClamp({
 
       {/* Inline toggle – kun når clamped */}
       {clamped && (
-        <div className="mt-2">
+        <div className="mt-2 w-full">
           <button
             type="button"
             onClick={() => setExpanded(v => !v)}

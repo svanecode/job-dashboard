@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ExternalLink, Copy, MapPin, Calendar, Building2 } from 'lucide-react'
-import ScoreBars from './ScoreBars'
 import DescriptionClamp from './DescriptionClamp'
+import ScoreBadge from './ScoreBadge'
 import { formatDate } from '@/utils/format'
 
 interface JobSheetProps {
@@ -34,6 +34,7 @@ export default function JobSheet({
 }: JobSheetProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [dragDistance, setDragDistance] = useState(0)
+  const [linkCopied, setLinkCopied] = useState(false)
   const touchStartY = useRef<number>(0)
   const sheetRef = useRef<HTMLDivElement>(null)
 
@@ -114,7 +115,8 @@ export default function JobSheet({
     if (jobUrl) {
       try {
         await navigator.clipboard.writeText(jobUrl)
-        // Could add a toast notification here
+        setLinkCopied(true)
+        setTimeout(() => setLinkCopied(false), 1500)
       } catch (err) {
         console.error('Failed to copy URL:', err)
       }
@@ -150,61 +152,56 @@ export default function JobSheet({
             style={{
               transform: isDragging ? `translateY(${dragDistance}px)` : undefined
             }}
-            className="fixed bottom-0 left-0 right-0 z-50 card-mobile rounded-t-3xl border-white/10 bg-white/6 shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[90vh] overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl border border-white/20 bg-white/5 backdrop-blur-sm shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[90vh] overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
             {/* Drag handle */}
-            <div className="flex justify-center pt-2 pb-1">
-              <div className="h-1.5 w-10 rounded-full bg-white/20" />
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="h-1 w-12 rounded-full bg-white/20" />
             </div>
 
             {/* Content */}
             <div className="px-4 pb-4 overflow-y-auto max-h-[70vh]">
-              {/* Header */}
-              <div className="mb-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h2 className="text-base font-semibold text-white [text-wrap:balance] flex-1 mr-3">
+              {/* Header with title and score badge */}
+              <div className="mb-6">
+                <div className="flex items-start justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-white [text-wrap:balance] flex-1 mr-4 leading-tight">
                     {title}
                   </h2>
-                  <button
-                    onClick={onClose}
-                    className="flex-shrink-0 p-2 -m-2 rounded-full hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none tap-target"
-                    aria-label="Luk"
-                  >
-                    <X className="size-5 text-slate-400" />
-                  </button>
+                  <ScoreBadge score={score} size="md" />
                 </div>
 
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Building2 className="size-3.5 opacity-80" />
+                {/* Company, location, date */}
+                <div className="space-y-3 text-sm text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="size-4 opacity-70 flex-shrink-0" />
+                    <span className="font-medium text-slate-300">
                       {company}
                     </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="size-3.5 opacity-80" />
-                      {location}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1 tabnums">
-                      <Calendar className="size-3.5 opacity-80" />
-                      {formatDate(date)}
-                    </span>
                   </div>
-                  <ScoreBars level={score as 1 | 2 | 3} size="sm" />
+                  <div className="flex items-center gap-2">
+                    <MapPin className="size-4 opacity-70 flex-shrink-0" />
+                    <span>{location}</span>
+                  </div>
+                  <div className="flex items-center gap-2 tabular-nums">
+                    <Calendar className="size-4 opacity-70 flex-shrink-0" />
+                    <span>{formatDate(date)}</span>
+                  </div>
                 </div>
               </div>
 
               {/* Description */}
-              <div className="mb-4">
-                <div className="text-[15px] max-w-[70ch] break-words">
-                  <DescriptionClamp text={description} lines={8} />
+              <div className="mb-6">
+                <div className="text-sm text-slate-300 leading-relaxed">
+                  <DescriptionClamp text={description} lines={12} className="text-slate-300" />
                 </div>
               </div>
 
               {/* Tags */}
               {tags.length > 0 && (
-                <div className="mb-4">
+                <div className="mb-6">
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag, index) => (
                       <span
@@ -220,26 +217,47 @@ export default function JobSheet({
             </div>
 
             {/* Sticky footer */}
-            <div className="sticky bottom-0 px-4 pb-4 pt-2 bg-gradient-to-t from-white/6 to-transparent">
-              <div className="flex gap-3">
+            <div className="sticky bottom-0 px-4 pb-4 pt-3 bg-gradient-to-t from-white/5 to-transparent border-t border-white/10">
+              <div className="space-y-3">
                 {jobUrl && (
-                  <a
-                    href={jobUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#005EB8] hover:bg-[#0091DA] text-white font-medium rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none tap-target"
+                  <button
+                    onClick={() => window.open(jobUrl, '_blank', 'noopener,noreferrer')}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#005EB8] hover:bg-[#0091DA] px-4 py-4 text-base font-medium text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none hover:shadow-lg hover:shadow-blue-500/25"
                   >
-                    <ExternalLink className="size-4" />
+                    <ExternalLink className="size-5" />
                     Åbn jobopslag
-                  </a>
+                  </button>
                 )}
-                <button
-                  onClick={copyToClipboard}
-                  className="flex items-center justify-center p-3 border border-white/10 hover:border-white/20 hover:bg-white/5 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none tap-target"
-                  aria-label="Kopiér link"
-                >
-                  <Copy className="size-4 text-slate-400" />
-                </button>
+                
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={copyToClipboard}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-slate-300 hover:text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                    aria-label="Kopiér link"
+                  >
+                    {linkCopied ? (
+                      <>
+                        <svg className="size-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Kopieret!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-4" />
+                        Kopiér link
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={onClose}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-slate-300 hover:text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                  >
+                    <X className="size-4" />
+                    Luk
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>

@@ -10,23 +10,55 @@ body {
 /* Prevent horizontal scroll on mobile */
 html, body {
   overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  position: relative;
+}
+
+/* Force all elements to respect viewport width */
+* {
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+/* Prevent any element from having a minimum width - only on mobile */
+@media (max-width: 1023px) {
+  * {
+    min-width: 0 !important;
+  }
+}
+
+/* Additional overflow protection */
+body {
+  overflow-x: hidden !important;
+}
+
+/* Ensure viewport width is respected */
+html {
+  overflow-x: hidden !important;
+  width: 100vw;
+  max-width: 100vw;
 }
 
 /* Mobile gutters and safe area support */
 :root {
-  --gutter: 16px;
+  --gutter: 12px;
   --fab-offset: 96px; /* approx FAB + margin */
 }
 
 @media (min-width: 640px) {
   :root {
-    --gutter: 20px;
+    --gutter: 16px;
   }
 }
 
 .container-mobile {
   padding-left: calc(var(--gutter) + env(safe-area-inset-left));
   padding-right: calc(var(--gutter) + env(safe-area-inset-right));
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
 }
 
 /* Desktop override for container-mobile */
@@ -34,6 +66,14 @@ html, body {
   .container-mobile {
     padding-left: 0;
     padding-right: 0;
+    max-width: none;
+  }
+}
+
+/* Mobile-only max-width restriction */
+@media (max-width: 1023px) {
+  .container-mobile {
+    max-width: 100vw;
   }
 }
 
@@ -70,11 +110,11 @@ html, body {
 /* Utility classes */
 @layer components {
   .card {
-    @apply rounded-2xl border border-white/10 bg-panel backdrop-blur-md shadow-[0_0_0_1px_rgba(255,255,255,0.03)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.06)] transition-all duration-200;
+    @apply rounded-2xl border border-white/10 bg-panel backdrop-blur-md shadow-[0_0_0_1px_rgba(255,255,255,0.03)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.06)] transition-all duration-200 overflow-hidden;
   }
 
   .card-mobile {
-    @apply rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md;
+    @apply rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden;
   }
 
   .soft-divider {
@@ -225,5 +265,28 @@ html, body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Ensure flex items can shrink - only on mobile */
+@media (max-width: 1023px) {
+  .flex {
+    min-width: 0;
+  }
+
+  .flex > * {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  /* Ensure grid items can shrink */
+  .grid > * {
+    min-width: 0;
+  }
+
+  /* Ensure all text elements can wrap */
+  p, span, div, h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 }

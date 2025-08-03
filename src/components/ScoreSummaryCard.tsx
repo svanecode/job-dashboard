@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import ScoreIndicator from './ScoreIndicator'
+import ScoreBadge from './ScoreBadge'
 
 interface ScoreSummaryCardProps {
   count3: number
@@ -44,7 +44,7 @@ export default function ScoreSummaryCard({
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[3].label}
             </span>
-            <ScoreIndicator level={3} size="sm" />
+            <ScoreBadge score={3} size="sm" />
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
             {count3.toLocaleString()}
@@ -60,7 +60,7 @@ export default function ScoreSummaryCard({
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[2].label}
             </span>
-            <ScoreIndicator level={2} size="sm" />
+            <ScoreBadge score={2} size="sm" />
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
             {count2.toLocaleString()}
@@ -76,7 +76,7 @@ export default function ScoreSummaryCard({
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[1].label}
             </span>
-            <ScoreIndicator level={1} size="sm" />
+            <ScoreBadge score={1} size="sm" />
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
             {count1.toLocaleString()}
