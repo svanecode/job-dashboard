@@ -140,7 +140,7 @@ export default function JobModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeJobModal}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
           />
 
           {/* Modal */}
@@ -173,107 +173,87 @@ export default function JobModal() {
               {/* Mobile: Full screen layout */}
               {isMobile ? (
                 <div className="flex flex-col h-full">
-                  {/* Header with score badge */}
-                  <div className="relative flex items-start justify-between p-4 border-b border-white/10">
-                    <div className="flex-1 min-w-0 pr-4">
-                      <header className="space-y-3">
-                        <h1 
-                          id="job-title"
-                          className="text-xl font-semibold tracking-tight [text-wrap:balance] max-w-[56ch] leading-tight"
-                        >
-                          <span className="text-white">
-                            {selectedJob.title?.split(' - ')[0] || selectedJob.title || 'Ingen titel'}
-                          </span>
-                          {selectedJob.title?.includes(' - ') && (
-                            <span className="block text-slate-200 mt-1">
-                              {selectedJob.title.split(' - ').slice(1).join(' - ')}
-                            </span>
-                          )}
-                        </h1>
+                  {/* Header with close button and score badge */}
+                  <div className="relative p-4 border-b border-white/10 bg-black/40 backdrop-blur">
+                    {/* Close button */}
+                    <button
+                      onClick={closeJobModal}
+                      className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                      aria-label="Luk"
+                    >
+                      <X className="size-5 text-slate-300" />
+                    </button>
 
-                        {/* Enhanced meta-line with icons and better spacing */}
-                        <div className="flex flex-col gap-2 text-sm text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="size-4 opacity-70 flex-shrink-0" aria-hidden="true" />
-                            <span className="break-words font-medium">
-                              {selectedJob.company || 'Ukendt firma'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="size-4 opacity-70 flex-shrink-0" aria-hidden="true" />
-                            <span className="break-words">
-                              {selectedJob.location || 'Ukendt lokation'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 tabular-nums">
-                            <Calendar className="size-4 opacity-70 flex-shrink-0" aria-hidden="true" />
-                            <span>{formatDate(selectedJob.publication_date)}</span>
-                            <span className="text-slate-500 text-xs">
-                              ({getRelativeTime(selectedJob.publication_date)})
-                            </span>
-                          </div>
+                    {/* Job title and company */}
+                    <div className="pr-12">
+                      <h1 
+                        id="job-title"
+                        className="text-xl font-semibold tracking-tight text-white leading-tight mb-3"
+                      >
+                        {selectedJob.title || 'Ingen titel'}
+                      </h1>
+
+                      {/* Company and score badge row */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="size-4 text-slate-400" />
+                          <span className="text-slate-300 font-medium">
+                            {selectedJob.company || 'Ukendt firma'}
+                          </span>
                         </div>
-                      </header>
-                    </div>
-                    
-                    {/* Score badge */}
-                    {selectedJob.cfo_score && (
-                      <div className="flex-shrink-0">
-                        <ScoreBadge score={selectedJob.cfo_score} />
+                        
+                        {/* Score badge prominently placed */}
+                        {selectedJob.cfo_score && (
+                          <ScoreBadge score={selectedJob.cfo_score} size="md" />
+                        )}
                       </div>
-                    )}
+
+                      {/* Location and date with better spacing */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="size-4 text-slate-400" />
+                          <span className="text-slate-300">
+                            {selectedJob.location || 'Ukendt lokation'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="size-4 text-slate-400" />
+                          <span className="text-slate-300">
+                            {formatDate(selectedJob.publication_date)}
+                          </span>
+                          <span className="text-slate-500 text-sm">
+                            ({getRelativeTime(selectedJob.publication_date)})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Scrollable content */}
                   <div 
                     ref={contentRef}
-                    className="flex-1 overflow-y-auto p-4"
+                    className="flex-1 overflow-y-auto p-4 max-h-[60vh]"
+                    onScroll={handleScroll}
                   >
                     {/* Description */}
                     <DescriptionClamp 
                       text={selectedJob.description || undefined} 
-                      lines={8} 
-                      className="mb-6" 
+                      lines={12} 
+                      className="text-slate-200 leading-relaxed" 
                     />
                   </div>
 
-                  {/* Footer actions */}
-                  <div className="p-4 border-t border-white/10 bg-black/40 backdrop-blur supports-[backdrop-filter]:bg-black/30">
-                    <div className="space-y-3">
-                      {selectedJob.job_url && (
-                        <button
-                          onClick={handleOpenJob}
-                          className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#005EB8] hover:bg-[#0091DA] px-4 py-4 text-base font-medium text-white transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none hover:shadow-lg hover:shadow-blue-500/25"
-                        >
-                          <ExternalLink className="size-5" aria-hidden="true" />
-                          Åbn jobopslag
-                        </button>
-                      )}
-                      
-                      {/* Copy link and close buttons */}
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={handleCopyLink}
-                          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-slate-300 hover:text-white transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                          aria-label="Kopiér link"
-                        >
-                          {linkCopied ? (
-                            <Check className="size-4 text-green-400" aria-hidden="true" />
-                          ) : (
-                            <Copy className="size-4" aria-hidden="true" />
-                          )}
-                          {linkCopied ? 'Kopieret!' : 'Kopiér link'}
-                        </button>
-                        
-                        <button
-                          onClick={closeJobModal}
-                          className="flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-slate-300 hover:text-white transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                        >
-                          <X className="size-4" aria-hidden="true" />
-                          Luk
-                        </button>
-                      </div>
-                    </div>
+                  {/* Footer with main action button */}
+                  <div className="p-4 border-t border-white/10 bg-black/40 backdrop-blur">
+                    {selectedJob.job_url && (
+                      <button
+                        onClick={handleOpenJob}
+                        className="w-full flex items-center justify-center gap-3 rounded-xl bg-[#005EB8] hover:bg-[#0091DA] px-6 py-4 text-base font-medium text-white transition-all duration-200 focus-visible:ring-2 ring-white/20 focus-visible:outline-none hover:shadow-lg hover:shadow-blue-500/25"
+                      >
+                        <ExternalLink className="size-5" aria-hidden="true" />
+                        Åbn jobopslag
+                      </button>
+                    )}
                   </div>
 
                   {/* Scroll shadow */}

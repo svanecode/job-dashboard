@@ -108,14 +108,14 @@ export default function JobTable() {
         transition={{ duration: 0.3, delay: 0.2 }}
         className="hidden lg:block card overflow-hidden"
       >
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-full">
+        <div className="overflow-x-auto max-w-full">
+          <table className="w-full min-w-full table-fixed">
             <thead className="bg-black/30 backdrop-blur-sm sticky top-0">
               <tr>
-                <th className="w-[10%] px-4 py-4">
+                <th className="w-[8%] px-4 py-4">
                   <button
                     onClick={() => handleSort('score')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
                     aria-sort={getAriaSort('score', sort)}
                   >
                     Score
@@ -126,10 +126,10 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="w-[18%] px-4 py-4">
+                <th className="w-[15%] px-4 py-4">
                   <button
                     onClick={() => handleSort('company')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
                     aria-sort={getAriaSort('company', sort)}
                   >
                     Firma
@@ -140,10 +140,10 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="w-[32%] px-4 py-4">
+                <th className="w-[35%] px-4 py-4">
                   <button
                     onClick={() => handleSort('title')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
                     aria-sort={getAriaSort('title', sort)}
                   >
                     Titel
@@ -157,7 +157,7 @@ export default function JobTable() {
                 <th className="w-[20%] px-4 py-4">
                   <button
                     onClick={() => handleSort('location')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
                     aria-sort={getAriaSort('location', sort)}
                   >
                     Lokation
@@ -171,7 +171,7 @@ export default function JobTable() {
                 <th className="w-[12%] px-4 py-4">
                   <button
                     onClick={() => handleSort('date')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
                     aria-sort={getAriaSort('date', sort)}
                   >
                     Dato
@@ -182,7 +182,7 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="w-[8%] px-4 py-4">
+                <th className="w-[10%] px-4 py-4">
                   <span className="sr-only">Link</span>
                 </th>
               </tr>
@@ -198,12 +198,12 @@ export default function JobTable() {
                   className="hover:bg-white/5 transition-colors cursor-pointer group"
                 >
                   {/* Score */}
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4 whitespace-nowrap w-[8%]">
                     <ScoreBadge score={job.cfo_score || 0} />
                   </td>
 
                   {/* Company */}
-                  <td className="px-4 py-4 min-w-0 w-[18%]">
+                  <td className="px-4 py-4 min-w-0 w-[15%]">
                     <div className="flex items-center gap-2 min-w-0">
                       <Building2 className="size-4 text-slate-400 flex-shrink-0" />
                       <span className="text-slate-200 font-medium truncate text-sm">
@@ -213,7 +213,7 @@ export default function JobTable() {
                   </td>
 
                   {/* Title */}
-                  <td className="px-4 py-4 min-w-0 w-[32%]">
+                  <td className="px-4 py-4 min-w-0 w-[35%]">
                     <span className="text-slate-200 font-medium line-clamp-1 text-sm">
                       {job.title || 'Ingen titel'}
                     </span>
@@ -240,7 +240,7 @@ export default function JobTable() {
                   </td>
 
                   {/* Link */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[8%]">
+                  <td className="px-4 py-4 whitespace-nowrap w-[10%]">
                     {job.job_url ? (
                       <a
                         href={job.job_url}
