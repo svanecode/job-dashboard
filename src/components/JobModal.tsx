@@ -111,16 +111,10 @@ export default function JobModal() {
 
   const getRelativeTime = (dateString: string | null) => {
     if (!dateString) return ''
-    const daysAgo = getDaysAgo(dateString)
+    const daysAgo = Math.floor((Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24))
     if (daysAgo === 0) return 'i dag'
     if (daysAgo === 1) return 'i går'
     return `for ${daysAgo} dage siden`
-  }
-
-  const getScoreLabel = (score: number | null) => {
-    if (!score) return ''
-    const labels = { 3: 'Akut', 2: 'Relevant', 1: 'Lav' }
-    return `${score} · ${labels[score as keyof typeof labels]}`
   }
 
   if (!selectedJob) return null
@@ -233,7 +227,6 @@ export default function JobModal() {
                   <div 
                     ref={contentRef}
                     className="flex-1 overflow-y-auto p-4 max-h-[60vh]"
-                    onScroll={handleScroll}
                   >
                     {/* Description */}
                     <DescriptionClamp 
