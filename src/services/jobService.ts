@@ -44,44 +44,63 @@ export const jobService = {
     const to = from + pageSize - 1;
     const sort = params?.sort || { key: 'score', dir: 'desc' };
 
-    // Build query with sorting
-    let query = supabase
-      .from('jobs')
-      .select('*')
-      .is('deleted_at', null)
-      .gte('cfo_score', 1);
+    try {
+      // Build query with sorting
+      let query = supabase
+        .from('jobs')
+        .select('*', { count: 'exact' })
+        .is('deleted_at', null)
+        .gte('cfo_score', 1);
 
-    // Apply sorting
-    switch (sort.key) {
-      case 'score':
-        query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
-        break;
-      case 'company':
-        query = query.order('company', { ascending: sort.dir === 'asc' });
-        break;
-      case 'title':
-        query = query.order('title', { ascending: sort.dir === 'asc' });
-        break;
-      case 'location':
-        query = query.order('location', { ascending: sort.dir === 'asc' });
-        break;
-      case 'date':
-        query = query.order('publication_date', { ascending: sort.dir === 'asc' });
-        break;
-      default:
-        query = query.order('cfo_score', { ascending: false });
-    }
+      // Apply sorting
+      switch (sort.key) {
+        case 'score':
+          query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
+          break;
+        case 'company':
+          query = query.order('company', { ascending: sort.dir === 'asc' });
+          break;
+        case 'title':
+          query = query.order('title', { ascending: sort.dir === 'asc' });
+          break;
+        case 'location':
+          query = query.order('location', { ascending: sort.dir === 'asc' });
+          break;
+        case 'date':
+          query = query.order('publication_date', { ascending: sort.dir === 'asc' });
+          break;
+        default:
+          query = query.order('cfo_score', { ascending: false });
+      }
 
-    // Add secondary sort for stable sorting
-    if (sort.key !== 'date') {
-      query = query.order('publication_date', { ascending: false });
-    }
+      // Add secondary sort for stable sorting
+      if (sort.key !== 'date') {
+        query = query.order('publication_date', { ascending: false });
+      }
 
-    // Apply pagination
-    const { data, error } = await query.range(from, to);
+      // Apply pagination
+      const { data, error, count } = await query.range(from, to);
 
-    if (error) {
-      console.error('Error fetching jobs:', error);
+      if (error) {
+        console.error('Error fetching jobs:', error);
+        return {
+          data: [],
+          total: 0,
+          page,
+          pageSize,
+          totalPages: 0
+        };
+      }
+
+      return {
+        data: data || [],
+        total: count || 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count || 0) / pageSize)
+      };
+    } catch (error) {
+      console.error('Error in getAllJobs:', error);
       return {
         data: [],
         total: 0,
@@ -90,25 +109,6 @@ export const jobService = {
         totalPages: 0
       };
     }
-
-    // Get total count in a separate optimized query
-    const { count, error: countError } = await supabase
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .is('deleted_at', null)
-      .gte('cfo_score', 1);
-
-    if (countError) {
-      console.error('Error counting jobs:', countError);
-    }
-
-    return {
-      data: data || [],
-      total: count || 0,
-      page,
-      pageSize,
-      totalPages: Math.ceil((count || 0) / pageSize)
-    };
   },
 
   // Hent job efter ID
@@ -224,16 +224,64 @@ export const jobService = {
     const to = from + pageSize - 1;
     const sort = params?.sort || { key: 'score', dir: 'desc' };
 
-    // Først hent total count for søgning
-    const { count, error: countError } = await supabase
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .is('deleted_at', null)
-      .gte('cfo_score', 1)
-      .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`);
+    try {
+      // Build query with search and sorting
+      let searchQuery = supabase
+        .from('jobs')
+        .select('*', { count: 'exact' })
+        .is('deleted_at', null)
+        .gte('cfo_score', 1)
+        .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`);
 
-    if (countError) {
-      console.error('Error counting search results:', countError);
+      // Apply sorting
+      switch (sort.key) {
+        case 'score':
+          searchQuery = searchQuery.order('cfo_score', { ascending: sort.dir === 'asc' });
+          break;
+        case 'company':
+          searchQuery = searchQuery.order('company', { ascending: sort.dir === 'asc' });
+          break;
+        case 'title':
+          searchQuery = searchQuery.order('title', { ascending: sort.dir === 'asc' });
+          break;
+        case 'location':
+          searchQuery = searchQuery.order('location', { ascending: sort.dir === 'asc' });
+          break;
+        case 'date':
+          searchQuery = searchQuery.order('publication_date', { ascending: sort.dir === 'asc' });
+          break;
+        default:
+          searchQuery = searchQuery.order('cfo_score', { ascending: false });
+      }
+
+      // Add secondary sort for stable sorting
+      if (sort.key !== 'date') {
+        searchQuery = searchQuery.order('publication_date', { ascending: false });
+      }
+
+      // Apply pagination
+      const { data, error, count } = await searchQuery.range(from, to);
+
+      if (error) {
+        console.error('Error searching jobs:', error);
+        return {
+          data: [],
+          total: count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize)
+        };
+      }
+
+      return {
+        data: data || [],
+        total: count || 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count || 0) / pageSize)
+      };
+    } catch (error) {
+      console.error('Error in searchJobs:', error);
       return {
         data: [],
         total: 0,
@@ -242,62 +290,6 @@ export const jobService = {
         totalPages: 0
       };
     }
-
-    // Build query with search and sorting
-    let searchQuery = supabase
-      .from('jobs')
-      .select('*')
-      .is('deleted_at', null)
-      .gte('cfo_score', 1)
-      .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`);
-
-    // Apply sorting
-    switch (sort.key) {
-      case 'score':
-        searchQuery = searchQuery.order('cfo_score', { ascending: sort.dir === 'asc' });
-        break;
-      case 'company':
-        searchQuery = searchQuery.order('company', { ascending: sort.dir === 'asc' });
-        break;
-      case 'title':
-        searchQuery = searchQuery.order('title', { ascending: sort.dir === 'asc' });
-        break;
-      case 'location':
-        searchQuery = searchQuery.order('location', { ascending: sort.dir === 'asc' });
-        break;
-      case 'date':
-        searchQuery = searchQuery.order('publication_date', { ascending: sort.dir === 'asc' });
-        break;
-      default:
-        searchQuery = searchQuery.order('cfo_score', { ascending: false });
-    }
-
-    // Add secondary sort for stable sorting
-    if (sort.key !== 'date') {
-      searchQuery = searchQuery.order('publication_date', { ascending: false });
-    }
-
-    // Apply pagination
-    const { data, error } = await searchQuery.range(from, to);
-
-    if (error) {
-      console.error('Error searching jobs:', error);
-      return {
-        data: [],
-        total: count || 0,
-        page,
-        pageSize,
-        totalPages: Math.ceil((count || 0) / pageSize)
-      };
-    }
-
-    return {
-      data: data || [],
-      total: count || 0,
-      page,
-      pageSize,
-      totalPages: Math.ceil((count || 0) / pageSize)
-    };
   },
 
   // Filtrer jobs efter score med pagination
@@ -325,15 +317,63 @@ export const jobService = {
     const to = from + pageSize - 1;
     const sort = params?.sort || { key: 'date', dir: 'desc' };
 
-    // Først hent total count for score filter
-    const { count, error: countError } = await supabase
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .eq('cfo_score', score)
-      .is('deleted_at', null);
+    try {
+      // Build query with score filter and sorting
+      let query = supabase
+        .from('jobs')
+        .select('*', { count: 'exact' })
+        .eq('cfo_score', score)
+        .is('deleted_at', null);
 
-    if (countError) {
-      console.error('Error counting jobs by score:', countError);
+      // Apply sorting
+      switch (sort.key) {
+        case 'score':
+          query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
+          break;
+        case 'company':
+          query = query.order('company', { ascending: sort.dir === 'asc' });
+          break;
+        case 'title':
+          query = query.order('title', { ascending: sort.dir === 'asc' });
+          break;
+        case 'location':
+          query = query.order('location', { ascending: sort.dir === 'asc' });
+          break;
+        case 'date':
+          query = query.order('publication_date', { ascending: sort.dir === 'asc' });
+          break;
+        default:
+          query = query.order('publication_date', { ascending: false });
+      }
+
+      // Add secondary sort for stable sorting
+      if (sort.key !== 'date') {
+        query = query.order('publication_date', { ascending: false });
+      }
+
+      // Apply pagination
+      const { data, error, count } = await query.range(from, to);
+
+      if (error) {
+        console.error('Error filtering jobs by score:', error);
+        return {
+          data: [],
+          total: count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize)
+        };
+      }
+
+      return {
+        data: data || [],
+        total: count || 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count || 0) / pageSize)
+      };
+    } catch (error) {
+      console.error('Error in getJobsByScore:', error);
       return {
         data: [],
         total: 0,
@@ -342,61 +382,6 @@ export const jobService = {
         totalPages: 0
       };
     }
-
-    // Build query with score filter and sorting
-    let query = supabase
-      .from('jobs')
-      .select('*')
-      .eq('cfo_score', score)
-      .is('deleted_at', null);
-
-    // Apply sorting
-    switch (sort.key) {
-      case 'score':
-        query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
-        break;
-      case 'company':
-        query = query.order('company', { ascending: sort.dir === 'asc' });
-        break;
-      case 'title':
-        query = query.order('title', { ascending: sort.dir === 'asc' });
-        break;
-      case 'location':
-        query = query.order('location', { ascending: sort.dir === 'asc' });
-        break;
-      case 'date':
-        query = query.order('publication_date', { ascending: sort.dir === 'asc' });
-        break;
-      default:
-        query = query.order('publication_date', { ascending: false });
-    }
-
-    // Add secondary sort for stable sorting
-    if (sort.key !== 'date') {
-      query = query.order('publication_date', { ascending: false });
-    }
-
-    // Apply pagination
-    const { data, error } = await query.range(from, to);
-
-    if (error) {
-      console.error('Error filtering jobs by score:', error);
-      return {
-        data: [],
-        total: count || 0,
-        page,
-        pageSize,
-        totalPages: Math.ceil((count || 0) / pageSize)
-      };
-    }
-
-    return {
-      data: data || [],
-      total: count || 0,
-      page,
-      pageSize,
-      totalPages: Math.ceil((count || 0) / pageSize)
-    };
   },
 
   // Filtrer jobs efter lokation med pagination
@@ -428,16 +413,64 @@ export const jobService = {
     const to = from + pageSize - 1;
     const sort = params?.sort || { key: 'score', dir: 'desc' };
 
-    // Først hent total count for location filter
-    const { count, error: countError } = await supabase
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .ilike('location', `%${location}%`)
-      .is('deleted_at', null)
-      .gte('cfo_score', 1);
+    try {
+      // Build query with location filter and sorting
+      let query = supabase
+        .from('jobs')
+        .select('*', { count: 'exact' })
+        .ilike('location', `%${location}%`)
+        .is('deleted_at', null)
+        .gte('cfo_score', 1);
 
-    if (countError) {
-      console.error('Error counting jobs by location:', countError);
+      // Apply sorting
+      switch (sort.key) {
+        case 'score':
+          query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
+          break;
+        case 'company':
+          query = query.order('company', { ascending: sort.dir === 'asc' });
+          break;
+        case 'title':
+          query = query.order('title', { ascending: sort.dir === 'asc' });
+          break;
+        case 'location':
+          query = query.order('location', { ascending: sort.dir === 'asc' });
+          break;
+        case 'date':
+          query = query.order('publication_date', { ascending: sort.dir === 'asc' });
+          break;
+        default:
+          query = query.order('cfo_score', { ascending: false });
+      }
+
+      // Add secondary sort for stable sorting
+      if (sort.key !== 'date') {
+        query = query.order('publication_date', { ascending: false });
+      }
+
+      // Apply pagination
+      const { data, error, count } = await query.range(from, to);
+
+      if (error) {
+        console.error('Error filtering jobs by location:', error);
+        return {
+          data: [],
+          total: count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize)
+        };
+      }
+
+      return {
+        data: data || [],
+        total: count || 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count || 0) / pageSize)
+      };
+    } catch (error) {
+      console.error('Error in getJobsByLocation:', error);
       return {
         data: [],
         total: 0,
@@ -446,62 +479,6 @@ export const jobService = {
         totalPages: 0
       };
     }
-
-    // Build query with location filter and sorting
-    let query = supabase
-      .from('jobs')
-      .select('*')
-      .ilike('location', `%${location}%`)
-      .is('deleted_at', null)
-      .gte('cfo_score', 1);
-
-    // Apply sorting
-    switch (sort.key) {
-      case 'score':
-        query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
-        break;
-      case 'company':
-        query = query.order('company', { ascending: sort.dir === 'asc' });
-        break;
-      case 'title':
-        query = query.order('title', { ascending: sort.dir === 'asc' });
-        break;
-      case 'location':
-        query = query.order('location', { ascending: sort.dir === 'asc' });
-        break;
-      case 'date':
-        query = query.order('publication_date', { ascending: sort.dir === 'asc' });
-        break;
-      default:
-        query = query.order('cfo_score', { ascending: false });
-    }
-
-    // Add secondary sort for stable sorting
-    if (sort.key !== 'date') {
-      query = query.order('publication_date', { ascending: false });
-    }
-
-    // Apply pagination
-    const { data, error } = await query.range(from, to);
-
-    if (error) {
-      console.error('Error filtering jobs by location:', error);
-      return {
-        data: [],
-        total: count || 0,
-        page,
-        pageSize,
-        totalPages: Math.ceil((count || 0) / pageSize)
-      };
-    }
-
-    return {
-      data: data || [],
-      total: count || 0,
-      page,
-      pageSize,
-      totalPages: Math.ceil((count || 0) / pageSize)
-    };
   },
 
   // Filtrer jobs efter dato med pagination
@@ -541,16 +518,64 @@ export const jobService = {
     cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
     const cutoffDateString = cutoffDate.toISOString().split('T')[0];
 
-    // Først hent total count for date filter
-    const { count, error: countError } = await supabase
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .gte('publication_date', cutoffDateString)
-      .is('deleted_at', null)
-      .gte('cfo_score', 1);
+    try {
+      // Build query with date filter and sorting
+      let query = supabase
+        .from('jobs')
+        .select('*', { count: 'exact' })
+        .gte('publication_date', cutoffDateString)
+        .is('deleted_at', null)
+        .gte('cfo_score', 1);
 
-    if (countError) {
-      console.error('Error counting jobs by date:', countError);
+      // Apply sorting
+      switch (sort.key) {
+        case 'score':
+          query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
+          break;
+        case 'company':
+          query = query.order('company', { ascending: sort.dir === 'asc' });
+          break;
+        case 'title':
+          query = query.order('title', { ascending: sort.dir === 'asc' });
+          break;
+        case 'location':
+          query = query.order('location', { ascending: sort.dir === 'asc' });
+          break;
+        case 'date':
+          query = query.order('publication_date', { ascending: sort.dir === 'asc' });
+          break;
+        default:
+          query = query.order('publication_date', { ascending: false });
+      }
+
+      // Add secondary sort for stable sorting
+      if (sort.key !== 'date') {
+        query = query.order('publication_date', { ascending: false });
+      }
+
+      // Apply pagination
+      const { data, error, count } = await query.range(from, to);
+
+      if (error) {
+        console.error('Error filtering jobs by date:', error);
+        return {
+          data: [],
+          total: count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize)
+        };
+      }
+
+      return {
+        data: data || [],
+        total: count || 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count || 0) / pageSize)
+      };
+    } catch (error) {
+      console.error('Error in getJobsByDate:', error);
       return {
         data: [],
         total: 0,
@@ -559,62 +584,6 @@ export const jobService = {
         totalPages: 0
       };
     }
-
-    // Build query with date filter and sorting
-    let query = supabase
-      .from('jobs')
-      .select('*')
-      .gte('publication_date', cutoffDateString)
-      .is('deleted_at', null)
-      .gte('cfo_score', 1);
-
-    // Apply sorting
-    switch (sort.key) {
-      case 'score':
-        query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
-        break;
-      case 'company':
-        query = query.order('company', { ascending: sort.dir === 'asc' });
-        break;
-      case 'title':
-        query = query.order('title', { ascending: sort.dir === 'asc' });
-        break;
-      case 'location':
-        query = query.order('location', { ascending: sort.dir === 'asc' });
-        break;
-      case 'date':
-        query = query.order('publication_date', { ascending: sort.dir === 'asc' });
-        break;
-      default:
-        query = query.order('publication_date', { ascending: false });
-    }
-
-    // Add secondary sort for stable sorting
-    if (sort.key !== 'date') {
-      query = query.order('publication_date', { ascending: false });
-    }
-
-    // Apply pagination
-    const { data, error } = await query.range(from, to);
-
-    if (error) {
-      console.error('Error filtering jobs by date:', error);
-      return {
-        data: [],
-        total: count || 0,
-        page,
-        pageSize,
-        totalPages: Math.ceil((count || 0) / pageSize)
-      };
-    }
-
-    return {
-      data: data || [],
-      total: count || 0,
-      page,
-      pageSize,
-      totalPages: Math.ceil((count || 0) / pageSize)
-    };
   },
 
   // Hent jobs med høj prioritet (score 3) med pagination
@@ -640,15 +609,36 @@ export const jobService = {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    // Først hent total count for high priority jobs
-    const { count, error: countError } = await supabase
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .eq('cfo_score', 3)
-      .is('deleted_at', null);
+    try {
+      // Combined query for data and count
+      const { data, error, count } = await supabase
+        .from('jobs')
+        .select('*', { count: 'exact' })
+        .eq('cfo_score', 3)
+        .is('deleted_at', null)
+        .order('publication_date', { ascending: false })
+        .range(from, to);
 
-    if (countError) {
-      console.error('Error counting high priority jobs:', countError);
+      if (error) {
+        console.error('Error fetching high priority jobs:', error);
+        return {
+          data: [],
+          total: count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize)
+        };
+      }
+
+      return {
+        data: data || [],
+        total: count || 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count || 0) / pageSize)
+      };
+    } catch (error) {
+      console.error('Error in getHighPriorityJobs:', error);
       return {
         data: [],
         total: 0,
@@ -657,34 +647,6 @@ export const jobService = {
         totalPages: 0
       };
     }
-
-    // Derefter hent paginated data
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('cfo_score', 3)
-      .is('deleted_at', null)
-      .order('publication_date', { ascending: false })
-      .range(from, to);
-
-    if (error) {
-      console.error('Error fetching high priority jobs:', error);
-      return {
-        data: [],
-        total: count || 0,
-        page,
-        pageSize,
-        totalPages: Math.ceil((count || 0) / pageSize)
-      };
-    }
-
-    return {
-      data: data || [],
-      total: count || 0,
-      page,
-      pageSize,
-      totalPages: Math.ceil((count || 0) / pageSize)
-    };
   },
 
   // Semantic search using vector embeddings

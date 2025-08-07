@@ -63,4 +63,29 @@ export const getScoreLabel = (score: number | null): string => {
     default:
       return 'Ukendt'
   }
+}
+
+export const getRelativeTime = (dateString: string | null): string => {
+  if (!dateString) return '—'
+  
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffTime = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+    const diffMinutes = Math.floor(diffTime / (1000 * 60))
+    
+    if (diffDays > 0) {
+      return diffDays === 1 ? 'for 1 dag siden' : `for ${diffDays} dage siden`
+    } else if (diffHours > 0) {
+      return diffHours === 1 ? 'for 1 time siden' : `for ${diffHours} timer siden`
+    } else if (diffMinutes > 0) {
+      return diffMinutes === 1 ? 'for 1 minut siden' : `for ${diffMinutes} minutter siden`
+    } else {
+      return 'lige nu'
+    }
+  } catch {
+    return '—'
+  }
 } 

@@ -35,62 +35,9 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
     prefersReducedMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }, [])
 
-  // Handle keyboard
-  useEffect(() => {
-    if (!isMobile) return
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open) {
-        onClose()
-      }
-    }
 
-    if (open) {
-      document.addEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'hidden'
-      // Hide FAB
-      document.documentElement.style.setProperty('--fab-visible', '0')
-    }
 
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'unset'
-      // Show FAB
-      document.documentElement.style.setProperty('--fab-visible', '1')
-    }
-  }, [open, onClose, isMobile])
-
-  // Focus trap
-  useEffect(() => {
-    if (!isMobile || !open || !sheetRef.current) return
-
-    const focusableElements = sheetRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
-    const firstElement = focusableElements[0] as HTMLElement
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
-
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
-        if (e.shiftKey) {
-          if (document.activeElement === firstElement) {
-            e.preventDefault()
-            lastElement.focus()
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            e.preventDefault()
-            firstElement.focus()
-          }
-        }
-      }
-    }
-
-    document.addEventListener('keydown', handleTabKey)
-    firstElement?.focus()
-
-    return () => document.removeEventListener('keydown', handleTabKey)
-  }, [open, isMobile])
 
   // Early return if not mobile
   if (!isMobile) {
@@ -216,8 +163,8 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                 <h2 className="text-lg font-semibold text-white">Filtre</h2>
                 <button
                   onClick={onClose}
-                  className="p-2 -m-2 rounded-full hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
-                  aria-label="Luk"
+                                        className="p-2 -m-2 rounded-full hover:bg-white/10 transition-colors"
+                  
                 >
                   <X className="size-5 text-slate-400" />
                 </button>
@@ -300,14 +247,14 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
               <div className="flex gap-3">
                 <button
                   onClick={handleReset}
-                  className="flex items-center justify-center gap-2 px-4 py-3 border border-white/10 hover:border-white/20 hover:bg-white/5 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none tap-target"
+                  className="flex items-center justify-center gap-2 px-4 py-3 border border-white/10 hover:border-white/20 hover:bg-white/5 rounded-xl transition-colors tap-target"
                 >
                   <RotateCcw className="size-4" />
                   Nulstil
                 </button>
                 <button
                   onClick={handleApply}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-kpmg-500 hover:bg-kpmg-700 text-white font-medium rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none tap-target"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-kpmg-500 hover:bg-kpmg-700 text-white font-medium rounded-xl transition-colors tap-target"
                 >
                   Anvend filtre
                 </button>

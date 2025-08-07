@@ -21,4 +21,40 @@ export interface JobFilters {
   location?: string;
   searchText?: string;
   daysAgo?: number;
+}
+
+export interface SavedJob {
+  saved_job_id: string;
+  job_id: string;
+  title: string;
+  company: string;
+  location: string;
+  publication_date: string;
+  description: string;
+  score: number;
+  job_url: string;
+  saved_at: string;
+  notes?: string;
+  comment_count: number;
+}
+
+export interface JobComment {
+  id: string;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+  user_name: string;
+  job_id: string;
+  job_title?: string;
+  job_url?: string;
+  company?: string;
+}
+
+export interface SaveJobData {
+  job_id: string;
+  notes?: string;
+}
+
+export interface UpdateSavedJobData {
+  notes?: string;
 } 

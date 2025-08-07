@@ -1,6 +1,6 @@
 'use client'
 
-import { MapPin, Calendar, Building2 } from 'lucide-react'
+import { MapPin, Calendar, Building2, MessageSquare, Bookmark, Trash2 } from 'lucide-react'
 import DescriptionClamp from './DescriptionClamp'
 import ScoreBadge from './ScoreBadge'
 import { formatDate } from '@/utils/format'
@@ -12,7 +12,11 @@ interface CardRowProps {
   date: string
   score: number
   excerpt: string
+  commentCount?: number
+  isSaved?: boolean
+  isSaving?: boolean
   onOpen: () => void
+  onSave?: () => void
 }
 
 export default function CardRow({ 
@@ -22,22 +26,22 @@ export default function CardRow({
   date, 
   score, 
   excerpt, 
-  onOpen 
+  commentCount = 0,
+  isSaved = false,
+  isSaving = false,
+  onOpen,
+  onSave
 }: CardRowProps) {
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onSave?.()
+  }
+
   return (
     <div
       onClick={onOpen}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onOpen()
-        }
-      }}
       className="w-full rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm p-4 text-left overflow-hidden tap-highlight-none active:scale-[0.99] transition-all duration-200 shadow-md hover:shadow-lg hover:border-white/30 select-none cursor-pointer max-w-full"
       style={{ maxWidth: '100%', width: '100%' }}
-      role="button"
-      tabIndex={0}
-      aria-label={`Åbn jobopslag: ${title} hos ${company}`}
     >
       {/* Header with company and score badge */}
       <div className="flex items-start justify-between mb-3 min-w-0 w-full">
@@ -61,7 +65,7 @@ export default function CardRow({
         </h3>
       </div>
 
-      {/* Meta line: Location + Date */}
+      {/* Meta line: Location + Date + Comments + Save */}
       <div className="flex items-center gap-2 text-sm text-slate-400 mb-3 min-w-0 w-full">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <MapPin className="size-4 opacity-70" />
@@ -75,6 +79,36 @@ export default function CardRow({
             <Calendar className="size-4 opacity-70" />
             <span className="truncate">{formatDate(date)}</span>
           </div>
+        )}
+
+        {/* Comments */}
+        <div className="flex items-center gap-1.5">
+          <MessageSquare className="size-4 opacity-70" />
+          <span className="text-xs font-medium">{commentCount}</span>
+        </div>
+
+        {/* Save/Unsave button */}
+        {onSave && (
+          <button
+            onClick={handleSaveClick}
+            disabled={isSaving}
+            className={`p-1.5 rounded-lg transition-all duration-200 ${
+              isSaving
+                ? 'text-slate-500 cursor-not-allowed'
+                : isSaved
+                ? 'text-red-400 hover:text-red-300 hover:bg-red-400/10'
+                : 'text-slate-400 hover:text-slate-300 hover:bg-white/10'
+            }`}
+            title={isSaved ? 'Fjern fra gemte' : 'Gem job'}
+          >
+            {isSaving ? (
+              <div className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : isSaved ? (
+              <Trash2 className="size-4" />
+            ) : (
+              <Bookmark className="size-4" />
+            )}
+          </button>
         )}
       </div>
 

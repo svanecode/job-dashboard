@@ -60,56 +60,9 @@ export default function JobSheet({
     setDragDistance(0)
   }
 
-  // Handle keyboard
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open) {
-        onClose()
-      }
-    }
 
-    if (open) {
-      document.addEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'hidden'
-    }
 
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'unset'
-    }
-  }, [open, onClose])
 
-  // Focus trap
-  useEffect(() => {
-    if (open && sheetRef.current) {
-      const focusableElements = sheetRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      )
-      const firstElement = focusableElements[0] as HTMLElement
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
-
-      const handleTabKey = (e: KeyboardEvent) => {
-        if (e.key === 'Tab') {
-          if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-              e.preventDefault()
-              lastElement.focus()
-            }
-          } else {
-            if (document.activeElement === lastElement) {
-              e.preventDefault()
-              firstElement.focus()
-            }
-          }
-        }
-      }
-
-      document.addEventListener('keydown', handleTabKey)
-      firstElement?.focus()
-
-      return () => document.removeEventListener('keydown', handleTabKey)
-    }
-  }, [open])
 
   const copyToClipboard = async () => {
     if (jobUrl) {
@@ -222,7 +175,7 @@ export default function JobSheet({
                 {jobUrl && (
                   <button
                     onClick={() => window.open(jobUrl, '_blank', 'noopener,noreferrer')}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#005EB8] hover:bg-[#0091DA] px-4 py-4 text-base font-medium text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none hover:shadow-lg hover:shadow-blue-500/25"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#005EB8] hover:bg-[#0091DA] px-4 py-4 text-base font-medium text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25"
                   >
                     <ExternalLink className="size-5" />
                     Åbn jobopslag
@@ -230,11 +183,10 @@ export default function JobSheet({
                 )}
                 
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={copyToClipboard}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-slate-300 hover:text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
-                    aria-label="Kopiér link"
-                  >
+                                      <button
+                      onClick={copyToClipboard}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-slate-300 hover:text-white transition-all duration-200"
+                    >
                     {linkCopied ? (
                       <>
                         <svg className="size-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +204,7 @@ export default function JobSheet({
                   
                   <button
                     onClick={onClose}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-slate-300 hover:text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-slate-300 hover:text-white transition-all duration-200"
                   >
                     <X className="size-4" />
                     Luk

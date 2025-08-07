@@ -1,65 +1,40 @@
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
-  const cookieStore = await cookies();
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: { [key: string]: any }) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: { [key: string]: any }) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
-    }
-  );
-
+export async function GET(request: NextRequest) {
   try {
-    // Get current session
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const cookieStore = await cookies();
     
     // Get all cookies
-    const allCookies = cookieStore.getAll();
+    const allCookies = Array.from(cookieStore.getAll()).map(c => ({
+      name: c.name,
+      value: c.value ? 'exists' : 'missing',
+      path: c.path,
+      domain: c.domain
+    }));
     
-    return NextResponse.json({ 
+    // Get specific Supabase cookies
+    const supabaseAuthCookie = cookieStore.get('supabase-auth');
+    const supabaseCookies = {
+      'sb-access-token': cookieStore.get('sb-access-token')?.value ? 'exists' : 'missing',
+      'sb-refresh-token': cookieStore.get('sb-refresh-token')?.value ? 'exists' : 'missing',
+      'supabase-auth-token': cookieStore.get('supabase-auth-token')?.value ? 'exists' : 'missing',
+      'supabase-auth': supabaseAuthCookie?.value ? 'exists' : 'missing'
+    };
+    
+    return NextResponse.json({
       success: true,
-      session: session ? 'exists' : 'none',
-      cookies: allCookies.map(cookie => ({
-        name: cookie.name,
-        value: cookie.value ? 'set' : 'empty',
-        path: cookie.path,
-        maxAge: cookie.maxAge
-      })),
-      supabaseCookies: allCookies.filter(cookie => 
-        cookie.name.startsWith('sb-') || 
-        cookie.name.includes('supabase')
-      ).map(cookie => cookie.name)
-    });
+      allCookies,
+      supabaseCookies,
+      supabaseAuthValue: supabaseAuthCookie?.value ? supabaseAuthCookie.value.substring(0, 50) + '...' : 'missing',
+      cookieCount: allCookies.length
+    })
   } catch (error) {
+    console.error('Error in test-cookies API:', error)
     return NextResponse.json({ 
       success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    })
   }
 } 

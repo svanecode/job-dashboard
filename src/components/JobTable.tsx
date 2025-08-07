@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronUp, ChevronDown, Building2, MapPin, Calendar, ExternalLink } from 'lucide-react'
+import { ChevronUp, ChevronDown, Building2, MapPin, Calendar, ExternalLink, Bookmark, Trash2, MessageSquare } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import { Job } from '@/types/job'
 import { SortKey, SortDirection, getAriaSort } from '@/utils/sort'
@@ -10,7 +10,9 @@ import CardRow from './CardRow'
 import VirtualJobList from './VirtualJobList'
 import ScoreBadge from './ScoreBadge'
 import JobSheet from './JobSheet'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { savedJobsService } from '@/services/savedJobsService'
 
 // Skeleton component for loading state
 function SkeletonCard() {
@@ -54,8 +56,96 @@ function SkeletonCard() {
 
 export default function JobTable() {
   const { paginatedJobs, openJobModal, sort, setSort, isLoading } = useJobStore()
+  const { user } = useAuth()
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set())
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
+  const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set())
+
+  // Load saved jobs and comment counts
+  useEffect(() => {
+    if (user && paginatedJobs.length > 0) {
+      loadSavedJobs()
+      loadCommentCounts()
+    }
+  }, [user, paginatedJobs])
+
+  const loadSavedJobs = async () => {
+    try {
+      const savedJobsData = await savedJobsService.getSavedJobs()
+      const savedJobIds = new Set(savedJobsData.map(job => job.job_id))
+      setSavedJobs(savedJobIds)
+    } catch (error) {
+      console.error('Error loading saved jobs:', error)
+    }
+  }
+
+  const loadCommentCounts = async () => {
+    try {
+      const commentCountsData: Record<string, number> = {}
+      
+      // Load comment counts for each job
+      await Promise.all(
+        paginatedJobs.map(async (job) => {
+          try {
+            const comments = await savedJobsService.getJobComments(job.job_id)
+            commentCountsData[job.job_id] = comments.length
+          } catch (error) {
+            commentCountsData[job.job_id] = 0
+          }
+        })
+      )
+      
+      setCommentCounts(commentCountsData)
+    } catch (error) {
+      console.error('Error loading comment counts:', error)
+    }
+  }
+
+  const handleSaveJob = async (job: Job, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent row click
+    
+    if (!user) {
+      alert('Du skal være logget ind for at gemme jobs')
+      return
+    }
+
+    const jobId = job.job_id
+    const isCurrentlySaved = savedJobs.has(jobId)
+    
+    try {
+      setSavingJobs(prev => new Set(prev).add(jobId))
+      
+      if (isCurrentlySaved) {
+        // Unsave job
+        const savedJobsData = await savedJobsService.getSavedJobs()
+        const savedJob = savedJobsData.find(sj => sj.job_id === jobId)
+        
+        if (savedJob) {
+          await savedJobsService.deleteSavedJob(savedJob.saved_job_id)
+          setSavedJobs(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(jobId)
+            return newSet
+          })
+        }
+      } else {
+        // Save job
+        await savedJobsService.saveJob({ job_id: jobId })
+        setSavedJobs(prev => new Set(prev).add(jobId))
+      }
+    } catch (error) {
+      console.error('Error saving/unsaving job:', error)
+      alert(`Kunne ikke ${isCurrentlySaved ? 'fjerne' : 'gemme'} job: ${error instanceof Error ? error.message : 'Ukendt fejl'}`)
+    } finally {
+      setSavingJobs(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(jobId)
+        return newSet
+      })
+    }
+  }
 
   const handleSort = (key: SortKey) => {
     const newSort = {
@@ -81,11 +171,7 @@ export default function JobTable() {
 
   if (paginatedJobs.length === 0 && !isLoading) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="card p-8 text-center"
-      >
+      <div className="card p-8 text-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="size-16 rounded-full bg-white/5 flex items-center justify-center">
             <Building2 className="size-8 text-slate-400" />
@@ -95,24 +181,19 @@ export default function JobTable() {
             <p className="text-slate-400">Prøv at ændre dine filtre eller søgekriterier</p>
           </div>
         </div>
-      </motion.div>
+      </div>
     )
   }
 
   return (
     <>
       {/* Desktop Table - Hidden on mobile */}
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-        className="hidden lg:block card overflow-hidden"
-      >
+      <div className="hidden lg:block card overflow-hidden">
         <div className="overflow-x-auto max-w-full">
           <table className="w-full min-w-full table-fixed">
             <thead className="bg-black/30 backdrop-blur-sm sticky top-0">
               <tr>
-                <th className="w-[8%] px-4 py-4">
+                <th className="w-[6%] px-4 py-4">
                   <button
                     onClick={() => handleSort('score')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
@@ -126,7 +207,7 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="w-[15%] px-4 py-4">
+                <th className="w-[12%] px-4 py-4">
                   <button
                     onClick={() => handleSort('company')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
@@ -140,7 +221,7 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="w-[35%] px-4 py-4">
+                <th className="w-[30%] px-4 py-4">
                   <button
                     onClick={() => handleSort('title')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
@@ -154,7 +235,7 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="w-[20%] px-4 py-4">
+                <th className="w-[15%] px-4 py-4">
                   <button
                     onClick={() => handleSort('location')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
@@ -168,7 +249,7 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="w-[12%] px-4 py-4">
+                <th className="w-[10%] px-4 py-4">
                   <button
                     onClick={() => handleSort('date')}
                     className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
@@ -182,28 +263,31 @@ export default function JobTable() {
                     )}
                   </button>
                 </th>
-                <th className="w-[10%] px-4 py-4">
+                <th className="w-[8%] px-4 py-4">
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider text-center block">Kommentarer</span>
+                </th>
+                <th className="w-[8%] px-4 py-4">
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider text-center block">Gem</span>
+                </th>
+                <th className="w-[6%] px-4 py-4">
                   <span className="sr-only">Link</span>
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {paginatedJobs.map((job, index) => (
-                <motion.tr
+              {paginatedJobs.map((job) => (
+                <tr
                   key={job.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.05 }}
                   onClick={() => handleRowClick(job)}
                   className="hover:bg-white/5 transition-colors cursor-pointer group"
                 >
                   {/* Score */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[8%]">
+                  <td className="px-4 py-4 whitespace-nowrap w-[6%]">
                     <ScoreBadge score={job.cfo_score || 0} />
                   </td>
 
                   {/* Company */}
-                  <td className="px-4 py-4 min-w-0 w-[15%]">
+                  <td className="px-4 py-4 min-w-0 w-[12%]">
                     <div className="flex items-center gap-2 min-w-0">
                       <Building2 className="size-4 text-slate-400 flex-shrink-0" />
                       <span className="text-slate-200 font-medium truncate text-sm">
@@ -213,14 +297,14 @@ export default function JobTable() {
                   </td>
 
                   {/* Title */}
-                  <td className="px-4 py-4 min-w-0 w-[35%]">
+                  <td className="px-4 py-4 min-w-0 w-[30%]">
                     <span className="text-slate-200 font-medium line-clamp-1 text-sm">
                       {job.title || 'Ingen titel'}
                     </span>
                   </td>
 
                   {/* Location */}
-                  <td className="px-4 py-4 min-w-0 w-[20%]">
+                  <td className="px-4 py-4 min-w-0 w-[15%]">
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="size-4 text-slate-400 flex-shrink-0" />
                       <span className="text-slate-200 truncate text-sm">
@@ -230,7 +314,7 @@ export default function JobTable() {
                   </td>
 
                   {/* Date */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[12%]">
+                  <td className="px-4 py-4 whitespace-nowrap w-[10%]">
                     <div className="flex items-center gap-2">
                       <Calendar className="size-4 text-slate-400" />
                       <span className="text-slate-200 tabular-nums text-sm">
@@ -239,16 +323,53 @@ export default function JobTable() {
                     </div>
                   </td>
 
+                  {/* Comments */}
+                  <td className="px-4 py-4 whitespace-nowrap w-[8%] text-center">
+                    <div className="flex items-center gap-1.5 justify-center">
+                      <MessageSquare className="size-4 text-slate-400" />
+                      <span className="text-slate-200 text-sm font-medium">
+                        {commentCounts[job.job_id] || 0}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Save/Unsave */}
+                  <td className="px-4 py-4 whitespace-nowrap w-[8%] text-center">
+                    {user ? (
+                      <button
+                        onClick={(e) => handleSaveJob(job, e)}
+                        disabled={savingJobs.has(job.job_id)}
+                        className={`inline-flex items-center justify-center p-2 rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none ${
+                          savingJobs.has(job.job_id)
+                            ? 'text-slate-500 cursor-not-allowed'
+                            : savedJobs.has(job.job_id)
+                            ? 'text-red-400 hover:text-red-300 hover:bg-red-400/10'
+                            : 'text-slate-400 hover:text-slate-300 hover:bg-white/10'
+                        }`}
+                        title={savedJobs.has(job.job_id) ? 'Fjern fra gemte' : 'Gem job'}
+                      >
+                        {savingJobs.has(job.job_id) ? (
+                          <div className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : savedJobs.has(job.job_id) ? (
+                          <Trash2 className="size-4" />
+                        ) : (
+                          <Bookmark className="size-4" />
+                        )}
+                      </button>
+                    ) : (
+                      <span className="text-slate-500 text-sm">—</span>
+                    )}
+                  </td>
+
                   {/* Link */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[10%]">
+                  <td className="px-4 py-4 whitespace-nowrap w-[6%]">
                     {job.job_url ? (
                       <a
                         href={job.job_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center justify-center text-slate-400 hover:text-white transition-colors focus-visible:ring-2 ring-white/20 focus-visible:outline-none"
-                        aria-label="Åbn opslag"
+                        className="inline-flex items-center justify-center text-slate-400 hover:text-white transition-colors"
                       >
                         <ExternalLink className="size-4" />
                       </a>
@@ -256,33 +377,25 @@ export default function JobTable() {
                       <span className="text-slate-500 text-sm">—</span>
                     )}
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </motion.div>
+      </div>
 
       {/* Mobile Card List - Hidden on desktop */}
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-        className="lg:hidden pb-20 with-fab-bottom overflow-hidden w-full max-w-full"
-      >
+      <div className="lg:hidden pb-20 with-fab-bottom overflow-hidden w-full max-w-full">
         {isLoading ? (
           // Skeleton loading state
           <div className="grid gap-4 w-full max-w-full">
             {Array.from({ length: 6 }).map((_, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.05 }}
                 className="w-full max-w-full"
               >
                 <SkeletonCard />
-              </motion.div>
+              </div>
             ))}
           </div>
         ) : paginatedJobs.length > 250 ? (
@@ -290,18 +403,19 @@ export default function JobTable() {
           <div className="h-[calc(100vh-300px)] overflow-hidden w-full max-w-full">
             <VirtualJobList 
               jobs={paginatedJobs} 
-              onOpen={handleCardClick} 
+              onOpen={handleCardClick}
+              commentCounts={commentCounts}
+              savedJobs={savedJobs}
+              savingJobs={savingJobs}
+              onSave={(job) => handleSaveJob(job, {} as React.MouseEvent)}
             />
           </div>
         ) : (
           // Regular grid for smaller datasets
           <div className="grid gap-4 w-full max-w-full">
-            {paginatedJobs.map((job, index) => (
-              <motion.div
+            {paginatedJobs.map((job) => (
+              <div
                 key={job.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.05 }}
                 className="w-full max-w-full"
               >
                 <CardRow
@@ -311,13 +425,17 @@ export default function JobTable() {
                   date={job.publication_date || ''}
                   score={job.cfo_score || 0}
                   excerpt={job.description || ''}
+                  commentCount={commentCounts[job.job_id] || 0}
+                  isSaved={savedJobs.has(job.job_id)}
+                  isSaving={savingJobs.has(job.job_id)}
                   onOpen={() => handleCardClick(job)}
+                  onSave={() => handleSaveJob(job, {} as React.MouseEvent)}
                 />
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Job Sheet Modal */}
       {selectedJob && (

@@ -5,8 +5,8 @@ import { mockJobs } from '@/data/mockJobs'
 import { type SortConfig } from '@/utils/sort'
 
 // Cache configuration for daily job updates
-// - Job data: 2 minutes cache
-// - Statistics: 5 minutes cache
+// - Job data: 5 minutes cache (increased from 2 minutes)
+// - Statistics: 10 minutes cache (increased from 5 minutes)
 // - URL filters: 500ms debounce
 
 // URL synchronization utilities
@@ -75,6 +75,7 @@ interface JobStore {
   lastFetchTime: number
   cacheKey: string
   lastStatsFetchTime: number
+  isInitialized: boolean
   
   // Actions
   setFilters: (filters: Partial<JobFilters>) => void
@@ -138,18 +139,24 @@ export const useJobStore = create<JobStore>((set, get) => ({
   lastFetchTime: 0,
   cacheKey: '',
   lastStatsFetchTime: 0,
+  isInitialized: false,
   
   // Initialize filters from URL
   initializeFromURL: () => {
+    const { isInitialized } = get()
+    if (isInitialized) return // Prevent double initialization
+    
     const urlFilters = parseFiltersFromURL()
     if (Object.keys(urlFilters).length > 0) {
       set((state) => ({
-        filters: { ...state.filters, ...urlFilters }
+        filters: { ...state.filters, ...urlFilters },
+        isInitialized: true
       }))
       // Apply filters after initialization
       setTimeout(() => get().applyFilters(), 100)
     } else {
       // If no filters, just fetch jobs and statistics
+      set({ isInitialized: true })
       setTimeout(() => {
         get().fetchJobs()
         get().fetchStatistics()
@@ -220,10 +227,10 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const filtersToApply = payload ?? get().stagedFilters ?? get().filters
     
     // Update actual filters with staged filters
-    set({ filters: filtersToApply, stagedFilters: filtersToApply })
+    set({ filters: filtersToApply, stagedFilters: filtersToApply, currentPage: 1 })
     
-    // Always fetch statistics (they don't change with filters)
-    get().fetchStatistics()
+    // Clear cache to ensure fresh data
+    set({ cacheKey: '', lastFetchTime: 0 })
     
     // Apply filters in priority order
     if (filtersToApply.searchText) {
@@ -240,8 +247,31 @@ export const useJobStore = create<JobStore>((set, get) => ({
   },
   
   setCurrentPage: (page) => {
+    const { currentPage: oldPage, jobsPerPage, sort, filters } = get()
+    
+    // Don't do anything if we're already on the requested page
+    if (page === oldPage) {
+      return
+    }
+    
     set({ currentPage: page })
-    get().applyFilters() // Re-fetch data for new page
+    
+    // Clear cache for this specific page to force fresh data
+    const newCacheKey = `${page}-${jobsPerPage}-${sort.key}-${sort.dir}`
+    set({ cacheKey: '', lastFetchTime: 0 })
+    
+    // Re-fetch data for new page based on current filters
+    if (filters.searchText) {
+      get().searchJobs(filters.searchText)
+    } else if (filters.score !== undefined) {
+      get().fetchJobsByScore(filters.score)
+    } else if (filters.location) {
+      get().fetchJobsByLocation(filters.location)
+    } else if (filters.daysAgo !== undefined) {
+      get().fetchJobsByDate(filters.daysAgo)
+    } else {
+      get().fetchJobs()
+    }
   },
   
   setSort: (newSort) => {
@@ -263,8 +293,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const { lastStatsFetchTime } = get()
     const now = Date.now()
     
-    // Check if we can use cached statistics (cache for 5 minutes - suitable for daily job updates)
-    if ((now - lastStatsFetchTime) < 300000) {
+    // Check if we can use cached statistics (cache for 10 minutes - increased from 5 minutes)
+    if ((now - lastStatsFetchTime) < 600000) {
       return
     }
     
@@ -287,8 +317,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const newCacheKey = `${currentPage}-${jobsPerPage}-${sort.key}-${sort.dir}`
     const now = Date.now()
     
-    // Check if we can use cached data (cache for 2 minutes - suitable for daily job updates)
-    if (cacheKey === newCacheKey && (now - lastFetchTime) < 120000) {
+    // Only use cache if we have a valid cache key and it matches the current request
+    if (cacheKey && cacheKey === newCacheKey && (now - lastFetchTime) < 300000) {
       return
     }
     
@@ -334,6 +364,9 @@ export const useJobStore = create<JobStore>((set, get) => ({
         totalJobs: response.total,
         totalPages: response.totalPages,
         isLoading: false,
+        // Clear cache for search results to ensure fresh data
+        cacheKey: '',
+        lastFetchTime: 0,
       })
     } catch (error) {
       console.error('Error searching jobs:', error)
@@ -360,6 +393,9 @@ export const useJobStore = create<JobStore>((set, get) => ({
         totalJobs: response.total,
         totalPages: response.totalPages,
         isLoading: false,
+        // Clear cache for filtered results to ensure fresh data
+        cacheKey: '',
+        lastFetchTime: 0,
       })
     } catch (error) {
       console.error('Error fetching jobs by score:', error)
@@ -386,6 +422,9 @@ export const useJobStore = create<JobStore>((set, get) => ({
         totalJobs: response.total,
         totalPages: response.totalPages,
         isLoading: false,
+        // Clear cache for filtered results to ensure fresh data
+        cacheKey: '',
+        lastFetchTime: 0,
       })
     } catch (error) {
       console.error('Error fetching jobs by location:', error)
@@ -412,6 +451,9 @@ export const useJobStore = create<JobStore>((set, get) => ({
         totalJobs: response.total,
         totalPages: response.totalPages,
         isLoading: false,
+        // Clear cache for filtered results to ensure fresh data
+        cacheKey: '',
+        lastFetchTime: 0,
       })
     } catch (error) {
       console.error('Error fetching jobs by date:', error)
@@ -426,6 +468,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   createJob: async (job) => {
     try {
       await jobService.createJob(job)
+      get().clearCache() // Clear cache to force refresh
       get().applyFilters() // Refresh data and statistics
     } catch (error) {
       console.error('Error creating job:', error)
@@ -436,6 +479,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   updateJob: async (id, job) => {
     try {
       await jobService.updateJob(id, job)
+      get().clearCache() // Clear cache to force refresh
       get().applyFilters() // Refresh data and statistics
     } catch (error) {
       console.error('Error updating job:', error)
@@ -446,6 +490,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   deleteJob: async (id) => {
     try {
       await jobService.deleteJob(id)
+      get().clearCache() // Clear cache to force refresh
       get().applyFilters() // Refresh data and statistics
     } catch (error) {
       console.error('Error deleting job:', error)
@@ -459,6 +504,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   },
   
   closeJobModal: () => {
+    // Only close modal, don't affect pagination data
     set({ selectedJob: null, isModalOpen: false })
   },
 })) 

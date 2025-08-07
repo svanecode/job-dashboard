@@ -5,19 +5,23 @@ import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 
 export default function Pagination() {
-  const { totalJobs, totalPages, currentPage, jobsPerPage, setCurrentPage } = useJobStore()
+  const { totalJobs, totalPages, currentPage, jobsPerPage, setCurrentPage, paginatedJobs } = useJobStore()
 
-  const startItem = (currentPage - 1) * jobsPerPage + 1
-  const endItem = Math.min(currentPage * jobsPerPage, totalJobs)
-
-  if (totalPages <= 1) {
+  // Ensure we have valid data
+  if (totalPages <= 1 || totalJobs === 0) {
     return null
   }
+
+  // Ensure currentPage is within valid range
+  const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages))
+  
+  const startItem = (validCurrentPage - 1) * jobsPerPage + 1
+  const endItem = Math.min(validCurrentPage * jobsPerPage, totalJobs)
 
   const getPageNumbers = () => {
     const pages = []
     const maxVisible = 7
-    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
+    let start = Math.max(1, validCurrentPage - Math.floor(maxVisible / 2))
     const end = Math.min(totalPages, start + maxVisible - 1)
 
     if (end - start + 1 < maxVisible) {
@@ -49,6 +53,12 @@ export default function Pagination() {
     return pages
   }
 
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== validCurrentPage) {
+      setCurrentPage(page)
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -67,8 +77,8 @@ export default function Pagination() {
       <div className="flex items-center gap-2">
         {/* Previous Button */}
         <button
-          onClick={() => setCurrentPage(currentPage - 1)}
-          disabled={currentPage === 1}
+          onClick={() => handlePageChange(validCurrentPage - 1)}
+          disabled={validCurrentPage === 1}
           className="flex items-center gap-2 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
         >
           <ChevronLeft className="size-4" />
@@ -85,9 +95,9 @@ export default function Pagination() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setCurrentPage(page as number)}
+                  onClick={() => handlePageChange(page as number)}
                   className={`flex items-center justify-center w-10 h-10 text-sm rounded-lg transition-all duration-200 focus-ring ${
-                    page === currentPage
+                    page === validCurrentPage
                       ? 'bg-kpmg-500 text-white font-medium shadow-lg shadow-kpmg-500/25'
                       : 'text-slate-300 hover:bg-white/5 border border-white/10 hover:border-white/20 hover:text-white'
                   }`}
@@ -101,8 +111,8 @@ export default function Pagination() {
 
         {/* Next Button */}
         <button
-          onClick={() => setCurrentPage(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(validCurrentPage + 1)}
+          disabled={validCurrentPage === totalPages}
           className="flex items-center gap-2 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-transparent"
         >
           <span className="hidden sm:inline">Næste</span>

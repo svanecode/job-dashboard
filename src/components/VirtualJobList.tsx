@@ -1,17 +1,27 @@
 'use client'
 
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react'
-import { motion } from 'framer-motion'
 import CardRow from './CardRow'
 import { Job } from '@/types/job'
 
 interface VirtualJobListProps {
   jobs: Job[]
   onOpen: (job: Job) => void
+  commentCounts?: Record<string, number>
+  savedJobs?: Set<string>
+  savingJobs?: Set<string>
+  onSave?: (job: Job) => void
 }
 
 // Simple virtual list implementation for mobile
-export default function VirtualJobList({ jobs, onOpen }: VirtualJobListProps) {
+export default function VirtualJobList({ 
+  jobs, 
+  onOpen, 
+  commentCounts = {}, 
+  savedJobs = new Set(), 
+  savingJobs = new Set(),
+  onSave 
+}: VirtualJobListProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 20 })
   const [containerHeight, setContainerHeight] = useState(0)
@@ -58,12 +68,9 @@ export default function VirtualJobList({ jobs, onOpen }: VirtualJobListProps) {
     >
       <div style={{ height: totalHeight, position: 'relative' }}>
         <div style={{ transform: `translateY(${offsetY}px)` }}>
-          {visibleJobs.map((job, index) => (
-            <motion.div
+          {visibleJobs.map((job) => (
+            <div
               key={job.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: index * 0.05 }}
               style={{ height: ITEM_HEIGHT, marginBottom: 12 }}
             >
               <CardRow
@@ -73,9 +80,13 @@ export default function VirtualJobList({ jobs, onOpen }: VirtualJobListProps) {
                 date={job.publication_date || ''}
                 score={job.cfo_score || 0}
                 excerpt={job.description || ''}
+                commentCount={commentCounts[job.job_id] || 0}
+                isSaved={savedJobs.has(job.job_id)}
+                isSaving={savingJobs.has(job.job_id)}
                 onOpen={() => onOpen(job)}
+                onSave={onSave ? () => onSave(job) : undefined}
               />
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
         set(name: string, value: string, options: { [key: string]: any }) {
           const cookieOptions = {
             ...options,
-            httpOnly: true,
+            httpOnly: false, // Changed to false to allow client-side access
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax' as const,
             maxAge: 60 * 60 * 24 * 365, // 1 year
@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
         remove(name: string, options: { [key: string]: any }) {
           const cookieOptions = {
             ...options,
-            httpOnly: true,
+            httpOnly: false, // Changed to false
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax' as const,
             maxAge: 0,
@@ -63,6 +63,9 @@ export async function middleware(request: NextRequest) {
           });
         },
       },
+      auth: {
+        storageKey: 'supabase-auth' // Match the client configuration
+      }
     }
   );
 

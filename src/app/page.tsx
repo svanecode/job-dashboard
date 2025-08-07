@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, Suspense } from 'react'
+import { useEffect, Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useJobStore } from '@/store/jobStore'
@@ -54,6 +54,11 @@ function HomeContent() {
         {/* Noise overlay */}
         <div className="noise" />
         
+        {/* UserMenu - Fixed position with high z-index */}
+        <div className="fixed top-6 right-4 md:top-10 md:right-8 z-[9999]">
+          <UserMenu />
+        </div>
+        
         {/* Main content */}
         <div className="relative z-10 overflow-x-hidden w-full max-w-full">
           {/* Header - Mobile container, Desktop centered */}
@@ -71,35 +76,25 @@ function HomeContent() {
                   Find virksomheder der har behov for CFO Interim Assistance
                 </p>
               </motion.div>
-              
-              <UserMenu />
             </div>
 
           {/* Error Message */}
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="card p-4 mb-6 border-red-400/20 bg-red-400/5"
-            >
+            <div className="card p-4 mb-6 border-red-400/20 bg-red-400/5">
               <p className="text-red-300 font-medium">Fejl: {error}</p>
-            </motion.div>
+            </div>
           )}
 
           {/* Loading State */}
           {isLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="card p-8 text-center mb-6"
-            >
+            <div className="card p-8 text-center mb-6">
               <div className="flex flex-col items-center space-y-4">
                 <div className="size-12 rounded-full bg-white/5 flex items-center justify-center">
                   <div className="size-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
                 </div>
                 <p className="text-slate-300">Indlæser jobs...</p>
               </div>
-            </motion.div>
+            </div>
           )}
         </div>
 
@@ -143,6 +138,9 @@ function HomeContent() {
 
       {/* Job Modal */}
       <JobModal />
+
+      {/* Saved Jobs Modal */}
+      {/* Removed SavedJobsModal import and usage */}
 
       {/* ChatBot */}
       <ChatBot />

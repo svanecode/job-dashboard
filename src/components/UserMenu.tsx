@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { Bookmark } from 'lucide-react';
 
 export default function UserMenu() {
   const { user, signOut } = useAuth();
@@ -12,6 +13,11 @@ export default function UserMenu() {
   const handleSignOut = async () => {
     await signOut();
     router.push('/login');
+  };
+
+  const handleOpenProfile = () => {
+    setIsOpen(false);
+    router.push('/profile');
   };
 
   if (!user) return null;
@@ -37,7 +43,7 @@ export default function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-[9999]">
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-1 z-[9999]">
           <div className="px-4 py-2 text-sm text-gray-700 border-b">
             <p className="font-medium">{user.name}</p>
             {user.company && (
@@ -47,6 +53,14 @@ export default function UserMenu() {
               {user.role === 'admin' ? 'Administrator' : 'Bruger'}
             </p>
           </div>
+          
+          <button
+            onClick={handleOpenProfile}
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+          >
+            <Bookmark className="size-4" />
+            Gemte jobs & kommentarer
+          </button>
           
           <button
             onClick={handleSignOut}

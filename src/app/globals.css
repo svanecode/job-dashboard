@@ -123,7 +123,7 @@ html {
 
   /* Focus states */
   .focus-ring {
-    @apply focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none;
+    
   }
 
   /* Glassmorphism inputs */
