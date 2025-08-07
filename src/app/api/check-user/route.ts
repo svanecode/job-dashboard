@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const cookieStore = await cookies();
   
   const supabase = createServerClient(
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: { [key: string]: any }) {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
             // user sessions.
           }
         },
-        remove(name: string, options: any) {
+        remove(name: string, options: { [key: string]: any }) {
           try {
             cookieStore.set({ name, value: '', ...options });
           } catch (error) {

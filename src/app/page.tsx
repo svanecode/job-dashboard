@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useJobStore } from '@/store/jobStore'
@@ -16,21 +16,17 @@ import Pagination from '@/components/Pagination'
 import ChatBot from '@/components/ChatBot'
 import UserMenu from '@/components/UserMenu'
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { 
-    jobs, 
-    totalJobs, 
     totalUrgentJobs,
     totalHighPriorityJobs,
     totalLowPriorityJobs,
     fetchJobs, 
     isLoading, 
     error,
-    initializeFromURL,
-    setFilters,
-    applyFilters
+    initializeFromURL
   } = useJobStore()
 
   // Handle authentication callback from email confirmation
@@ -150,5 +146,17 @@ export default function Home() {
       <ChatBot />
     </main>
     </ProtectedRoute>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   )
 }

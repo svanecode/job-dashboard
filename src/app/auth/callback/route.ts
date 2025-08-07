@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
           get(name: string) {
             return cookieStore.get(name)?.value;
           },
-          set(name: string, value: string, options: any) {
+          set(name: string, value: string, options: { [key: string]: any }) {
             try {
               cookieStore.set({ name, value, ...options });
             } catch (error) {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
               // user sessions.
             }
           },
-          remove(name: string, options: any) {
+          remove(name: string, options: { [key: string]: any }) {
             try {
               cookieStore.set({ name, value: '', ...options });
             } catch (error) {

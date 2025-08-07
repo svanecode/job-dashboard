@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
         get(name: string) {
           return request.cookies.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: { [key: string]: any }) {
           const cookieOptions = {
             ...options,
             httpOnly: true,
@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
             ...cookieOptions,
           });
         },
-        remove(name: string, options: any) {
+        remove(name: string, options: { [key: string]: any }) {
           const cookieOptions = {
             ...options,
             httpOnly: true,
