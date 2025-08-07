@@ -24,6 +24,7 @@ function HomeContent() {
     totalHighPriorityJobs,
     totalLowPriorityJobs,
     fetchJobs, 
+    fetchStatistics,
     isLoading, 
     error,
     initializeFromURL
@@ -42,9 +43,10 @@ function HomeContent() {
   useEffect(() => {
     // Initialize filters from URL first
     initializeFromURL()
-    // Then fetch jobs
+    // Then fetch jobs and statistics
     fetchJobs()
-  }, [fetchJobs, initializeFromURL])
+    fetchStatistics()
+  }, [fetchJobs, fetchStatistics, initializeFromURL])
 
   return (
     <ProtectedRoute>

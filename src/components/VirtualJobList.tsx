@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import CardRow from './CardRow'
 import { Job } from '@/types/job'
@@ -33,7 +33,7 @@ export default function VirtualJobList({ jobs, onOpen }: VirtualJobListProps) {
     return () => window.removeEventListener('resize', updateContainerHeight)
   }, [])
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop
     setScrollTop(scrollTop)
     
@@ -44,11 +44,11 @@ export default function VirtualJobList({ jobs, onOpen }: VirtualJobListProps) {
     )
     
     setVisibleRange({ start, end })
-  }
+  }, [jobs.length, containerHeight])
 
-  const totalHeight = jobs.length * ITEM_HEIGHT
-  const visibleJobs = jobs.slice(visibleRange.start, visibleRange.end)
-  const offsetY = visibleRange.start * ITEM_HEIGHT
+  const totalHeight = useMemo(() => jobs.length * ITEM_HEIGHT, [jobs.length])
+  const visibleJobs = useMemo(() => jobs.slice(visibleRange.start, visibleRange.end), [jobs, visibleRange.start, visibleRange.end])
+  const offsetY = useMemo(() => visibleRange.start * ITEM_HEIGHT, [visibleRange.start])
 
   return (
     <div 

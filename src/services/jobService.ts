@@ -44,24 +44,6 @@ export const jobService = {
     const to = from + pageSize - 1;
     const sort = params?.sort || { key: 'score', dir: 'desc' };
 
-    // Først hent total count
-    const { count, error: countError } = await supabase
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .is('deleted_at', null)
-      .gte('cfo_score', 1);
-
-    if (countError) {
-      console.error('Error counting jobs:', countError);
-      return {
-        data: [],
-        total: 0,
-        page,
-        pageSize,
-        totalPages: 0
-      };
-    }
-
     // Build query with sorting
     let query = supabase
       .from('jobs')
@@ -102,11 +84,22 @@ export const jobService = {
       console.error('Error fetching jobs:', error);
       return {
         data: [],
-        total: count || 0,
+        total: 0,
         page,
         pageSize,
-        totalPages: Math.ceil((count || 0) / pageSize)
+        totalPages: 0
       };
+    }
+
+    // Get total count in a separate optimized query
+    const { count, error: countError } = await supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .is('deleted_at', null)
+      .gte('cfo_score', 1);
+
+    if (countError) {
+      console.error('Error counting jobs:', countError);
     }
 
     return {
@@ -980,6 +973,61 @@ export const jobService = {
       console.error('Error in text search:', error);
       // Fallback to regular search
       return this.searchJobs(query, params);
+    }
+  },
+
+  // Get statistics for all jobs (optimized for caching)
+  // Note: Using direct query instead of RPC function for better reliability
+  async getJobStatistics(): Promise<{
+    totalUrgentJobs: number;
+    totalHighPriorityJobs: number;
+    totalLowPriorityJobs: number;
+  }> {
+    if (!supabase) {
+      // Fallback til mock data
+      const scoredJobs = mockJobs.filter(job => (job.cfo_score || 0) >= 1);
+      return {
+        totalUrgentJobs: scoredJobs.filter(job => job.cfo_score === 3).length,
+        totalHighPriorityJobs: scoredJobs.filter(job => job.cfo_score === 2).length,
+        totalLowPriorityJobs: scoredJobs.filter(job => job.cfo_score === 1).length,
+      };
+    }
+
+    try {
+      // Direct query for statistics - more reliable than RPC function
+      const { data: statsData, error } = await supabase
+        .from('jobs')
+        .select('cfo_score')
+        .is('deleted_at', null)
+        .gte('cfo_score', 1);
+
+      if (error) {
+        console.error('Error fetching job statistics:', error);
+        return {
+          totalUrgentJobs: 0,
+          totalHighPriorityJobs: 0,
+          totalLowPriorityJobs: 0,
+        };
+      }
+
+      // Calculate statistics from all jobs
+      const totalUrgentJobs = statsData?.filter(job => job.cfo_score === 3).length || 0;
+      const totalHighPriorityJobs = statsData?.filter(job => job.cfo_score === 2).length || 0;
+      const totalLowPriorityJobs = statsData?.filter(job => job.cfo_score === 1).length || 0;
+
+      return {
+        totalUrgentJobs,
+        totalHighPriorityJobs,
+        totalLowPriorityJobs,
+      };
+    } catch (error) {
+      console.error('Error in getJobStatistics:', error);
+      // Return default values on any error
+      return {
+        totalUrgentJobs: 0,
+        totalHighPriorityJobs: 0,
+        totalLowPriorityJobs: 0,
+      };
     }
   },
 
