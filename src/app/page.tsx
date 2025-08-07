@@ -10,6 +10,7 @@ import JobTable from '@/components/JobTable'
 import JobModal from '@/components/JobModal'
 import ResultsCount from '@/components/ResultsCount'
 import Pagination from '@/components/Pagination'
+import ChatBot from '@/components/ChatBot'
 
 export default function Home() {
   const { 
@@ -126,6 +127,9 @@ export default function Home() {
 
       {/* Job Modal */}
       <JobModal />
+
+      {/* ChatBot */}
+      <ChatBot />
     </main>
   )
 }

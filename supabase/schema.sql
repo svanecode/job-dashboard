@@ -1,6 +1,7 @@
+-- Enable vector extension for embeddings
+CREATE EXTENSION IF NOT EXISTS vector;
 
- 
- -- Create jobs table
+-- Create jobs table
 CREATE TABLE IF NOT EXISTS jobs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
@@ -10,6 +11,8 @@ CREATE TABLE IF NOT EXISTS jobs (
   description TEXT NOT NULL,
   score INTEGER NOT NULL CHECK (score >= 0 AND score <= 3),
   job_url TEXT NOT NULL,
+  title_embedding vector(1536),
+  description_embedding vector(1536),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -19,6 +22,10 @@ CREATE INDEX IF NOT EXISTS idx_jobs_score ON jobs(score DESC);
 CREATE INDEX IF NOT EXISTS idx_jobs_publication_date ON jobs(publication_date DESC);
 CREATE INDEX IF NOT EXISTS idx_jobs_location ON jobs(location);
 CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company);
+
+-- Create vector indexes for similarity search
+CREATE INDEX IF NOT EXISTS idx_jobs_title_embedding ON jobs USING ivfflat (title_embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_jobs_description_embedding ON jobs USING ivfflat (description_embedding vector_cosine_ops) WITH (lists = 100);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -34,6 +41,59 @@ CREATE TRIGGER update_jobs_updated_at
   BEFORE UPDATE ON jobs 
   FOR EACH ROW 
   EXECUTE FUNCTION update_updated_at_column();
+
+-- Create function for similarity search
+CREATE OR REPLACE FUNCTION match_jobs(
+  query_embedding vector(1536),
+  match_threshold float,
+  match_count int
+)
+RETURNS TABLE (
+  id UUID,
+  title TEXT,
+  company TEXT,
+  location TEXT,
+  publication_date DATE,
+  description TEXT,
+  score INTEGER,
+  job_url TEXT,
+  similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    jobs.id,
+    jobs.title,
+    jobs.company,
+    jobs.location,
+    jobs.publication_date,
+    jobs.description,
+    jobs.score,
+    jobs.job_url,
+    1 - (jobs.title_embedding <=> query_embedding) as similarity
+  FROM jobs
+  WHERE jobs.title_embedding IS NOT NULL
+    AND 1 - (jobs.title_embedding <=> query_embedding) > match_threshold
+  UNION ALL
+  SELECT
+    jobs.id,
+    jobs.title,
+    jobs.company,
+    jobs.location,
+    jobs.publication_date,
+    jobs.description,
+    jobs.score,
+    jobs.job_url,
+    1 - (jobs.description_embedding <=> query_embedding) as similarity
+  FROM jobs
+  WHERE jobs.description_embedding IS NOT NULL
+    AND 1 - (jobs.description_embedding <=> query_embedding) > match_threshold
+  ORDER BY similarity DESC
+  LIMIT match_count;
+END;
+$$;
 
 -- Insert sample data
 INSERT INTO jobs (title, company, location, publication_date, description, score, job_url) VALUES

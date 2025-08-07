@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { Job } from '@/types/job';
 import { mockJobs } from '@/data/mockJobs';
 import { type SortConfig } from '@/utils/sort';
+import { aiQueryProcessor } from './aiQueryProcessor';
 
 interface PaginationParams {
   page: number;
@@ -18,11 +19,11 @@ interface PaginatedResponse {
 }
 
 export const jobService = {
-  // Hent alle jobs med pagination (kun ikke-slettede jobs med CFO score > 0)
+  // Hent alle jobs med pagination (kun ikke-slettede jobs med CFO score >= 1)
   async getAllJobs(params?: PaginationParams): Promise<PaginatedResponse> {
     if (!supabase) {
       // Fallback til mock data hvis Supabase ikke er konfigureret
-      const scoredJobs = mockJobs.filter(job => (job.cfo_score || 0) > 0);
+      const scoredJobs = mockJobs.filter(job => (job.cfo_score || 0) >= 1);
       const page = params?.page || 1;
       const pageSize = params?.pageSize || 20;
       const startIndex = (page - 1) * pageSize;
@@ -48,7 +49,7 @@ export const jobService = {
       .from('jobs')
       .select('*', { count: 'exact', head: true })
       .is('deleted_at', null)
-      .gt('cfo_score', 0);
+      .gte('cfo_score', 1);
 
     if (countError) {
       console.error('Error counting jobs:', countError);
@@ -66,7 +67,7 @@ export const jobService = {
       .from('jobs')
       .select('*')
       .is('deleted_at', null)
-      .gt('cfo_score', 0);
+      .gte('cfo_score', 1);
 
     // Apply sorting
     switch (sort.key) {
@@ -203,7 +204,7 @@ export const jobService = {
       // Fallback til mock data med lokal søgning
       const searchLower = query.toLowerCase();
       const scoredJobs = mockJobs.filter(job => 
-        (job.cfo_score || 0) > 0 && (
+        (job.cfo_score || 0) >= 1 && (
           (job.title?.toLowerCase().includes(searchLower) || false) ||
           (job.company?.toLowerCase().includes(searchLower) || false) ||
           (job.description?.toLowerCase().includes(searchLower) || false)
@@ -235,7 +236,7 @@ export const jobService = {
       .from('jobs')
       .select('*', { count: 'exact', head: true })
       .is('deleted_at', null)
-      .gt('cfo_score', 0)
+      .gte('cfo_score', 1)
       .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`);
 
     if (countError) {
@@ -254,7 +255,7 @@ export const jobService = {
       .from('jobs')
       .select('*')
       .is('deleted_at', null)
-      .gt('cfo_score', 0)
+      .gte('cfo_score', 1)
       .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`);
 
     // Apply sorting
@@ -411,7 +412,7 @@ export const jobService = {
       // Fallback til mock data
       const locationLower = location.toLowerCase();
       const scoredJobs = mockJobs.filter(job => 
-        (job.cfo_score || 0) > 0 && (job.location?.toLowerCase().includes(locationLower) || false)
+        (job.cfo_score || 0) >= 1 && (job.location?.toLowerCase().includes(locationLower) || false)
       );
       
       const page = params?.page || 1;
@@ -440,7 +441,7 @@ export const jobService = {
       .select('*', { count: 'exact', head: true })
       .ilike('location', `%${location}%`)
       .is('deleted_at', null)
-      .gt('cfo_score', 0);
+      .gte('cfo_score', 1);
 
     if (countError) {
       console.error('Error counting jobs by location:', countError);
@@ -459,7 +460,7 @@ export const jobService = {
       .select('*')
       .ilike('location', `%${location}%`)
       .is('deleted_at', null)
-      .gt('cfo_score', 0);
+      .gte('cfo_score', 1);
 
     // Apply sorting
     switch (sort.key) {
@@ -517,7 +518,7 @@ export const jobService = {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
       const scoredJobs = mockJobs.filter(job => 
-        (job.cfo_score || 0) > 0 && 
+        (job.cfo_score || 0) >= 1 && 
         job.publication_date && 
         new Date(job.publication_date) >= cutoffDate
       );
@@ -553,7 +554,7 @@ export const jobService = {
       .select('*', { count: 'exact', head: true })
       .gte('publication_date', cutoffDateString)
       .is('deleted_at', null)
-      .gt('cfo_score', 0);
+      .gte('cfo_score', 1);
 
     if (countError) {
       console.error('Error counting jobs by date:', countError);
@@ -572,7 +573,7 @@ export const jobService = {
       .select('*')
       .gte('publication_date', cutoffDateString)
       .is('deleted_at', null)
-      .gt('cfo_score', 0);
+      .gte('cfo_score', 1);
 
     // Apply sorting
     switch (sort.key) {
@@ -691,5 +692,374 @@ export const jobService = {
       pageSize,
       totalPages: Math.ceil((count || 0) / pageSize)
     };
+  },
+
+  // Semantic search using vector embeddings
+  async searchJobsSemantic(
+    query: string, 
+    params?: PaginationParams & {
+      matchThreshold?: number;
+      minScore?: number;
+      locationFilter?: string;
+      companyFilter?: string;
+    }
+  ): Promise<PaginatedResponse> {
+    if (!supabase) {
+      // Fallback to text search for mock data
+      return this.searchJobs(query, params);
+    }
+
+    try {
+      // Preprocess query for Danish text with AI
+      const processedQuery = await this.preprocessDanishQuery(query);
+      
+      // Generate embedding for the processed query
+      const { generateEmbeddingForText } = await import('./embeddingService');
+      const queryEmbedding = await generateEmbeddingForText(processedQuery);
+
+      const page = params?.page || 1;
+      const pageSize = params?.pageSize || 30; // Get top 30 results
+      const matchThreshold = params?.matchThreshold || 0.01; // Very low threshold
+      const minScore = params?.minScore || 1; // Minimum score filter of 1
+      const locationFilter = params?.locationFilter || null;
+      const companyFilter = params?.companyFilter || null;
+
+      // Use semantic search function
+      const { data: searchResults, error } = await supabase.rpc('match_jobs_semantic', {
+        query_embedding: queryEmbedding,
+        match_threshold: matchThreshold,
+        match_count: pageSize,
+        min_score: minScore,
+        location_filter: locationFilter,
+        company_filter: companyFilter
+      });
+
+      if (error) {
+        console.error('Semantic search error:', error);
+        // Fallback to text search
+        return this.searchJobs(query, params);
+      }
+
+      // If no results from semantic search, try text search
+      if (!searchResults || searchResults.length === 0) {
+        console.log('No semantic results, trying text search fallback');
+        return this.searchJobs(query, params);
+      }
+
+      // For semantic search, we don't have total count easily, so we'll estimate
+      // In a production system, you might want to implement a separate count function
+      const estimatedTotal = searchResults?.length || 0;
+
+      return {
+        data: searchResults || [],
+        total: estimatedTotal,
+        page,
+        pageSize,
+        totalPages: Math.ceil(estimatedTotal / pageSize)
+      };
+    } catch (error) {
+      console.error('Error in semantic search:', error);
+      // Fallback to text search
+      return this.searchJobs(query, params);
+    }
+  },
+
+  // Helper function to preprocess Danish queries with AI
+  async preprocessDanishQuery(query: string): Promise<string> {
+    try {
+      const { preprocessQuery } = await import('./queryPreprocessor');
+      const result = await preprocessQuery(query);
+      console.log('AI preprocessing result:', {
+        original: result.originalQuery,
+        processed: result.processedQuery,
+        corrections: result.corrections,
+        confidence: result.confidence
+      });
+      return result.processedQuery;
+    } catch (error) {
+      console.error('AI preprocessing failed, using fallback:', error);
+      // Fallback to basic preprocessing
+      return this.preprocessDanishQueryFallback(query);
+    }
+  },
+
+  // Fallback preprocessing function
+  preprocessDanishQueryFallback(query: string): string {
+    // Remove common Danish words that don't add semantic meaning
+    const danishStopWords = [
+      'søger', 'leder', 'ønsker', 'vil', 'kan', 'skal', 'har', 'er', 'var', 'være',
+      'og', 'eller', 'men', 'for', 'med', 'til', 'fra', 'om', 'på', 'i', 'at',
+      'en', 'et', 'den', 'det', 'der', 'som', 'hvor', 'hvem', 'hvad', 'hvorfor',
+      'job', 'arbejde', 'stilling', 'position', 'rolle', 'funktion'
+    ];
+    
+    let processedQuery = query.toLowerCase();
+    
+    // Handle common abbreviations and variations
+    const abbreviations = {
+      'nordk': 'nordisk',
+      'novo': 'novo nordisk',
+      'offentlig': 'offentlig sektor',
+      'kommuner': 'kommune kommunal offentlig sektor',
+      'tøjfirmaer': 'tøj mode fashion detailhandel',
+      'cfo': 'chief financial officer',
+      'cto': 'chief technology officer',
+      'ceo': 'chief executive officer',
+      'hr': 'human resources',
+      'it': 'information technology'
+    };
+    
+    // Replace abbreviations
+    Object.entries(abbreviations).forEach(([abbr, full]) => {
+      const regex = new RegExp(`\\b${abbr}\\b`, 'gi');
+      processedQuery = processedQuery.replace(regex, full);
+    });
+    
+    // Remove stop words
+    danishStopWords.forEach(word => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      processedQuery = processedQuery.replace(regex, '');
+    });
+    
+    // Clean up extra spaces
+    processedQuery = processedQuery.replace(/\s+/g, ' ').trim();
+    
+    // If query is empty after preprocessing, use original query
+    if (!processedQuery) {
+      return query.toLowerCase();
+    }
+    
+    return processedQuery;
+  },
+
+  // Intelligent AI-powered hybrid search
+  async searchJobsHybrid(
+    query: string,
+    params?: PaginationParams & {
+      matchThreshold?: number;
+      minScore?: number;
+    }
+  ): Promise<PaginatedResponse> {
+    if (!supabase) {
+      // Fallback to text search for mock data
+      return this.searchJobs(query, params);
+    }
+
+    try {
+      // Use AI query processor to analyze and process the query
+      const processedQuery = await aiQueryProcessor.processQuery(query);
+      
+      console.log('AI Query Processing result:', {
+        original: processedQuery.original,
+        processed: processedQuery.processed,
+        strategy: processedQuery.searchStrategy,
+        confidence: processedQuery.confidence,
+        corrections: processedQuery.corrections
+      });
+
+      // If AI found relevant jobs directly, return them
+      if (processedQuery.relevantJobs && processedQuery.relevantJobs.length > 0) {
+        console.log('AI found relevant jobs directly:', processedQuery.relevantJobs.length);
+        return {
+          data: processedQuery.relevantJobs,
+          total: processedQuery.relevantJobs.length,
+          page: params?.page || 1,
+          pageSize: params?.pageSize || 30,
+          totalPages: Math.ceil(processedQuery.relevantJobs.length / (params?.pageSize || 30))
+        };
+      }
+
+      // Execute search based on AI strategy
+      switch (processedQuery.searchStrategy.method) {
+        case 'semantic':
+          return this.searchJobsSemantic(processedQuery.searchStrategy.query, params);
+        
+        case 'text':
+          return this.searchJobsText(processedQuery.searchStrategy.query, params);
+        
+        case 'direct':
+          // AI suggested direct search but no results found
+          console.log('AI suggested direct search but no results found, falling back to hybrid');
+          break;
+        
+        case 'hybrid':
+        default:
+          // Continue with hybrid search
+          break;
+      }
+
+      // Generate embedding for the processed query
+      const { generateEmbeddingForText } = await import('./embeddingService');
+      const queryEmbedding = await generateEmbeddingForText(processedQuery.processed);
+
+      const page = params?.page || 1;
+      const pageSize = params?.pageSize || 30;
+      const matchThreshold = params?.matchThreshold || 0.01;
+      const minScore = params?.minScore || 1;
+
+      // Use hybrid search function
+      const { data: searchResults, error } = await supabase.rpc('match_jobs_hybrid', {
+        query_embedding: queryEmbedding,
+        search_text: processedQuery.processed,
+        match_threshold: matchThreshold,
+        match_count: pageSize,
+        min_score: minScore
+      });
+
+      if (error) {
+        console.error('Hybrid search error:', error);
+        return this.searchJobs(processedQuery.processed, params);
+      }
+
+      // Check if results are relevant
+      const hasRelevantResults = searchResults && searchResults.length > 0 && 
+        searchResults.some((job: any) => (job.similarity || 0) > 0.1);
+
+      if (!hasRelevantResults) {
+        console.log('No relevant hybrid results, trying text search fallback');
+        return this.searchJobsText(processedQuery.processed, params);
+      }
+
+      const estimatedTotal = searchResults?.length || 0;
+
+      return {
+        data: searchResults || [],
+        total: estimatedTotal,
+        page,
+        pageSize,
+        totalPages: Math.ceil(estimatedTotal / pageSize)
+      };
+
+    } catch (error) {
+      console.error('Error in AI-powered hybrid search:', error);
+      // Fallback to basic text search
+      return this.searchJobs(query, params);
+    }
+  },
+
+  // Text search with similarity scoring
+  async searchJobsText(
+    query: string,
+    params?: PaginationParams & {
+      minScore?: number;
+    }
+  ): Promise<PaginatedResponse> {
+    if (!supabase) {
+      // Fallback to text search for mock data
+      return this.searchJobs(query, params);
+    }
+
+    try {
+      const page = params?.page || 1;
+      const pageSize = params?.pageSize || 20;
+      const minScore = params?.minScore || 1;
+
+      // Use text search function
+      const { data: searchResults, error } = await supabase.rpc('match_jobs_text', {
+        search_text: query,
+        match_count: pageSize,
+        min_score: minScore
+      });
+
+      if (error) {
+        console.error('Text search error:', error);
+        // Fallback to regular search
+        return this.searchJobs(query, params);
+      }
+
+      const estimatedTotal = searchResults?.length || 0;
+
+      return {
+        data: searchResults || [],
+        total: estimatedTotal,
+        page,
+        pageSize,
+        totalPages: Math.ceil(estimatedTotal / pageSize)
+      };
+    } catch (error) {
+      console.error('Error in text search:', error);
+      // Fallback to regular search
+      return this.searchJobs(query, params);
+    }
+  },
+
+  // Get job recommendations based on a specific job
+  async getJobRecommendations(
+    jobId: string,
+    params?: PaginationParams & {
+      minScore?: number;
+    }
+  ): Promise<PaginatedResponse> {
+    if (!supabase) {
+      // Fallback to mock data
+      const mockJob = mockJobs.find(job => job.job_id === jobId);
+      if (!mockJob) {
+        return {
+          data: [],
+          total: 0,
+          page: 1,
+          pageSize: 20,
+          totalPages: 0
+        };
+      }
+
+      // Simple mock recommendations based on company or location
+      const recommendations = mockJobs.filter(job => 
+        job.id !== mockJob.id && 
+        (job.cfo_score || 0) >= (params?.minScore || 1) &&
+        (job.company === mockJob.company || job.location === mockJob.location)
+      ).slice(0, 5);
+
+      return {
+        data: recommendations,
+        total: recommendations.length,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1
+      };
+    }
+
+    try {
+      const page = params?.page || 1;
+      const pageSize = params?.pageSize || 20;
+      const minScore = params?.minScore || 1;
+
+      // Use job recommendations function
+      const { data: recommendations, error } = await supabase.rpc('get_job_recommendations', {
+        job_id_param: jobId,
+        match_count: pageSize,
+        min_score: minScore
+      });
+
+      if (error) {
+        console.error('Job recommendations error:', error);
+        return {
+          data: [],
+          total: 0,
+          page,
+          pageSize,
+          totalPages: 0
+        };
+      }
+
+      const estimatedTotal = recommendations?.length || 0;
+
+      return {
+        data: recommendations || [],
+        total: estimatedTotal,
+        page,
+        pageSize,
+        totalPages: Math.ceil(estimatedTotal / pageSize)
+      };
+    } catch (error) {
+      console.error('Error getting job recommendations:', error);
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        pageSize: 20,
+        totalPages: 0
+      };
+    }
   }
 }; 

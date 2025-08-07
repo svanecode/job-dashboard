@@ -162,3 +162,112 @@ For at opdatere eller tilføje nye jobs:
 - Kun læseadgang er nødvendig for dashboardet
 - Anon key er sikker at bruge i frontend (kun læseadgang)
 - Hvis du tilføjer skriveadgang, brug service role key i backend 
+
+# Supabase Vector Search Setup
+
+For at få chatbot'en til at fungere korrekt, skal du køre følgende SQL i Supabase SQL Editor:
+
+## 1. Kør Vector Search Function
+
+```sql
+-- Create function for similarity search with your table structure
+CREATE OR REPLACE FUNCTION match_jobs_similarity(
+  query_embedding vector(1536),
+  match_threshold float DEFAULT 0.7,
+  match_count int DEFAULT 5
+)
+RETURNS TABLE (
+  id bigint,
+  job_id text,
+  title text,
+  company text,
+  location text,
+  publication_date date,
+  description text,
+  cfo_score integer,
+  job_url text,
+  similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    jobs.id,
+    jobs.job_id,
+    jobs.title,
+    jobs.company,
+    jobs.location,
+    jobs.publication_date,
+    jobs.description,
+    jobs.cfo_score,
+    jobs.job_url,
+    1 - (jobs.embedding <=> query_embedding) as similarity
+  FROM jobs
+  WHERE jobs.embedding IS NOT NULL
+    AND jobs.deleted_at IS NULL
+    AND jobs.cfo_score >= 1
+    AND 1 - (jobs.embedding <=> query_embedding) > match_threshold
+  ORDER BY jobs.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
+```
+
+## 2. Test Function
+
+Efter du har kørt funktionen, kan du teste den med:
+
+```sql
+-- Test the function (dette vil returnere top 5 jobs baseret på similarity)
+SELECT * FROM match_jobs_similarity(
+  '[0.1, 0.2, 0.3, ...]'::vector(1536), -- Dette er bare et eksempel embedding
+  0.5, -- threshold
+  5    -- count
+);
+```
+
+## 3. Verificer Setup
+
+Tjek at:
+- Vector extension er aktiveret
+- Embedding index eksisterer
+- Jobs har embeddings
+
+```sql
+-- Check if vector extension is enabled
+SELECT * FROM pg_extension WHERE extname = 'vector';
+
+-- Check embedding index
+SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'jobs' AND indexname LIKE '%embedding%';
+
+-- Check if jobs have embeddings
+SELECT COUNT(*) as total_jobs, 
+       COUNT(embedding) as jobs_with_embeddings 
+FROM jobs 
+WHERE deleted_at IS NULL;
+```
+
+## 4. Fejlfinding
+
+Hvis du får fejl:
+
+1. **Vector extension ikke aktiveret**:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```
+
+2. **Embedding index mangler**:
+   ```sql
+   CREATE INDEX IF NOT EXISTS idx_jobs_embedding_vector 
+   ON jobs USING ivfflat (embedding vector_cosine_ops) 
+   WITH (lists = 100);
+   ```
+
+3. **Function permissions**:
+   ```sql
+   GRANT EXECUTE ON FUNCTION match_jobs_similarity TO anon;
+   GRANT EXECUTE ON FUNCTION match_jobs_similarity TO authenticated;
+   ```
+
+Efter du har kørt denne SQL, skulle chatbot'en fungere perfekt! 🎉 
