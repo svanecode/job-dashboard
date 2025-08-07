@@ -1035,18 +1035,9 @@ export const jobService = {
         console.error('Job recommendations error:', error);
         return {
           data: [],
-          total: 0,r der job i transportsektoren=
-
-10.51
-
-Ja, der er relevante jobs i transportsektoren. De mest relevante er: 
-
-- Regnskabsansvarlig teamleder med fokus på effektiv økonomistyring - Nordjyllands Trafikselskab
-- Finance Business Partner for DSB Kommerciel - DSB
-- Økonomi- og administrationschef til Søfartsstyrelsens Administrationssekretariat - Søfartsstyrelsen
-- Kontorelev til DHL Freight, Finance - DHL Freight
-          page,
-          pageSize,
+          total: 0,
+          page: 1,
+          pageSize: 20,
           totalPages: 0
         };
       }
