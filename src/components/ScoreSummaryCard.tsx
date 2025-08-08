@@ -22,6 +22,11 @@ export default function ScoreSummaryCard({
   count1, 
   className = '' 
 }: ScoreSummaryCardProps) {
+  // Safety checks for undefined/null values
+  const safeCount3 = count3 ?? 0;
+  const safeCount2 = count2 ?? 0;
+  const safeCount1 = count1 ?? 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -47,7 +52,7 @@ export default function ScoreSummaryCard({
             <ScoreBadge score={3} size="sm" />
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
-            {count3.toLocaleString()}
+            {safeCount3.toLocaleString()}
           </div>
           <div className="text-[12px] text-slate-400 mt-1">
             {scoreLabels[3].subline}
@@ -63,7 +68,7 @@ export default function ScoreSummaryCard({
             <ScoreBadge score={2} size="sm" />
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
-            {count2.toLocaleString()}
+            {safeCount2.toLocaleString()}
           </div>
           <div className="text-[12px] text-slate-400 mt-1">
             {scoreLabels[2].subline}
@@ -79,7 +84,7 @@ export default function ScoreSummaryCard({
             <ScoreBadge score={1} size="sm" />
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
-            {count1.toLocaleString()}
+            {safeCount1.toLocaleString()}
           </div>
           <div className="text-[12px] text-slate-400 mt-1">
             {scoreLabels[1].subline}

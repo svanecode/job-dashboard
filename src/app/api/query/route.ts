@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { supabase } from '@/lib/supabase';
-import { jobService } from '@/services/jobService';
+import { searchJobsSemantic } from '@/services/jobService';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -87,7 +87,7 @@ SVAR KUN:
           minScore: 1
         };
 
-        const searchResults = await jobService.searchJobsSemantic(message, searchParams);
+        const searchResults = await searchJobsSemantic(message, searchParams);
 
         if (searchResults && searchResults.data && searchResults.data.length > 0) {
           candidateJobs = searchResults.data;

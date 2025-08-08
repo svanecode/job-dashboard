@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jobService } from '@/services/jobService';
+import { getJobRecommendations } from '@/services/jobService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       minScore
     };
 
-    const results = await jobService.getJobRecommendations(jobId, params);
+    const results = await getJobRecommendations(jobId, params);
 
     return NextResponse.json({
       success: true,
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       minScore
     };
 
-    const results = await jobService.getJobRecommendations(jobId, params);
+    const results = await getJobRecommendations(jobId, params);
 
     return NextResponse.json({
       success: true,

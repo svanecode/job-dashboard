@@ -54,14 +54,35 @@ function SkeletonCard() {
   )
 }
 
-export default function JobTable() {
-  const { paginatedJobs, openJobModal, sort, setSort, isLoading } = useJobStore()
+type Paged = {
+  data: any[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+type JobTableProps = {
+  initialData?: Paged;
+};
+
+export default function JobTable({ initialData }: JobTableProps = {}) {
+  const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData } = useJobStore()
   const { user } = useAuth()
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set())
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
   const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set())
+
+  // Handle initial data from SSR
+  useEffect(() => {
+    if (initialData && paginatedJobs.length === 0) {
+      // If we have initial data and no jobs loaded yet, use the initial data
+      setInitialData(initialData)
+      console.log('Using initial data from SSR:', initialData.data.length, 'jobs')
+    }
+  }, [initialData, paginatedJobs.length, setInitialData])
 
   // Load saved jobs and comment counts
   useEffect(() => {

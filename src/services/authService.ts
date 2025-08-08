@@ -42,6 +42,7 @@ export const authService = {
   // Get current user session
   async getCurrentUser(): Promise<User | null> {
     if (!supabase) {
+      console.error('Supabase client not initialized');
       return null;
     }
 

@@ -1,7 +1,16 @@
 import { create } from 'zustand'
 import { Job, JobFilters } from '@/types/job'
-import { jobService } from '@/services/jobService'
-import { mockJobs } from '@/data/mockJobs'
+import { 
+  getAllJobs, 
+  getJobStatistics, 
+  searchJobs, 
+  getJobsByScore, 
+  getJobsByLocation, 
+  getJobsByDate,
+  createJob as createJobService,
+  updateJob as updateJobService,
+  deleteJob as deleteJobService
+} from '@/services/jobService'
 import { type SortConfig } from '@/utils/sort'
 
 // Cache configuration for daily job updates
@@ -15,10 +24,13 @@ const parseFiltersFromURL = (): Partial<JobFilters> => {
   
   const urlParams = new URLSearchParams(window.location.search)
   return {
-    searchText: urlParams.get('q') || undefined,
-    location: urlParams.get('loc') || undefined,
-    score: urlParams.get('score') ? parseInt(urlParams.get('score')!) : undefined,
-    daysAgo: urlParams.get('days') ? parseInt(urlParams.get('days')!) : undefined,
+    q: urlParams.get('q') || undefined,
+    searchText: urlParams.get('q') || undefined, // Legacy compatibility
+    location: urlParams.get('location') ? urlParams.get('location')!.split(',') : undefined,
+    score: urlParams.get('score') ? urlParams.get('score')!.split(',').map(Number) : undefined,
+    dateFrom: urlParams.get('from') || undefined,
+    dateTo: urlParams.get('to') || undefined,
+    daysAgo: urlParams.get('days') ? parseInt(urlParams.get('days')!) : undefined, // Legacy
   }
 }
 
@@ -30,15 +42,24 @@ const updateURLWithFilters = (filters: JobFilters) => {
   
   // Clear existing filter params
   params.delete('q')
-  params.delete('loc')
+  params.delete('location')
   params.delete('score')
-  params.delete('days')
+  params.delete('from')
+  params.delete('to')
+  params.delete('days') // Legacy
   
   // Add new filter params
-  if (filters.searchText) params.set('q', filters.searchText)
-  if (filters.location) params.set('loc', filters.location)
-  if (filters.score !== undefined) params.set('score', filters.score.toString())
-  if (filters.daysAgo !== undefined) params.set('days', filters.daysAgo.toString())
+  if (filters.q) params.set('q', filters.q)
+  if (filters.location) {
+    const locationArray = Array.isArray(filters.location) ? filters.location : [filters.location]
+    if (locationArray.length > 0) params.set('location', locationArray.join(','))
+  }
+  if (filters.score) {
+    const scoreArray = Array.isArray(filters.score) ? filters.score : [filters.score]
+    if (scoreArray.length > 0) params.set('score', scoreArray.join(','))
+  }
+  if (filters.dateFrom) params.set('from', filters.dateFrom)
+  if (filters.dateTo) params.set('to', filters.dateTo)
   
   // Update URL without full navigation
   window.history.replaceState({}, '', url.toString())
@@ -86,6 +107,7 @@ interface JobStore {
   setSort: (sort: SortConfig) => void
   initializeFromURL: () => void
   clearCache: () => void
+  setInitialData: (data: { data: Job[]; total: number; page: number; pageSize: number; totalPages: number }) => void
   
   // Data fetching
   fetchJobs: () => Promise<void>
@@ -125,9 +147,12 @@ export const useJobStore = create<JobStore>((set, get) => ({
   isModalOpen: false,
   
   filters: {
+    q: '',
+    searchText: '', // Legacy compatibility
     score: undefined,
-    location: '',
-    searchText: '',
+    location: undefined,
+    dateFrom: undefined,
+    dateTo: undefined,
     daysAgo: undefined,
   },
   
@@ -174,14 +199,6 @@ export const useJobStore = create<JobStore>((set, get) => ({
         updatedFilters = { ...updatedFilters, score: undefined }
       }
       
-      // Update URL with new filters (debounced)
-      if (typeof window !== 'undefined') {
-        clearTimeout((window as Window & { filterTimeout?: NodeJS.Timeout }).filterTimeout)
-        ;(window as Window & { filterTimeout?: NodeJS.Timeout }).filterTimeout = setTimeout(() => {
-          updateURLWithFilters(updatedFilters)
-        }, 500)
-      }
-      
       return {
         filters: updatedFilters,
         currentPage: 1, // Reset to first page when filters change
@@ -195,9 +212,12 @@ export const useJobStore = create<JobStore>((set, get) => ({
   
   resetFilters: () => {
     const emptyFilters = {
+      q: undefined,
+      searchText: undefined,
       score: undefined,
-      location: '',
-      searchText: '',
+      location: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
       daysAgo: undefined,
     }
     
@@ -212,8 +232,10 @@ export const useJobStore = create<JobStore>((set, get) => ({
       const url = new URL(window.location.href)
       const params = url.searchParams
       params.delete('q')
-      params.delete('loc')
+      params.delete('location')
       params.delete('score')
+      params.delete('from')
+      params.delete('to')
       params.delete('days')
       window.history.replaceState({}, '', url.toString())
     }
@@ -236,9 +258,17 @@ export const useJobStore = create<JobStore>((set, get) => ({
     if (filtersToApply.searchText) {
       get().searchJobs(filtersToApply.searchText)
     } else if (filtersToApply.score !== undefined) {
-      get().fetchJobsByScore(filtersToApply.score)
+      // Handle both single score and array of scores
+      const scoreValue = Array.isArray(filtersToApply.score) ? filtersToApply.score[0] : filtersToApply.score
+      if (scoreValue !== undefined) {
+        get().fetchJobsByScore(scoreValue)
+      }
     } else if (filtersToApply.location) {
-      get().fetchJobsByLocation(filtersToApply.location)
+      // Handle both single location and array of locations
+      const locationValue = Array.isArray(filtersToApply.location) ? filtersToApply.location[0] : filtersToApply.location
+      if (locationValue) {
+        get().fetchJobsByLocation(locationValue)
+      }
     } else if (filtersToApply.daysAgo !== undefined) {
       get().fetchJobsByDate(filtersToApply.daysAgo)
     } else {
@@ -264,9 +294,17 @@ export const useJobStore = create<JobStore>((set, get) => ({
     if (filters.searchText) {
       get().searchJobs(filters.searchText)
     } else if (filters.score !== undefined) {
-      get().fetchJobsByScore(filters.score)
+      // Handle both single score and array of scores
+      const scoreValue = Array.isArray(filters.score) ? filters.score[0] : filters.score
+      if (scoreValue !== undefined) {
+        get().fetchJobsByScore(scoreValue)
+      }
     } else if (filters.location) {
-      get().fetchJobsByLocation(filters.location)
+      // Handle both single location and array of locations
+      const locationValue = Array.isArray(filters.location) ? filters.location[0] : filters.location
+      if (locationValue) {
+        get().fetchJobsByLocation(locationValue)
+      }
     } else if (filters.daysAgo !== undefined) {
       get().fetchJobsByDate(filters.daysAgo)
     } else {
@@ -299,7 +337,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     }
     
     try {
-      const statistics = await jobService.getJobStatistics()
+      const statistics = await getJobStatistics()
       
       set({
         totalUrgentJobs: statistics.totalUrgentJobs,
@@ -324,7 +362,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     
     set({ isLoading: true, error: null })
     try {
-      const response = await jobService.getAllJobs({ 
+      const response = await getAllJobs({ 
         page: currentPage, 
         pageSize: jobsPerPage,
         sort 
@@ -352,7 +390,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const { currentPage, jobsPerPage, sort } = get()
-      const response = await jobService.searchJobs(query, { 
+      const response = await searchJobs(query, { 
         page: currentPage, 
         pageSize: jobsPerPage,
         sort 
@@ -381,7 +419,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const { currentPage, jobsPerPage, sort } = get()
-      const response = await jobService.getJobsByScore(score, { 
+      const response = await getJobsByScore(score, { 
         page: currentPage, 
         pageSize: jobsPerPage,
         sort 
@@ -410,7 +448,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const { currentPage, jobsPerPage, sort } = get()
-      const response = await jobService.getJobsByLocation(location, { 
+      const response = await getJobsByLocation(location, { 
         page: currentPage, 
         pageSize: jobsPerPage,
         sort 
@@ -439,7 +477,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const { currentPage, jobsPerPage, sort } = get()
-      const response = await jobService.getJobsByDate(daysAgo, { 
+      const response = await getJobsByDate(daysAgo, { 
         page: currentPage, 
         pageSize: jobsPerPage,
         sort 
@@ -467,7 +505,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   // CRUD operations
   createJob: async (job) => {
     try {
-      await jobService.createJob(job)
+      await createJobService(job)
       get().clearCache() // Clear cache to force refresh
       get().applyFilters() // Refresh data and statistics
     } catch (error) {
@@ -478,7 +516,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   
   updateJob: async (id, job) => {
     try {
-      await jobService.updateJob(id, job)
+      await updateJobService(id, job)
       get().clearCache() // Clear cache to force refresh
       get().applyFilters() // Refresh data and statistics
     } catch (error) {
@@ -489,7 +527,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   
   deleteJob: async (id) => {
     try {
-      await jobService.deleteJob(id)
+      await deleteJobService(id)
       get().clearCache() // Clear cache to force refresh
       get().applyFilters() // Refresh data and statistics
     } catch (error) {
@@ -506,5 +544,20 @@ export const useJobStore = create<JobStore>((set, get) => ({
   closeJobModal: () => {
     // Only close modal, don't affect pagination data
     set({ selectedJob: null, isModalOpen: false })
+  },
+
+  setInitialData: (data) => {
+    set({
+      jobs: data.data,
+      paginatedJobs: data.data,
+      totalJobs: data.total,
+      totalPages: data.totalPages,
+      currentPage: data.page,
+      jobsPerPage: data.pageSize,
+      isLoading: false,
+      error: null,
+      lastFetchTime: Date.now(),
+      cacheKey: `${data.page}-${data.pageSize}-score-desc`,
+    })
   },
 })) 

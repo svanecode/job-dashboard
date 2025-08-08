@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jobService } from '@/services/jobService';
+import { searchJobsSemantic, searchJobsHybrid, searchJobsText } from '@/services/jobService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,16 +31,16 @@ export async function POST(request: NextRequest) {
     
     switch (searchType) {
       case 'semantic':
-        results = await jobService.searchJobsSemantic(query, params);
+        results = await searchJobsSemantic(query, params);
         break;
       case 'hybrid':
-        results = await jobService.searchJobsHybrid(query, params);
+        results = await searchJobsHybrid(query, params);
         break;
       case 'text':
-        results = await jobService.searchJobsText(query, params);
+        results = await searchJobsText(query, params);
         break;
       default:
-        results = await jobService.searchJobsHybrid(query, params);
+        results = await searchJobsHybrid(query, params);
     }
 
     return NextResponse.json({
@@ -93,16 +93,16 @@ export async function GET(request: NextRequest) {
     
     switch (searchType) {
       case 'semantic':
-        results = await jobService.searchJobsSemantic(query, params);
+        results = await searchJobsSemantic(query, params);
         break;
       case 'hybrid':
-        results = await jobService.searchJobsHybrid(query, params);
+        results = await searchJobsHybrid(query, params);
         break;
       case 'text':
-        results = await jobService.searchJobsText(query, params);
+        results = await searchJobsText(query, params);
         break;
       default:
-        results = await jobService.searchJobsHybrid(query, params);
+        results = await searchJobsHybrid(query, params);
     }
 
     return NextResponse.json({

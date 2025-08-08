@@ -35,6 +35,45 @@ export default function FilterBarDesktop() {
     resetFilters()
   }
 
+  // Helper functions to handle array values
+  const getSearchValue = () => {
+    return stagedFilters?.q || stagedFilters?.searchText || ''
+  }
+
+  const getLocationValue = () => {
+    if (!stagedFilters?.location) return ''
+    const location = Array.isArray(stagedFilters.location) ? stagedFilters.location[0] : stagedFilters.location
+    return location || ''
+  }
+
+  const getScoreValue = () => {
+    if (!stagedFilters?.score) return ''
+    const score = Array.isArray(stagedFilters.score) ? stagedFilters.score[0] : stagedFilters.score
+    return score ? score.toString() : ''
+  }
+
+  const updateSearch = (value: string) => {
+    setStagedFilters?.({ 
+      ...stagedFilters, 
+      q: value,
+      searchText: value // Legacy compatibility
+    })
+  }
+
+  const updateLocation = (value: string) => {
+    setStagedFilters?.({ 
+      ...stagedFilters, 
+      location: value ? [value] : undefined
+    })
+  }
+
+  const updateScore = (value: string) => {
+    setStagedFilters?.({ 
+      ...stagedFilters, 
+      score: value ? [Number(value)] : undefined
+    })
+  }
+
   return (
     <div className="hidden md:block sticky top-3 z-40 overflow-hidden">
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] px-3.5 py-2.5 overflow-hidden">
@@ -47,8 +86,8 @@ export default function FilterBarDesktop() {
                 aria-label="Søg i jobopslag"
                 className={base}
                 placeholder="Søg i jobopslag…"
-                value={stagedFilters?.searchText ?? ''}
-                onChange={(e) => setStagedFilters?.({ ...stagedFilters, searchText: e.target.value })}
+                value={getSearchValue()}
+                onChange={(e) => updateSearch(e.target.value)}
               />
             </div>
 
@@ -59,8 +98,8 @@ export default function FilterBarDesktop() {
                 aria-label="Lokation"
                 className={base}
                 placeholder="Lokation…"
-                value={stagedFilters?.location ?? ''}
-                onChange={(e) => setStagedFilters?.({ ...stagedFilters, location: e.target.value })}
+                value={getLocationValue()}
+                onChange={(e) => updateLocation(e.target.value)}
               />
             </div>
 
@@ -70,11 +109,8 @@ export default function FilterBarDesktop() {
               <select
                 aria-label="Score"
                 className={clsx(base, selectBase, "pl-10")}
-                value={stagedFilters?.score ?? ''}
-                onChange={(e) => setStagedFilters?.({ 
-                  ...stagedFilters, 
-                  score: e.target.value ? Number(e.target.value) : undefined 
-                })}
+                value={getScoreValue()}
+                onChange={(e) => updateScore(e.target.value)}
               >
                 <option value="">Alle scores</option>
                 <option value="3">Score 3 – Akut</option>

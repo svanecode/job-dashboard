@@ -17,10 +17,30 @@ export interface Job {
 }
 
 export interface JobFilters {
-  score?: number;
-  location?: string;
-  searchText?: string;
-  daysAgo?: number;
+  // Search and text filters
+  q?: string;
+  searchText?: string; // Legacy field for backward compatibility
+  
+  // Score filters (can be array for multiple scores)
+  score?: number | number[];
+  
+  // Location filters (can be array for multiple locations)
+  location?: string | string[];
+  
+  // Date filters
+  dateFrom?: string; // 'YYYY-MM-DD'
+  dateTo?: string;   // 'YYYY-MM-DD'
+  daysAgo?: number;  // Legacy field for backward compatibility
+  
+  // Pagination
+  page?: number;
+  pageSize?: number;
+  
+  // Sorting
+  sort?: {
+    key: 'score' | 'date' | 'company' | 'title' | 'location';
+    dir: 'asc' | 'desc';
+  };
 }
 
 export interface SavedJob {

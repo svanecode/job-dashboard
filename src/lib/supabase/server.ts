@@ -1,36 +1,31 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export function createClient() {
-  const cookieStore = cookies();
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  throw new Error('Missing env: NEXT_PUBLIC_SUPABASE_URL');
+}
+if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  throw new Error('Missing env: NEXT_PUBLIC_SUPABASE_ANON_KEY');
+}
+
+export const supabaseServer = async () => {
+  const cookieStore = await cookies();
   
-  return createServerClient(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        get: (key) => cookieStore.get(key)?.value,
+        set: (key, value, options) => {
+          // Server-side cookies are read-only
         },
-        set(name: string, value: string, options: { [key: string]: any }) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: { [key: string]: any }) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
+        remove: (key, options) => {
+          // Server-side cookies are read-only
         },
       },
     }
   );
-} 
+  
+  return supabase;
+}; 
