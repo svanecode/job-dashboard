@@ -45,6 +45,7 @@ const config: Config = {
         'slide-up': 'slideUp 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'expand': 'expand 0.2s ease-out',
+        shimmer: 'shimmer 1.6s infinite',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -66,12 +67,14 @@ const config: Config = {
           '0%': { opacity: '0', height: '0' },
           '100%': { opacity: '1', height: 'auto' },
         },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/line-clamp'),
-  ],
+  plugins: [],
 }
 
 export default config 

@@ -32,19 +32,22 @@ export default function ScoreSummaryCard({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className={`rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] p-3 sm:p-4 ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-white/0 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] p-3 sm:p-4 ${className}`}
     >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <div className="pointer-events-none absolute -inset-40 bg-[radial-gradient(closest-side,rgba(255,255,255,0.06),transparent)]" />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4 relative">
         <h2 className="text-xs uppercase tracking-wide text-slate-400 font-medium">
           Scoreoversigt
         </h2>
       </div>
 
       {/* Score Segments - Responsive grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 relative">
         {/* Score 3 - Akut */}
-        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-white/3">
+        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-gradient-to-br from-red-500/10 to-transparent hover:from-red-500/15 hover:bg-white/8 transition-colors">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[3].label}
@@ -60,7 +63,7 @@ export default function ScoreSummaryCard({
         </div>
 
         {/* Score 2 - Relevant */}
-        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-white/3">
+        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-gradient-to-br from-amber-400/10 to-transparent hover:from-amber-400/15 hover:bg-white/8 transition-colors">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[2].label}
@@ -76,7 +79,7 @@ export default function ScoreSummaryCard({
         </div>
 
         {/* Score 1 - Lav relevans */}
-        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-white/3">
+        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-gradient-to-br from-slate-300/10 to-transparent hover:from-slate-300/15 hover:bg-white/8 transition-colors">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[1].label}

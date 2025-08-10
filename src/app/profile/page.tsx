@@ -98,15 +98,16 @@ export default function ProfilePage() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-[#0b0f14] via-[#0f141b] to-[#0b0f14]">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/20 backdrop-blur">
+      <div className="border-b border-white/10 bg-black/20 backdrop-blur relative">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.back()}
-                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors shadow-[0_6px_20px_rgba(0,0,0,0.25)]"
               >
                 <ArrowLeft className="size-5 text-white" />
               </button>
@@ -125,12 +126,12 @@ export default function ProfilePage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs */}
-        <div className="flex gap-1 bg-white/5 rounded-xl p-1 mb-8">
+        <div className="flex gap-1 bg-white/5 rounded-xl p-1 mb-8 border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.25)]">
           <button
             onClick={() => setActiveTab('jobs')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === 'jobs'
-                ? 'bg-white/10 text-white'
+                ? 'bg-white/10 text-white shadow-inner'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -166,7 +167,7 @@ export default function ProfilePage() {
             {activeTab === 'jobs' && (
               <div className="space-y-4">
                 {savedJobs.length === 0 ? (
-                  <div className="text-center py-12">
+              <div className="text-center py-12">
                     <Bookmark className="size-12 text-slate-500 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-white mb-2">Ingen gemte jobs</h3>
                     <p className="text-slate-400">Du har ikke gemt nogen jobs endnu.</p>
@@ -175,7 +176,7 @@ export default function ProfilePage() {
                   savedJobs.map((savedJob) => (
                     <div 
                       key={savedJob.saved_job_id} 
-                      className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer shadow-[0_8px_30px_rgba(0,0,0,0.25)]"
                       onClick={() => handleOpenJob(savedJob)}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -187,15 +188,15 @@ export default function ProfilePage() {
                             {savedJob.score && <ScoreBadge score={savedJob.score} size="sm" />}
                           </div>
                           <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
-                            <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1">
                               <Building2 className="size-4" />
                               {savedJob.company || 'Ukendt firma'}
                             </div>
-                            <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1">
                               <MapPin className="size-4" />
                               {savedJob.location || 'Ukendt lokation'}
                             </div>
-                            <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1">
                               <Calendar className="size-4" />
                               {formatDate(savedJob.publication_date)}
                             </div>

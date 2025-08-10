@@ -482,13 +482,31 @@ export async function searchJobsSemantic(
   // For semantic search, we don't have total count easily, so we'll estimate
   // In a production system, you might want to implement a separate count function
   const estimatedTotal = searchResults?.length || 0;
+  // Re-rank by score, similarity, recency and dedupe
+  const ranked = (searchResults || []).slice().sort((a: any, b: any) => {
+    const scoreDiff = (b.cfo_score ?? 0) - (a.cfo_score ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const simDiff = (b.similarity ?? 0) - (a.similarity ?? 0);
+    if (simDiff !== 0) return simDiff;
+    const da = new Date(a.publication_date || 0).getTime();
+    const db = new Date(b.publication_date || 0).getTime();
+    return db - da;
+  });
+  const seen = new Set<string>();
+  const deduped: Job[] = [];
+  for (const job of ranked) {
+    const key = (job as any).job_id || `${job.title}::${job.company}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(job);
+  }
 
   return {
-    data: searchResults || [],
-    total: estimatedTotal,
+    data: deduped,
+    total: deduped.length,
     page,
     pageSize,
-    totalPages: Math.ceil(estimatedTotal / pageSize)
+    totalPages: Math.ceil(deduped.length / pageSize)
   };
 }
 
@@ -638,13 +656,30 @@ export async function searchJobsHybrid(
   }
 
   const estimatedTotal = searchResults?.length || 0;
+  const rankedH = (searchResults || []).slice().sort((a: any, b: any) => {
+    const scoreDiff = (b.cfo_score ?? 0) - (a.cfo_score ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const simDiff = (b.similarity ?? 0) - (a.similarity ?? 0);
+    if (simDiff !== 0) return simDiff;
+    const da = new Date(a.publication_date || 0).getTime();
+    const db = new Date(b.publication_date || 0).getTime();
+    return db - da;
+  });
+  const seenH = new Set<string>();
+  const dedupedH: Job[] = [];
+  for (const job of rankedH) {
+    const key = (job as any).job_id || `${job.title}::${job.company}`;
+    if (seenH.has(key)) continue;
+    seenH.add(key);
+    dedupedH.push(job);
+  }
 
   return {
-    data: searchResults || [],
-    total: estimatedTotal,
+    data: dedupedH,
+    total: dedupedH.length,
     page: params?.page || 1,
     pageSize: params?.pageSize || 30,
-    totalPages: Math.ceil(estimatedTotal / (params?.pageSize || 30))
+    totalPages: Math.ceil(dedupedH.length / (params?.pageSize || 30))
   };
 
 }
@@ -679,13 +714,28 @@ export async function searchJobsText(
   }
 
   const estimatedTotal = searchResults?.length || 0;
+  const rankedT = (searchResults || []).slice().sort((a: any, b: any) => {
+    const scoreDiff = (b.cfo_score ?? 0) - (a.cfo_score ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const da = new Date(a.publication_date || 0).getTime();
+    const db = new Date(b.publication_date || 0).getTime();
+    return db - da;
+  });
+  const seenT = new Set<string>();
+  const dedupedT: Job[] = [];
+  for (const job of rankedT) {
+    const key = (job as any).job_id || `${job.title}::${job.company}`;
+    if (seenT.has(key)) continue;
+    seenT.add(key);
+    dedupedT.push(job);
+  }
 
   return {
-    data: searchResults || [],
-    total: estimatedTotal,
+    data: dedupedT,
+    total: dedupedT.length,
     page,
     pageSize,
-    totalPages: Math.ceil(estimatedTotal / pageSize)
+    totalPages: Math.ceil(dedupedT.length / pageSize)
   };
 }
 

@@ -13,14 +13,13 @@ export type BaseFilters = {
   minScore?: number; // default 1
 };
 
-export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
-  if (!supabase) {
-    throw new Error('Supabase client not initialized');
-  }
+const SELECT_COLUMNS =
+  'id, job_id, title, company, location, publication_date, description, cfo_score, job_url';
 
+export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
   let q = supabase
     .from('jobs')
-    .select('*', { count: 'exact' })
+    .select(SELECT_COLUMNS, { count: 'exact' })
     .is('deleted_at', null);
 
   const minScore = filters.minScore ?? 1;
@@ -37,10 +36,12 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
     );
   }
 
+  // Apply primary sort
   switch (sort.key) {
     case 'score':
       q = q
         .order('cfo_score', { ascending: sort.dir === 'asc' })
+        // Stable secondary sort by date desc
         .order('publication_date', { ascending: false });
       break;
     case 'company':
@@ -69,12 +70,22 @@ export async function runPaged(
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
   const { data, count, error } = await query.range(from, to);
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase query error:', error);
+    return {
+      data: [],
+      total: 0,
+      page,
+      pageSize,
+      totalPages: 0,
+    };
+  }
+  const total = count ?? 0;
   return {
     data: data ?? [],
-    total: count ?? 0,
+    total,
     page,
     pageSize,
-    totalPages: Math.ceil((count ?? 0) / (pageSize || 1)),
+    totalPages: Math.ceil(total / (pageSize || 1)),
   };
 } 

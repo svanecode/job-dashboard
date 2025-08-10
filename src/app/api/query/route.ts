@@ -236,12 +236,20 @@ Giv et detaljeret svar på dansk om de tidligere nævnte jobs.`;
 
     console.log('Final response - selected jobs:', selectedJobs.length);
     
-    return NextResponse.json({
+    const res = NextResponse.json({
       response,
       similarJobs: selectedJobs,
       searchType,
       strategy
     });
+    try {
+      const ids = selectedJobs.map(j => j.id).filter(Boolean);
+      if (ids.length > 0) {
+        const cookieValue = encodeURIComponent(JSON.stringify(ids.slice(0, 20)));
+        res.headers.set('Set-Cookie', `chat_selected_jobs=${cookieValue}; Path=/; Max-Age=900; SameSite=Lax`);
+      }
+    } catch {}
+    return res;
 
   } catch (error) {
     console.error('Error in query endpoint:', error);

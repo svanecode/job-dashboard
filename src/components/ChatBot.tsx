@@ -2,20 +2,29 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Bot, User, X, MessageCircle } from 'lucide-react'
+import { Send, Bot, User, X, MessageCircle, Clipboard } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import type { ChatMessage } from '@/store/chatStore'
 import { useJobStore } from '@/store/jobStore'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [showNotification, setShowNotification] = useState(true)
+  const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { openJobModal } = useJobStore()
   
   const { messages, isLoading, error, sendMessage, clearMessages } = useChatStore()
+  const quickSuggestions = [
+    'Vis flere lignende',
+    'Kun i København',
+    'Kun interim',
+    'Kun score ≥ 2',
+  ]
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -32,6 +41,19 @@ export default function ChatBot() {
     }
   }, [isOpen])
 
+  // Keyboard shortcut: Cmd/Ctrl + K to toggle chat
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isCmd = e.metaKey || e.ctrlKey
+      if (isCmd && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setIsOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputValue.trim() || isLoading) return
@@ -46,6 +68,27 @@ export default function ChatBot() {
       e.preventDefault()
       handleSubmit(e)
     }
+  }
+
+  // Optional: Voice input via Web Speech API
+  const handleToggleVoice = () => {
+    const SpeechRecognition =
+      (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+    if (!SpeechRecognition) return
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'da-DK'
+    recognition.interimResults = true
+    recognition.continuous = false
+    recognition.onstart = () => setIsListening(true)
+    recognition.onerror = () => setIsListening(false)
+    recognition.onend = () => setIsListening(false)
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((r: any) => r[0].transcript)
+        .join(' ')
+      setInputValue(transcript)
+    }
+    recognition.start()
   }
 
   const handleJobClick = (job: any) => {
@@ -153,15 +196,25 @@ export default function ChatBot() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-200">Job Assistant</h3>
-                    <p className="text-xs text-slate-400">Spørg mig om jobs</p>
+                    <p className="text-xs text-slate-400">Spørg mig om jobs • Cmd/Ctrl+K</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1 rounded-lg hover:bg-white/5 transition-colors focus-ring"
-                >
-                  <X className="size-4 text-slate-400" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleToggleVoice}
+                    title="Tale til tekst"
+                    className={`p-1 rounded-lg transition-colors focus-ring ${isListening ? 'bg-emerald-500/20' : 'hover:bg-white/5'}`}
+                  >
+                    <span className="inline-block w-2 h-2 rounded-full mr-1 align-middle bg-emerald-400" style={{ opacity: isListening ? 1 : 0.3 }} />
+                    <span className="text-[10px] text-slate-300">Mic</span>
+                  </button>
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="p-1 rounded-lg hover:bg-white/5 transition-colors focus-ring"
+                  >
+                    <X className="size-4 text-slate-400" />
+                  </button>
+                </div>
               </div>
 
               {/* Messages */}
@@ -171,6 +224,17 @@ export default function ChatBot() {
                     <Bot className="size-12 mx-auto mb-3 text-slate-500" />
                     <p className="text-sm">Hej! Jeg kan hjælpe dig med at finde relevante job-annoncer.</p>
                     <p className="text-xs mt-2">Prøv at spørge om "CFO stillinger" eller "interim jobs"</p>
+                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                      {['CFO stillinger i København', 'Interim økonomichef', 'Høj score (2-3) jobs', 'Fintech økonomi jobs'].map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => setInputValue(q)}
+                          className="px-2 py-1 text-xs rounded-full bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   messages.map((message) => (
@@ -246,6 +310,21 @@ export default function ChatBot() {
                     <Send className="size-4" />
                   </button>
                 </form>
+
+                {/* Quick follow-ups */}
+                {messages.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {quickSuggestions.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => setInputValue(q)}
+                        className="px-2 py-1 text-[11px] rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 
                 {messages.length > 0 && (
                   <button
@@ -268,6 +347,34 @@ export default function ChatBot() {
 
 function ChatMessage({ message, onJobClick }: { message: ChatMessage; onJobClick: (job: any) => void }) {
   const isUser = message.role === 'user'
+  const [displayed, setDisplayed] = useState(isUser ? message.content : '')
+
+  useEffect(() => {
+    if (isUser) return
+    let cancelled = false
+    const full = message.content
+    if (!full) return
+    setDisplayed('')
+    let i = 0
+    const step = () => {
+      if (cancelled) return
+      i += Math.max(1, Math.ceil(full.length / 120))
+      setDisplayed(full.slice(0, i))
+      if (i < full.length) {
+        setTimeout(step, 12)
+      }
+    }
+    step()
+    return () => {
+      cancelled = true
+    }
+  }, [message.content, isUser])
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content)
+    } catch {}
+  }
 
   return (
     <motion.div
@@ -286,12 +393,29 @@ function ChatMessage({ message, onJobClick }: { message: ChatMessage; onJobClick
       </div>
       
       <div className={`max-w-[80%] ${isUser ? 'text-right' : ''}`}>
-        <div className={`p-3 rounded-2xl border border-white/10 ${
+        <div className={`relative p-3 rounded-2xl border border-white/10 ${
           isUser 
             ? 'bg-slate-700/80 text-slate-200' 
             : 'bg-white/5 text-slate-200'
         }`}>
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          {!isUser ? (
+            <div className="prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {displayed}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          )}
+          {!isUser && (
+            <button
+              onClick={handleCopy}
+              className="absolute top-1.5 right-1.5 p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-white/5"
+              title="Kopiér svar"
+            >
+              <Clipboard className="size-3.5" />
+            </button>
+          )}
         </div>
         
         {message.similarJobs && message.similarJobs.length > 0 && (
@@ -325,4 +449,4 @@ function ChatMessage({ message, onJobClick }: { message: ChatMessage; onJobClick
       </div>
     </motion.div>
   )
-} 
+}

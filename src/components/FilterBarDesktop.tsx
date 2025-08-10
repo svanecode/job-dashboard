@@ -11,7 +11,7 @@ const icon = "absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400"
 const chevron = "absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
 
 export default function FilterBarDesktop() {
-  const { filters, stagedFilters, setStagedFilters, applyFilters, resetFilters } = useJobStore()
+  const { filters, stagedFilters, setStagedFilters, applyFilters, resetFilters, rowDensity, setRowDensity } = useJobStore()
   
   // Check if there are any staged changes (dirty state)
   const dirty = useMemo(() => {
@@ -77,6 +77,7 @@ export default function FilterBarDesktop() {
   return (
     <div className="hidden md:block sticky top-3 z-40 overflow-hidden">
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] px-3.5 py-2.5 overflow-hidden">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <form onSubmit={onSubmit}>
           <div className="grid grid-cols-[2fr,1.3fr,1fr,1fr,auto,auto] gap-2.5 min-w-0">
             {/* Søg */}
@@ -140,6 +141,28 @@ export default function FilterBarDesktop() {
                 <option value="30">Seneste 30 dage</option>
               </select>
               <ChevronDown className={chevron} />
+            </div>
+
+            {/* Density toggle */}
+            <div className="flex items-center flex-shrink-0">
+              <div className="inline-flex rounded-lg border border-white/10 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setRowDensity?.('comfortable')}
+                  className={`h-10 px-3 text-sm transition ${rowDensity === 'comfortable' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'}`}
+                  title="Komfortabel visning"
+                >
+                  Normal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRowDensity?.('compact')}
+                  className={`h-10 px-3 text-sm transition border-l border-white/10 ${rowDensity === 'compact' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'}`}
+                  title="Kompakt visning"
+                >
+                  Kompakt
+                </button>
+              </div>
             </div>
 
             {/* Nulstil */}

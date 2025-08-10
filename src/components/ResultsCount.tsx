@@ -16,17 +16,17 @@ export default function ResultsCount() {
       transition={{ duration: 0.3, delay: 0.2 }}
       className="mb-4"
     >
-      <p className="text-sm text-slate-400">
-        {isFiltered ? (
+      <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300">
+        <span className="text-slate-400">Viser</span>
+        <span className="text-white tabular-nums font-medium">{isFiltered ? currentJobsCount : totalJobs}</span>
+        {isFiltered && (
           <>
-            Viser <span className="font-medium text-white">{currentJobsCount}</span> af <span className="font-medium text-white">{totalJobs}</span> jobs
-          </>
-        ) : (
-          <>
-            Viser alle <span className="font-medium text-white">{totalJobs}</span> jobs
+            <span className="text-slate-400">af</span>
+            <span className="text-white tabular-nums font-medium">{totalJobs}</span>
           </>
         )}
-      </p>
+        <span className="text-slate-400">jobs</span>
+      </div>
     </motion.div>
   )
 } 

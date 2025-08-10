@@ -84,6 +84,7 @@ interface JobStore {
   error: string | null
   selectedJob: Job | null
   isModalOpen: boolean
+  rowDensity?: 'comfortable' | 'compact'
   
   // Filters
   filters: JobFilters
@@ -105,6 +106,7 @@ interface JobStore {
   applyFilters: (payload?: JobFilters) => void
   setCurrentPage: (page: number) => void
   setSort: (sort: SortConfig) => void
+  setRowDensity?: (density: 'comfortable' | 'compact') => void
   initializeFromURL: () => void
   clearCache: () => void
   setInitialData: (data: { data: Job[]; total: number; page: number; pageSize: number; totalPages: number }) => void
@@ -145,6 +147,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   error: null,
   selectedJob: null,
   isModalOpen: false,
+  rowDensity: 'comfortable',
   
   filters: {
     q: '',
@@ -287,35 +290,20 @@ export const useJobStore = create<JobStore>((set, get) => ({
     set({ currentPage: page })
     
     // Clear cache for this specific page to force fresh data
-    const newCacheKey = `${page}-${jobsPerPage}-${sort.key}-${sort.dir}`
     set({ cacheKey: '', lastFetchTime: 0 })
     
-    // Re-fetch data for new page based on current filters
-    if (filters.searchText) {
-      get().searchJobs(filters.searchText)
-    } else if (filters.score !== undefined) {
-      // Handle both single score and array of scores
-      const scoreValue = Array.isArray(filters.score) ? filters.score[0] : filters.score
-      if (scoreValue !== undefined) {
-        get().fetchJobsByScore(scoreValue)
-      }
-    } else if (filters.location) {
-      // Handle both single location and array of locations
-      const locationValue = Array.isArray(filters.location) ? filters.location[0] : filters.location
-      if (locationValue) {
-        get().fetchJobsByLocation(locationValue)
-      }
-    } else if (filters.daysAgo !== undefined) {
-      get().fetchJobsByDate(filters.daysAgo)
-    } else {
-      get().fetchJobs()
-    }
+    // Use the centralized getAllJobs method with the new page
+    get().fetchJobs()
   },
   
   setSort: (newSort) => {
     set({ sort: newSort })
     // Re-fetch data with new sort config
     get().applyFilters()
+  },
+
+  setRowDensity: (density) => {
+    set({ rowDensity: density })
   },
 
   clearCache: () => {
@@ -351,8 +339,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
   },
 
   fetchJobs: async () => {
-    const { currentPage, jobsPerPage, sort, lastFetchTime, cacheKey } = get()
-    const newCacheKey = `${currentPage}-${jobsPerPage}-${sort.key}-${sort.dir}`
+    const { currentPage, jobsPerPage, sort, filters, lastFetchTime, cacheKey } = get()
+    const newCacheKey = `${currentPage}-${jobsPerPage}-${sort.key}-${sort.dir}-${JSON.stringify(filters)}`
     const now = Date.now()
     
     // Only use cache if we have a valid cache key and it matches the current request
@@ -362,10 +350,21 @@ export const useJobStore = create<JobStore>((set, get) => ({
     
     set({ isLoading: true, error: null })
     try {
+      // Convert filters to the correct format for getAllJobs
+      const baseFilters = {
+        q: filters.q,
+        score: Array.isArray(filters.score) ? filters.score : filters.score ? [filters.score] : undefined,
+        location: Array.isArray(filters.location) ? filters.location : filters.location ? [filters.location] : undefined,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+        minScore: 1, // Default minimum score
+      }
+      
       const response = await getAllJobs({ 
         page: currentPage, 
         pageSize: jobsPerPage,
-        sort 
+        sort,
+        ...baseFilters
       })
       
       set({

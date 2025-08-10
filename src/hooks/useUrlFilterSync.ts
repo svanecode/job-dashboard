@@ -4,87 +4,41 @@ import { useEffect } from 'react';
 import { useJobStore } from '@/store/jobStore';
 
 export function useUrlFilterSync() {
-  const searchParams = useSearchParams();
+  const sp = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const { filters, setFilters, isInitialized, initializeFromURL, currentPage, setCurrentPage } = useJobStore();
+  const { filters, setFilters, currentPage, setCurrentPage } = useJobStore();
 
-  // Initial load: parse filters fra URL -> store
+  // Init from URL once
   useEffect(() => {
-    if (!isInitialized) {
-      initializeFromURL();
-      return;
-    }
+    const score = sp.get('score');
+    const location = sp.get('location');
+    const q = sp.get('q') || '';
+    const dateFrom = sp.get('from') || undefined;
+    const dateTo = sp.get('to') || undefined;
+    const page = Number(sp.get('page') || '1');
 
-    const scoreParam = searchParams.get('score');
-    const locationParam = searchParams.get('location');
-    const qParam = searchParams.get('q');
-    const dateFrom = searchParams.get('from');
-    const dateTo = searchParams.get('to');
-    const pageParam = searchParams.get('page');
-
-    // Convert URL params to filter structure
-    const newFilters = {
-      q: qParam || '',
-      searchText: qParam || '', // Legacy compatibility
-      score: scoreParam ? scoreParam.split(',').map(Number) : undefined,
-      location: locationParam ? locationParam.split(',') : undefined,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-    };
-
-    // Handle pagination
-    if (pageParam) {
-      const page = parseInt(pageParam);
-      if (page !== currentPage && page >= 1) {
-        setCurrentPage(page);
-      }
-    }
-
-    // Only update if filters have actually changed
-    const currentFiltersStr = JSON.stringify({
-      q: filters.q,
-      searchText: filters.searchText,
-      score: filters.score,
-      location: filters.location,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo,
+    setFilters({
+      q,
+      score: score ? score.split(',').map(Number) : [],
+      location: location ? location.split(',') : [],
+      dateFrom,
+      dateTo,
     });
-    
-    const newFiltersStr = JSON.stringify(newFilters);
-    
-    if (currentFiltersStr !== newFiltersStr) {
-      setFilters(newFilters);
-    }
-  }, [searchParams, isInitialized, initializeFromURL, setFilters, filters, currentPage, setCurrentPage]);
+    setCurrentPage(isFinite(page) && page > 0 ? page : 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Når filters ændres -> opdater URL
+  // Write to URL on changes
   useEffect(() => {
-    if (!isInitialized) return; // Don't update URL during initialization
-    
     const params = new URLSearchParams();
     if (filters.q) params.set('q', filters.q);
-    if (filters.score) {
-      const scoreArray = Array.isArray(filters.score) ? filters.score : [filters.score];
-      if (scoreArray.length > 0) params.set('score', scoreArray.join(','));
-    }
-    if (filters.location) {
-      const locationArray = Array.isArray(filters.location) ? filters.location : [filters.location];
-      if (locationArray.length > 0) params.set('location', locationArray.join(','));
-    }
+    if (filters.score?.length) params.set('score', filters.score.join(','));
+    if (filters.location?.length) params.set('location', filters.location.join(','));
     if (filters.dateFrom) params.set('from', filters.dateFrom);
     if (filters.dateTo) params.set('to', filters.dateTo);
-    
-    // Add pagination to URL (only if not page 1)
-    if (currentPage > 1) {
-      params.set('page', currentPage.toString());
-    }
+    if (currentPage > 1) params.set('page', String(currentPage));
 
-    const newUrl = `${pathname}?${params.toString()}`;
-    const currentUrl = `${pathname}${window.location.search}`;
-    
-    if (newUrl !== currentUrl) {
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [filters, currentPage, router, pathname, isInitialized]);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [filters, currentPage, router, pathname]);
 } 

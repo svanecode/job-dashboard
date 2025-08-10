@@ -67,7 +67,7 @@ type JobTableProps = {
 };
 
 export default function JobTable({ initialData }: JobTableProps = {}) {
-  const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData } = useJobStore()
+  const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData, rowDensity } = useJobStore()
   const { user } = useAuth()
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -209,10 +209,10 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
   return (
     <>
       {/* Desktop Table - Hidden on mobile */}
-      <div className="hidden lg:block card overflow-hidden">
+      <div className="hidden lg:block rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] overflow-hidden">
         <div className="overflow-x-auto max-w-full">
-          <table className="w-full min-w-full table-fixed">
-            <thead className="bg-black/30 backdrop-blur-sm sticky top-0">
+          <table className={`w-full min-w-full table-fixed ${rowDensity === 'compact' ? 'text-[13px]' : 'text-[14px]'}`}>
+            <thead className="bg-black/30 backdrop-blur-sm sticky top-0 shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]">
               <tr>
                 <th className="w-[6%] px-4 py-4">
                   <button
@@ -300,15 +300,15 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                 <tr
                   key={job.id}
                   onClick={() => handleRowClick(job)}
-                  className="hover:bg-white/5 transition-colors cursor-pointer group"
+                  className={`hover:bg-white/5 transition-colors cursor-pointer group ${rowDensity === 'compact' ? 'h-11' : 'h-14'}`}
                 >
                   {/* Score */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[6%]">
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[6%]`}>
                     <ScoreBadge score={job.cfo_score || 0} />
                   </td>
 
                   {/* Company */}
-                  <td className="px-4 py-4 min-w-0 w-[12%]">
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[12%]`}>
                     <div className="flex items-center gap-2 min-w-0">
                       <Building2 className="size-4 text-slate-400 flex-shrink-0" />
                       <span className="text-slate-200 font-medium truncate text-sm">
@@ -318,14 +318,14 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                   </td>
 
                   {/* Title */}
-                  <td className="px-4 py-4 min-w-0 w-[30%]">
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[30%]`}>
                     <span className="text-slate-200 font-medium line-clamp-1 text-sm">
                       {job.title || 'Ingen titel'}
                     </span>
                   </td>
 
                   {/* Location */}
-                  <td className="px-4 py-4 min-w-0 w-[15%]">
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[15%]`}>
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="size-4 text-slate-400 flex-shrink-0" />
                       <span className="text-slate-200 truncate text-sm">
@@ -335,7 +335,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                   </td>
 
                   {/* Date */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[10%]">
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[10%]`}>
                     <div className="flex items-center gap-2">
                       <Calendar className="size-4 text-slate-400" />
                       <span className="text-slate-200 tabular-nums text-sm">
@@ -345,7 +345,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                   </td>
 
                   {/* Comments */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[8%] text-center">
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[8%] text-center`}>
                     <div className="flex items-center gap-1.5 justify-center">
                       <MessageSquare className="size-4 text-slate-400" />
                       <span className="text-slate-200 text-sm font-medium">
@@ -355,7 +355,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                   </td>
 
                   {/* Save/Unsave */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[8%] text-center">
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[8%] text-center`}>
                     {user ? (
                       <button
                         onClick={(e) => handleSaveJob(job, e)}
@@ -383,7 +383,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                   </td>
 
                   {/* Link */}
-                  <td className="px-4 py-4 whitespace-nowrap w-[6%]">
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[6%]`}>
                     {job.job_url ? (
                       <a
                         href={job.job_url}
@@ -415,7 +415,10 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                 key={index}
                 className="w-full max-w-full"
               >
-                <SkeletonCard />
+                <div className="relative">
+                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                  <SkeletonCard />
+                </div>
               </div>
             ))}
           </div>

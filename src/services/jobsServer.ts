@@ -1,17 +1,20 @@
 import { supabaseServer } from '@/lib/supabase/server';
 import type { BaseFilters, SortConfig } from './jobQuery';
 
+const SELECT_COLUMNS =
+  'id, job_id, title, company, location, publication_date, description, cfo_score, job_url';
+
 export async function getJobsFirstPageServer(
   filters: BaseFilters = {},
   sort: SortConfig = { key: 'score', dir: 'desc' },
   page = 1,
   pageSize = 20
 ) {
-  const sb = await supabaseServer();
+  const sb = supabaseServer();
 
   let q = sb
     .from('jobs')
-    .select('id, title, company, location, publication_date, description, cfo_score, job_url', { count: 'exact' })
+    .select(SELECT_COLUMNS, { count: 'exact' })
     .is('deleted_at', null);
 
   const minScore = filters.minScore ?? 1;
@@ -25,29 +28,32 @@ export async function getJobsFirstPageServer(
     q = q.or(`title.ilike.%${term}%,company.ilike.%${term}%,description.ilike.%${term}%`);
   }
 
-  switch (sort.key) {
-    case 'score':
-      q = q.order('cfo_score', { ascending: sort.dir === 'asc' })
-           .order('publication_date', { ascending: false });
-      break;
-    case 'company':  q = q.order('company',   { ascending: sort.dir === 'asc' }); break;
-    case 'title':    q = q.order('title',     { ascending: sort.dir === 'asc' }); break;
-    case 'location': q = q.order('location',  { ascending: sort.dir === 'asc' }); break;
-    case 'date':
-    default:         q = q.order('publication_date', { ascending: sort.dir === 'asc' }); break;
+  if (sort.key === 'score') {
+    q = q.order('cfo_score', { ascending: sort.dir === 'asc' })
+         .order('publication_date', { ascending: false });
+  } else {
+    const field =
+      sort.key === 'company' ? 'company' :
+      sort.key === 'title' ? 'title' :
+      sort.key === 'location' ? 'location' : 'publication_date';
+    q = q.order(field, { ascending: sort.dir === 'asc' });
   }
 
   const from = (page - 1) * pageSize;
   const to   = from + pageSize - 1;
 
   const { data, count, error } = await q.range(from, to);
-  if (error) throw error;
+  if (error) {
+    console.error('SSR jobs error:', error);
+    return { data: [], total: 0, page, pageSize, totalPages: 0 };
+  }
 
+  const total = count ?? 0;
   return {
     data: data ?? [],
-    total: count ?? 0,
+    total,
     page,
     pageSize,
-    totalPages: Math.ceil((count ?? 0) / (pageSize || 1)),
+    totalPages: Math.ceil(total / (pageSize || 1)),
   };
 } 

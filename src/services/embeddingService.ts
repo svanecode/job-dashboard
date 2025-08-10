@@ -5,6 +5,35 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Simple in-memory LRU cache with TTL for query embeddings
+type CachedEmbedding = { embedding: number[]; timestampMs: number };
+const embeddingCache = new Map<string, CachedEmbedding>();
+const EMBEDDING_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const EMBEDDING_MAX_ENTRIES = 200;
+
+function cacheGet(key: string): number[] | null {
+  const entry = embeddingCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestampMs > EMBEDDING_TTL_MS) {
+    embeddingCache.delete(key);
+    return null;
+  }
+  // Touch for LRU: re-insert
+  embeddingCache.delete(key);
+  embeddingCache.set(key, { ...entry, timestampMs: Date.now() });
+  return entry.embedding;
+}
+
+function cacheSet(key: string, embedding: number[]) {
+  if (embeddingCache.has(key)) embeddingCache.delete(key);
+  embeddingCache.set(key, { embedding, timestampMs: Date.now() });
+  // Evict oldest
+  if (embeddingCache.size > EMBEDDING_MAX_ENTRIES) {
+    const oldestKey = embeddingCache.keys().next().value as string | undefined;
+    if (oldestKey) embeddingCache.delete(oldestKey);
+  }
+}
+
 export async function generateEmbeddingsForJobs() {
   if (!supabase) {
     throw new Error('Database connection not available');
@@ -77,13 +106,20 @@ export async function generateEmbeddingsForJobs() {
 
 export async function generateEmbeddingForText(text: string) {
   try {
+    // Cache key based on normalized text
+    const key = text.trim().toLowerCase();
+    const cached = cacheGet(key);
+    if (cached) return cached;
+
     const response = await openai.embeddings.create({
       model: 'text-embedding-3-large',
       input: text,
       encoding_format: 'float',
     });
 
-    return response.data[0].embedding;
+    const embedding = response.data[0].embedding;
+    cacheSet(key, embedding);
+    return embedding;
   } catch (error) {
     console.error('Error generating embedding:', error);
     // Return a mock embedding for testing when API is unavailable
