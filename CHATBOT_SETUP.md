@@ -21,6 +21,9 @@ Tilføj følgende environment variables til din `.env.local` fil:
 # OpenAI API Key
 OPENAI_API_KEY=your_openai_api_key_here
 
+# OpenAI Model (default: gpt-5-mini)
+OPENAI_MODEL=gpt-5-mini
+
 # Supabase (hvis ikke allerede konfigureret)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key

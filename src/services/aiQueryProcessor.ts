@@ -52,22 +52,22 @@ export class AIQueryProcessor {
       }
 
       // Analyze job data
-      const companies = [...new Set(jobs.map(job => job.company).filter(Boolean))];
-      const locations = [...new Set(jobs.map(job => job.location).filter(Boolean))];
+      const companies = [...new Set(jobs.map((job: any) => job.company).filter(Boolean))] as string[];
+      const locations = [...new Set(jobs.map((job: any) => job.location).filter(Boolean))] as string[];
       
       // Extract common terms from titles and descriptions
-      const allText = jobs.map(job => `${job.title} ${job.description}`).join(' ');
+      const allText = jobs.map((job: any) => `${job.title} ${job.description}`).join(' ');
       const words = allText.toLowerCase().match(/\b[a-zæøå]{3,}\b/g) || [];
-      const wordCount = words.reduce((acc, word) => {
+      const wordCount = (words as string[]).reduce((acc: Record<string, number>, word: string) => {
         acc[word] = (acc[word] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
       
       const commonTerms = Object.entries(wordCount)
-        .filter(([_, count]) => count > 5)
-        .sort(([,a], [,b]) => b - a)
+        .filter(([_, count]) => (count as number) > 5)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
         .slice(0, 50)
-        .map(([word]) => word);
+        .map(([word]) => word) as string[];
 
       // Categorize jobs
       const jobCategories = this.categorizeJobs(jobs);
@@ -142,9 +142,12 @@ export class AIQueryProcessor {
       const systemPrompt = this.createSystemPrompt(dbAnalysis);
       
       // Process query with AI
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
+      const model = process.env.OPENAI_MODEL || 'gpt-5-chat';
+      let completion;
+      try {
+        completion = await openai.chat.completions.create({
+          model,
+          messages: [
           {
             role: "system",
             content: systemPrompt
@@ -153,10 +156,22 @@ export class AIQueryProcessor {
             role: "user",
             content: `Process this query: "${query}"`
           }
-        ],
-        temperature: 0.1,
-        max_tokens: 2000
-      });
+        ]
+        });
+      } catch (err: any) {
+        const code = err?.code || err?.status;
+        if (code === 'model_not_found' || code === 404) {
+          completion = await openai.chat.completions.create({
+            model: 'gpt-5',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Process this query: "${query}"` }
+            ]
+          });
+        } else {
+          throw err;
+        }
+      }
 
       const response = completion.choices[0]?.message?.content;
       if (!response) {
@@ -262,37 +277,15 @@ RETURNER KUN JSON - ingen ekstra tekst.`;
   }
 
   private fallbackProcessing(query: string): ProcessedQuery {
-    // Basic preprocessing without AI
-    const processed = query.toLowerCase().trim();
-    
-    // Simple keyword detection
-    let method: 'semantic' | 'text' | 'hybrid' = 'hybrid';
-    let reason = 'Fallback processing';
-    
-    if (processed.includes('kommuner') || processed.includes('kommune')) {
-      method = 'text';
-      reason = 'Detected kommuner keyword, using text search';
-    } else if (processed.includes('novo') || processed.includes('nordisk')) {
-      method = 'text';
-      reason = 'Detected Novo Nordisk keyword, using text search';
-    } else if (processed.includes('tøjfirmaer') || processed.includes('tøj')) {
-      method = 'text';
-      reason = 'Detected tøjfirmaer keyword, using text search';
-    } else if (processed.includes('offentlig') || processed.includes('stat')) {
-      method = 'text';
-      reason = 'Detected offentlig keyword, using text search';
-    } else if (processed.includes('erp') || processed.includes('enterprise resource planning')) {
-      method = 'text';
-      reason = 'Detected ERP keyword, using text search for specific ERP jobs';
-    }
-    
+    // Minimal og neutral fallback uden hardcoded domæner
+    const processed = query.trim();
     return {
       original: query,
-      processed: query,
+      processed,
       searchStrategy: {
-        method,
-        query: query,
-        reason
+        method: 'hybrid',
+        query: processed,
+        reason: 'Neutral fallback uden domæneantagelser'
       },
       confidence: 0.7,
       corrections: []

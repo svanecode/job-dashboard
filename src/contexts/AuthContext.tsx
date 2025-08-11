@@ -47,15 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Get initial session
     const getInitialSession = async () => {
       try {
+        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           await refreshUser();
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
       } finally {
-        // Add a small delay to ensure user state is set
-        setTimeout(() => setLoading(false), 100);
+        setLoading(false);
       }
     };
 
@@ -68,20 +70,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN' && session?.user) {
           // Ensure user profile exists
           try {
+            setLoading(true);
             await fetch('/api/check-user');
           } catch (error) {
             console.error('Error checking user profile:', error);
           }
           await refreshUser();
+          setLoading(false);
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out, clearing user state');
           setUser(null);
+          setLoading(false);
         }
         // Don't set loading to false here to avoid race conditions
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const value = {

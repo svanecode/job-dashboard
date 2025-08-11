@@ -16,7 +16,15 @@ try {
     throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY');
   }
 
-  supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  // Ensure session persistence and align storage key with middleware/server
+  supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      storageKey: 'supabase-auth',
+    },
+  });
 } catch (error) {
   console.error('Failed to initialize Supabase client:', error);
   // Don't throw here, let the application handle the null client

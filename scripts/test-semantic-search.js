@@ -26,7 +26,7 @@ const openai = new OpenAI({
 async function generateEmbedding(text) {
   try {
     const response = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
+      model: 'text-embedding-3-large',
       input: text,
       encoding_format: 'float',
     });
@@ -40,13 +40,13 @@ async function generateEmbedding(text) {
 async function testSemanticSearch() {
   console.log('🧪 Testing Semantic Search Functions...\n');
 
-  const testQueries = [
-    'CFO interim position in Copenhagen',
-    'ERP implementation consultant',
-    'Financial controller with SAP experience',
-    'Startup CFO role',
-    'Accounting manager in Aarhus',
-    'Digital transformation finance role'
+  const cliQuery = process.argv.slice(2).join(' ').trim();
+  const testQueries = cliQuery ? [cliQuery] : [
+    'CFO interim københavn',
+    'logistikvirksomheder',
+    'pharma økonomi',
+    'controller SAP',
+    'økonomichef aarhus'
   ];
 
   for (const query of testQueries) {
@@ -60,8 +60,8 @@ async function testSemanticSearch() {
       // Test semantic search
       const { data: semanticResults, error: semanticError } = await supabase.rpc('match_jobs_semantic', {
         query_embedding: embedding,
-        match_threshold: 0.05, // Lower threshold to get more results
-        match_count: 5,
+        match_threshold: 0.05,
+        match_count: 10,
         min_score: 1
       });
 
@@ -80,8 +80,8 @@ async function testSemanticSearch() {
       const { data: hybridResults, error: hybridError } = await supabase.rpc('match_jobs_hybrid', {
         query_embedding: embedding,
         search_text: query,
-        match_threshold: 0.05, // Lower threshold to get more results
-        match_count: 5,
+        match_threshold: 0.05,
+        match_count: 10,
         min_score: 1
       });
 
@@ -99,7 +99,7 @@ async function testSemanticSearch() {
       // Test text search
       const { data: textResults, error: textError } = await supabase.rpc('match_jobs_text', {
         search_text: query,
-        match_count: 5,
+        match_count: 10,
         min_score: 1
       });
 

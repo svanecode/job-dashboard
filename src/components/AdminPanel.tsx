@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Database, Bot, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Settings, Database, Bot, Loader2, CheckCircle, AlertCircle, FileText } from 'lucide-react'
+import InsightsAdmin from './InsightsAdmin'
 
 export default function AdminPanel() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
+  const [tab, setTab] = useState<'insights' | 'embeddings' | 'chatbot'>('insights')
 
   const generateEmbeddings = async () => {
     setIsGenerating(true)
@@ -44,18 +46,44 @@ export default function AdminPanel() {
       animate={{ opacity: 1, y: 0 }}
       className="card p-6"
     >
-      <div className="flex items-center gap-3 mb-6">
-        <div className="size-10 bg-kpmg-500 rounded-full flex items-center justify-center">
-          <Settings className="size-5 text-white" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="size-10 bg-kpmg-500 rounded-full flex items-center justify-center">
+            <Settings className="size-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-white">Admin Panel</h2>
+            <p className="text-slate-400 text-sm">Administrer indsigter, embeddings og chatbot</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-semibold text-white">Admin Panel</h2>
-          <p className="text-slate-400 text-sm">Administrer chatbot og embeddings</p>
+        <div className="inline-flex bg-white/5 border border-white/10 rounded-lg overflow-hidden">
+          <button
+            className={`px-3 py-1.5 text-sm ${tab==='insights' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+            onClick={() => setTab('insights')}
+          >Indsigter</button>
+          <button
+            className={`px-3 py-1.5 text-sm ${tab==='embeddings' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+            onClick={() => setTab('embeddings')}
+          >Embeddings</button>
+          <button
+            className={`px-3 py-1.5 text-sm ${tab==='chatbot' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+            onClick={() => setTab('chatbot')}
+          >Chatbot</button>
         </div>
       </div>
 
       <div className="space-y-6">
-        {/* Embeddings Section */}
+        {tab === 'insights' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <FileText className="size-5 text-slate-300" />
+              <h3 className="text-lg font-medium text-white">Ugentlige indsigter</h3>
+            </div>
+            <InsightsAdmin />
+          </div>
+        )}
+
+        {tab === 'embeddings' && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <Database className="size-5 text-slate-300" />
@@ -104,8 +132,9 @@ export default function AdminPanel() {
             )}
           </div>
         </div>
+        )}
 
-        {/* Chatbot Status */}
+        {tab === 'chatbot' && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <Bot className="size-5 text-slate-300" />
@@ -120,7 +149,7 @@ export default function AdminPanel() {
               </div>
               <div>
                 <p className="text-slate-400">Model</p>
-                <p className="text-white">GPT-4o-mini</p>
+                <p className="text-white">{process.env.OPENAI_MODEL || 'gpt-5-chat (fallback: gpt-5)'}</p>
               </div>
               <div>
                 <p className="text-slate-400">Embeddings</p>
@@ -133,6 +162,7 @@ export default function AdminPanel() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Instructions */}
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">

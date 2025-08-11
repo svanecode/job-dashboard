@@ -45,6 +45,26 @@ export async function getJobById(id: number): Promise<Job | null> {
   return data;
 }
 
+export async function getJobsByIds(ids: number[]): Promise<Job[]> {
+  if (!supabase) {
+    throw new Error('Supabase client not initialized');
+  }
+  if (!ids || ids.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .select('*')
+    .in('id', ids)
+    .is('deleted_at', null);
+
+  if (error) {
+    console.error('Error fetching jobs by ids:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
 export async function createJob(job: Omit<Job, 'id' | 'created_at' | 'deleted_at' | 'scored_at' | 'job_info' | 'last_seen'>): Promise<Job> {
   if (!supabase) {
     throw new Error('Supabase client not initialized');

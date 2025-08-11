@@ -34,36 +34,27 @@ export async function preprocessQueryWithAI(
   }
 
   try {
-    const prompt = `Du er en ekspert i dansk job-søgning og tekstbehandling. Din opgave er at forbedre en søgequery til et job-søgningssystem.
+    const prompt = `Du er en dansk stave- og grammatikhjælper. Din opgave er KUN at rette stavefejl, små grammatiske fejl og udvide meget almindelige forkortelser (fx "kbh" → "københavn"). Du må IKKE tilføje domænespecifikke ord, jobtitler, branchesynonymer eller ekstra begreber.
 
 ORIGINAL QUERY: "${query}"
 
-KONTEKST: ${context}
-
-OPGAVER:
-1. Ret stavefejl og grammatikfejl
-2. Udvid forkortelser (f.eks. "nordk" → "nordisk", "cfo" → "chief financial officer")
-3. Tilføj relevante synonymer og relaterede termer
-4. Optimér queryen til job-søgning
-5. Bevar den oprindelige mening
+REGLER:
+1) Ret kun stave/grammatik og BASALE forkortelser.
+2) Bevar meningen 1:1. Tilføj ikke nye ord, titler, brancher eller kvalitets-/proces-udtryk.
+3) Ingen omskrivning/optimering af indhold – kun minimal korrektion.
 
 SVAR FORMAT (JSON):
 {
-  "correctedQuery": "den korrekte og udvidede query",
+  "correctedQuery": "den korrigerede query (kun minimal rettelse)",
   "corrections": ["liste af rettelser der blev lavet"],
-  "suggestions": ["liste af forbedringsforslag"],
+  "suggestions": [],
   "confidence": 0.95
 }
-
-EKSEMPLER:
-- "søger novo nordk" → "novo nordisk"
-- "cfo stilling" → "chief financial officer stilling"
-- "økonomi job" → "økonomi regnskab finans job"
 
 SVAR KUN MED JSON:`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || 'gpt-5-chat',
       messages: [
         {
           role: 'system',
@@ -73,9 +64,7 @@ SVAR KUN MED JSON:`;
           role: 'user',
           content: prompt
         }
-      ],
-      max_tokens: 500,
-      temperature: 0.1,
+      ]
     });
 
     const response = completion.choices[0]?.message?.content;
@@ -118,26 +107,12 @@ export function preprocessQueryFallback(query: string): PreprocessedQuery {
   let processedQuery = query.toLowerCase();
 
   // Basic abbreviation handling
+  // Kun meget almindelige og sikre forkortelser – ingen domæneudvidelser
   const abbreviations: Record<string, string> = {
-    'nordk': 'nordisk',
-    'novo': 'novo nordisk',
-    'cfo': 'chief financial officer',
-    'cto': 'chief technology officer',
-    'ceo': 'chief executive officer',
-    'hr': 'human resources',
-    'it': 'information technology',
-    'erp': 'enterprise resource planning',
-    'crm': 'customer relationship management',
-    'bi': 'business intelligence',
-    'fp&a': 'financial planning and analysis',
-    'ap': 'accounts payable',
-    'ar': 'accounts receivable',
-    'gl': 'general ledger',
-    'kpi': 'key performance indicator',
-    'roi': 'return on investment',
-    'køb': 'københavn',
     'kbh': 'københavn',
+    'køb': 'københavn',
     'århus': 'aarhus',
+    'aarhus': 'aarhus',
     'odense': 'odense',
     'aalborg': 'aalborg'
   };
@@ -151,24 +126,7 @@ export function preprocessQueryFallback(query: string): PreprocessedQuery {
     }
   });
 
-  // Basic spelling corrections
-  const spellingCorrections: Record<string, string> = {
-    'søger': 'søger',
-    'leder': 'leder',
-    'ønsker': 'ønsker',
-    'arbejde': 'arbejde',
-    'stilling': 'stilling',
-    'job': 'job',
-    'karriere': 'karriere'
-  };
-
-  Object.entries(spellingCorrections).forEach(([wrong, correct]) => {
-    const regex = new RegExp(`\\b${wrong}\\b`, 'gi');
-    if (regex.test(processedQuery)) {
-      processedQuery = processedQuery.replace(regex, correct);
-      corrections.push(`${wrong} → ${correct}`);
-    }
-  });
+  // No grammar/spelling corrections to avoid latency and unintended changes
 
   return {
     originalQuery: query,
@@ -183,12 +141,6 @@ export function preprocessQueryFallback(query: string): PreprocessedQuery {
  * Main preprocessing function that tries AI first, then falls back
  */
 export async function preprocessQuery(query: string): Promise<PreprocessedQuery> {
-  try {
-    // Try AI preprocessing first
-    return await preprocessQueryWithAI(query);
-  } catch (error) {
-    console.log('AI preprocessing failed, using fallback:', error);
-    // Fallback to basic preprocessing
-    return preprocessQueryFallback(query);
-  }
+  // Skip AI preprocessing entirely for performance; do only lightweight local handling
+  return preprocessQueryFallback(query);
 } 

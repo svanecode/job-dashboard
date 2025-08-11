@@ -7,6 +7,29 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Prefer gpt-5-chat when available; fall back to gpt-5 automatically on 404/model_not_found
+async function chatComplete(params: { messages: { role: 'system' | 'user' | 'assistant'; content: string }[]; maxTokens: number }) {
+  const preferred = process.env.OPENAI_MODEL || 'gpt-5-chat';
+  try {
+    return await openai.chat.completions.create({
+      model: preferred,
+      messages: params.messages,
+      max_completion_tokens: params.maxTokens,
+    });
+  } catch (err: any) {
+    const code = err?.code || err?.status;
+    if (code === 'model_not_found' || code === 404) {
+      // Retry with stable fallback
+      return await openai.chat.completions.create({
+        model: 'gpt-5',
+        messages: params.messages,
+        max_completion_tokens: params.maxTokens,
+      });
+    }
+    throw err;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message, searchType = 'hybrid', conversationHistory = [] } = await request.json();
@@ -61,11 +84,9 @@ SVAR KUN:
 
     console.log('Determining search strategy for:', message);
     
-    const strategyResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const strategyResponse = await chatComplete({
       messages: [{ role: 'user', content: strategyPrompt }],
-      max_tokens: 50,
-      temperature: 0.1
+      maxTokens: 50
     });
 
     const strategy = strategyResponse.choices[0]?.message?.content?.trim() || 'NY_SØGNING';
@@ -82,8 +103,8 @@ SVAR KUN:
       try {
         const searchParams = {
           page: 1,
-          pageSize: 20,
-          matchThreshold: 0.0001, // Extremely low threshold to get results
+          pageSize: 30,
+          matchThreshold: 0.3, // Require stronger semantic match
           minScore: 1
         };
 
@@ -91,6 +112,19 @@ SVAR KUN:
 
         if (searchResults && searchResults.data && searchResults.data.length > 0) {
           candidateJobs = searchResults.data;
+          // Generic re-ranking: prioritize candidates that include the query keywords in company/title/description
+          const keywords = extractQueryKeywords(message);
+          if (keywords.length > 0) {
+            const reRanked = reRankByKeywords(candidateJobs, keywords);
+            // If we have at least one keyword hit, keep the re-ranked list; otherwise retain original order
+            const hasHits = reRanked.some(j => (j as any).__kwHits && (j as any).__kwHits > 0);
+            if (hasHits) {
+              candidateJobs = reRanked.map(j => {
+                const { __kwHits, __kwScore, ...rest } = j as any; // remove temp markers
+                return rest;
+              });
+            }
+          }
           console.log(`Semantic search found ${candidateJobs.length} candidate jobs`);
         } else {
           console.log('Semantic search returned no results');
@@ -113,25 +147,18 @@ Job ${index + 1}:
 - Beskrivelse: ${job.description}
 `).join('\n');
 
-        const analysisPrompt = `Du er en ekspert jobrådgiver. Analyser følgende jobs baseret på spørgsmålet: "${message}"
+        const analysisPrompt = `Du er en jobassistent. Analyser følgende jobs i forhold til brugerens eksakte søgetekst: "${message}".
 
 ${conversationContext}
-
-VIKTIG KONTEKST:
-Alle jobs i databasen handler om økonomi, finans, regnskab, controlling, etc. Når brugeren spørger om specifikke brancher (f.eks. "transportsektoren", "pharma", "IT"), så er alle økonomi-jobs relevante fordi:
-- Alle virksomheder har brug for økonomi-folk
-- Transport-firmaer har brug for økonomi-kontrollere
-- Pharma-firmaer har brug for finans-folk
-- Alle brancher har brug for regnskab og controlling
 
 Her er ${candidateJobs.length} jobs fra databasen:
 
 ${jobDetails}
 
 OPGAVE:
-1. Analyser om spørgsmålet matcher nogle af job-annoncerne
-2. Vælg de mest relevante jobs (0-5 stk) baseret på spørgsmålet
-3. Giv et kort svar (maks 2-3 sætninger)
+1. Vurder relevans ift. brugerens ord (match i titel/virksomhed/beskrivelse).
+2. Vælg de mest relevante jobs (0-5 stk). Vægt eksplicit match i titel/virksomhed højest, derefter beskrivelse.
+3. Giv et kort svar (maks 2-3 sætninger).
 
 REGLER:
 - Hvis der ER relevante jobs: Nævn dem med titel og virksomhed (IKKE job numre)
@@ -139,18 +166,15 @@ REGLER:
 - Nævn KUN jobs der faktisk er i listen ovenfor
 - OPDIGT IKKE JOBS - kun brug jobs fra listen
 - Vær præcis og konsistent
-- Vær fleksibel: Alle økonomi-jobs kan være relevante for alle brancher
 
 RETUR:
 Giv kun et kort svar på dansk. Hvis ingen jobs er relevante, svar "Nej" + kort forklaring. Hvis der er relevante jobs, nævn dem med titel og virksomhed (IKKE job numre).
 
 KRITISK: Du SKAL altid tilføje en linje med "RELEVANTE_JOBS: [numre]" efter dit svar hvis du nævner jobs. F.eks. "RELEVANTE_JOBS: 1,3,5" eller "RELEVANTE_JOBS: 8". Uden denne linje kan systemet ikke vise job-kortene.`;
 
-        const analysisResponse = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+        const analysisResponse = await chatComplete({
           messages: [{ role: 'user', content: analysisPrompt }],
-          max_tokens: 300,
-          temperature: 0.1
+          maxTokens: 300
         });
 
         const rawResponse = analysisResponse.choices[0]?.message?.content || 'Beklager, jeg kunne ikke analysere jobs.';
@@ -168,6 +192,12 @@ KRITISK: Du SKAL altid tilføje en linje med "RELEVANTE_JOBS: [numre]" efter dit
           console.log('Selected jobs:', selectedJobs.map(job => `${job.title} hos ${job.company}`));
         } else {
           console.log('No job numbers found in response');
+          // Fallback: pick top jobs deterministically (keywords + similarity + score + recency)
+          const keywords = extractQueryKeywords(message);
+          selectedJobs = pickTopJobs(candidateJobs, 3, keywords);
+          if (selectedJobs.length > 0) {
+            response = buildFallbackSummary(message, selectedJobs);
+          }
         }
         
         console.log('AI selected', selectedJobs.length, 'relevant jobs out of', candidateJobs.length, 'candidates');
@@ -189,11 +219,9 @@ REGLER:
 SVAR:
 Giv et venligt svar på dansk der forklarer situationen og foreslår alternativer.`;
 
-        const noResultsResponse = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+        const noResultsResponse = await chatComplete({
           messages: [{ role: 'user', content: noResultsPrompt }],
-          max_tokens: 200,
-          temperature: 0.1
+          maxTokens: 200
         });
 
         response = noResultsResponse.choices[0]?.message?.content || 'Beklager, jeg kunne ikke finde nogen relevante jobs.';
@@ -224,11 +252,9 @@ REGLER:
 SVAR:
 Giv et detaljeret svar på dansk om de tidligere nævnte jobs.`;
 
-      const followUpResponse = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+      const followUpResponse = await chatComplete({
         messages: [{ role: 'user', content: followUpPrompt }],
-        max_tokens: 400,
-        temperature: 0.1
+        maxTokens: 400
       });
 
       response = followUpResponse.choices[0]?.message?.content || 'Beklager, jeg kunne ikke give dig mere information.';
@@ -291,6 +317,86 @@ function parseJobNumbersFromResponse(response: string): number[] {
   }
   
   return [...new Set(jobNumbers)]; // Remove duplicates
+}
+
+// Pick top N jobs prioritizing CFO score, then recency (publication_date), then company/title
+function pickTopJobs(jobs: any[], count: number, keywords?: string[]): any[] {
+  if (!Array.isArray(jobs) || jobs.length === 0) return [];
+  const kws = (keywords || [])
+    .map(k => k.toLowerCase())
+    .flatMap(k => [k, k.slice(0, 5)])
+    .filter(k => k.length >= 3);
+  const kwHits = (j: any) => {
+    const hay = `${j.company || ''} ${j.title || ''} ${j.description || ''}`.toLowerCase();
+    return kws.reduce((n, k) => n + (hay.includes(k) ? 1 : 0), 0);
+  };
+  const withHits = kws.length > 0 ? jobs.filter(j => kwHits(j) > 0) : jobs.slice();
+  const pool = withHits.length > 0 ? withHits : jobs.slice();
+  const ranked = pool.sort((a, b) => {
+    const kwDiff = (kwHits(b) - kwHits(a));
+    if (kwDiff !== 0) return kwDiff;
+    const scoreDiff = (b.cfo_score ?? 0) - (a.cfo_score ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const da = new Date(a.publication_date || 0).getTime();
+    const db = new Date(b.publication_date || 0).getTime();
+    if (db !== da) return db - da;
+    return String(a.company || '').localeCompare(String(b.company || '')) || String(a.title || '').localeCompare(String(b.title || ''));
+  });
+  return ranked.slice(0, Math.max(0, count));
+}
+
+// Build a short fallback summary referencing selected jobs
+function buildFallbackSummary(query: string, jobs: any[]): string {
+  const lines: string[] = [];
+  if (jobs.length === 0) {
+    return 'Jeg fandt ingen oplagte matches.';
+  }
+  const mentions = jobs.slice(0, 3).map((j: any) => `${j.title} hos ${j.company}`).join(', ');
+  lines.push(`Jeg fandt relevante bud for "${query}": ${mentions}.`);
+  return lines.join('\n');
+}
+
+// Extract sector/industry keywords to narrow result set
+function extractIndustryKeywords(text: string): string[] {
+  const t = (text || '').toLowerCase();
+  const domains: Record<string, string[]> = {
+    pharma: ['pharma', 'farmaceut', 'farmaceutisk', 'farmaci', 'lægemiddel', 'life science', 'biotek', 'biotech', 'medico', 'medtech', 'klinisk', 'regulatory'],
+    transport: ['transport', 'shipping', 'logistik', 'spedition'],
+    it: ['it', 'software', 'saas', 'tech', 'teknologi'],
+    offentlig: ['offentlig', 'kommune', 'region', 'stat']
+  };
+  const hits: string[] = [];
+  for (const kws of Object.values(domains)) {
+    if (kws.some(k => t.includes(k))) hits.push(...kws);
+  }
+  return Array.from(new Set(hits));
+}
+
+// Extract simple keywords from user query (letters and numbers, length >= 3)
+function extractQueryKeywords(text: string): string[] {
+  const words = (text || '').toLowerCase().match(/[a-zæøå0-9]{3,}/gi) || [];
+  // Deduplicate
+  return Array.from(new Set(words));
+}
+
+// Re-rank jobs by keyword presence in company/title/description
+function reRankByKeywords(jobs: any[], keywords: string[]): any[] {
+  const kws = keywords
+    .map(k => k.toLowerCase())
+    .flatMap(k => [k, k.slice(0, 5)])
+    .filter(k => k.length >= 3);
+  const scoreJob = (j: any) => {
+    const hay = `${j.company || ''} ${j.title || ''} ${j.description || ''}`.toLowerCase();
+    let hits = 0;
+    for (const k of kws) {
+      if (hay.includes(k)) hits += 1;
+    }
+    // Weight: keyword hits first, then existing cfo_score, then recency
+    const recency = new Date(j.publication_date || 0).getTime() / 1e13; // small weight
+    const score = hits * 10 + (j.cfo_score ?? 0) * 2 + recency;
+    return { ...j, __kwHits: hits, __kwScore: score };
+  };
+  return jobs.map(scoreJob).sort((a, b) => (b.__kwScore ?? 0) - (a.__kwScore ?? 0));
 }
 
 // Helper function to generate embedding for query

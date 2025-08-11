@@ -6,14 +6,8 @@ export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     
-    // Log all cookies
-    const allCookies = Array.from(cookieStore.getAll()).map(c => ({
-      name: c.name,
-      value: c.value ? 'exists' : 'missing',
-      path: c.path
-    }));
-    
-    console.log('API: All cookies:', allCookies);
+    // Minimal cookie capture without console noise
+    const allCookies = Array.from(cookieStore.getAll()).map(c => ({ name: c.name }));
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,9 +15,7 @@ export async function GET(request: NextRequest) {
       {
         cookies: {
           get(name: string) {
-            const cookie = cookieStore.get(name);
-            console.log(`API: Getting cookie ${name}:`, cookie?.value ? 'exists' : 'missing');
-            return cookie?.value;
+            return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: { [key: string]: any }) {
             try {
@@ -48,11 +40,9 @@ export async function GET(request: NextRequest) {
     
     // Try to get session first
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('API: Session result:', { session: !!session, error: sessionError?.message });
     
     // Then try to get user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    console.log('API: User result:', { user: user?.id, error: userError?.message });
     
     return NextResponse.json({
       success: true,

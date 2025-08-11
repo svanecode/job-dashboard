@@ -349,6 +349,10 @@ export const useJobStore = create<JobStore>((set, get) => ({
     }
     
     set({ isLoading: true, error: null })
+    const loadingTimeout = setTimeout(() => {
+      // Failsafe to ensure UI does not hang on spinner if something stalls
+      set({ isLoading: false })
+    }, 5000)
     try {
       // Convert filters to the correct format for getAllJobs
       const baseFilters = {
@@ -382,6 +386,9 @@ export const useJobStore = create<JobStore>((set, get) => ({
         error: 'Fejl ved indlæsning af jobs',
         isLoading: false,
       })
+    }
+    finally {
+      clearTimeout(loadingTimeout)
     }
   },
   

@@ -11,6 +11,7 @@ import UserMenu from '@/components/UserMenu';
 import JobModal from '@/components/JobModal';
 import AnimatedHeader from '@/components/AnimatedHeader';
 import UrlSyncWrapper from '@/components/UrlSyncWrapper';
+import TopNav from '@/components/TopNav';
 
 export const revalidate = 60;
 
@@ -52,6 +53,8 @@ export default async function Page({
             <AnimatedHeader />
             <UserMenu />
           </div>
+
+          <TopNav />
 
           <StatsOverviewServer />
 

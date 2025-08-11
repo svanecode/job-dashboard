@@ -38,7 +38,12 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   }
 
   if (!user) {
-    return null; // Will redirect to login
+    // Failsafe: show a quick link to login if redirect doesn't happen
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-300">
+        <a href="/login" className="underline">Log ind</a>
+      </div>
+    );
   }
 
   if (requireAdmin && user.role !== 'admin') {

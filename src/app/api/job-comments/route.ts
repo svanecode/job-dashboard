@@ -6,8 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     
-    // Log available cookies for debugging
-    console.log('JobComments API: Available cookies:', Array.from(cookieStore.getAll()).map(c => c.name));
+    // Debug logs removed
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,9 +14,7 @@ export async function GET(request: NextRequest) {
       {
         cookies: {
           get(name: string) {
-            const cookie = cookieStore.get(name);
-            console.log(`JobComments API: Getting cookie ${name}:`, cookie?.value ? 'exists' : 'missing');
-            return cookie?.value;
+            return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: { [key: string]: any }) {
             try {
@@ -70,7 +67,7 @@ export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     
-    console.log('JobComments API: Available cookies:', Array.from(cookieStore.getAll()).map(c => c.name));
+    // Debug logs removed
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,9 +75,7 @@ export async function POST(request: NextRequest) {
       {
         cookies: {
           get(name: string) {
-            const cookie = cookieStore.get(name);
-            console.log(`JobComments API: Getting cookie ${name}:`, cookie?.value ? 'exists' : 'missing');
-            return cookie?.value;
+            return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: { [key: string]: any }) {
             try {
@@ -106,14 +101,11 @@ export async function POST(request: NextRequest) {
     
     // Try to get session first
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('JobComments API: Session result:', { session: !!session, error: sessionError?.message });
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    console.log('JobComments API: Auth result:', { user: user?.id, error: userError?.message });
     if (userError || !user) {
-      console.log('JobComments API: Returning 401 - userError:', userError?.message, 'user:', !!user);
       return NextResponse.json({ 
         error: 'Unauthorized',
         details: {
