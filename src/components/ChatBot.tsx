@@ -97,8 +97,12 @@ export default function ChatBot() {
 
   return (
     <>
-      {/* Chat Toggle Button */}
-      <div className="fixed bottom-4 right-4 z-50">
+      {/* Chat Toggle Button (left on mobile to avoid FAB overlap) */}
+      <div className="fixed z-[40] right-4 bottom-4 md:bottom-4 md:right-4 left-4 md:left-auto"
+           style={{
+             bottom: 'calc(1rem + env(safe-area-inset-bottom))'
+           }}
+      >
         <motion.button
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -165,13 +169,13 @@ export default function ChatBot() {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop (no blur) */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-black/40"
               onClick={() => setIsOpen(false)}
             />
 
@@ -186,7 +190,13 @@ export default function ChatBot() {
                 stiffness: 300,
                 mass: 0.8
               }}
-              className="fixed bottom-20 right-4 z-50 w-96 h-[500px] card shadow-[0_8px_30px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col"
+              className="fixed z-[50] card shadow-[0_8px_30px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col"
+              style={{
+                right: '1rem',
+                bottom: 'calc(6.5rem + env(safe-area-inset-bottom))',
+                width: 'min(96vw, 28rem)',
+                height: 'min(70vh, 560px)'
+              }}
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 soft-divider bg-white/5 flex-shrink-0">

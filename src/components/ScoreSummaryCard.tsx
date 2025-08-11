@@ -46,13 +46,13 @@ export default function ScoreSummaryCard({
 
       {/* Score Segments - Responsive grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 relative">
-        {/* Score 3 - Akut */}
-        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-gradient-to-br from-red-500/10 to-transparent hover:from-red-500/15 hover:bg-white/8 transition-colors">
+        {/* Score 3 - Akut (neutral) */}
+        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 transition-colors">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[3].label}
             </span>
-            <ScoreBadge score={3} size="sm" />
+            <span className="inline-flex items-center rounded-full font-medium bg-white/10 text-white border border-white/15 px-2 py-0.5 text-xs">Akut</span>
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
             {safeCount3.toLocaleString()}
@@ -62,13 +62,13 @@ export default function ScoreSummaryCard({
           </div>
         </div>
 
-        {/* Score 2 - Relevant */}
-        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-gradient-to-br from-amber-400/10 to-transparent hover:from-amber-400/15 hover:bg-white/8 transition-colors">
+        {/* Score 2 - Relevant (neutral) */}
+        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 transition-colors">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[2].label}
             </span>
-            <ScoreBadge score={2} size="sm" />
+            <span className="inline-flex items-center rounded-full font-medium bg-white/10 text-white border border-white/15 px-2 py-0.5 text-xs">Relevant</span>
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
             {safeCount2.toLocaleString()}
@@ -78,13 +78,13 @@ export default function ScoreSummaryCard({
           </div>
         </div>
 
-        {/* Score 1 - Lav relevans */}
-        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-gradient-to-br from-slate-300/10 to-transparent hover:from-slate-300/15 hover:bg-white/8 transition-colors">
+        {/* Score 1 - Lav relevans (neutral) */}
+        <div className="group relative min-h-[84px] md:min-h-[96px] p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/8 transition-colors">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] uppercase tracking-wide text-slate-400">
               {scoreLabels[1].label}
             </span>
-            <ScoreBadge score={1} size="sm" />
+            <span className="inline-flex items-center rounded-full font-medium bg-white/10 text-white border border-white/15 px-2 py-0.5 text-xs">Lav</span>
           </div>
           <div className="text-3xl font-semibold text-white leading-none tabular-nums">
             {safeCount1.toLocaleString()}

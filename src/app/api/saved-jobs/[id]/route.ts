@@ -35,9 +35,6 @@ export async function PUT(
               // user sessions.
             }
           },
-        },
-        auth: {
-          storageKey: 'supabase-auth' // Match the client configuration
         }
       }
     );
@@ -116,9 +113,6 @@ export async function DELETE(
               // user sessions.
             }
           },
-        },
-        auth: {
-          storageKey: 'supabase-auth' // Match the client configuration
         }
       }
     );

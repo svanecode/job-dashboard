@@ -9,7 +9,7 @@ export function useUrlFilterSync() {
   const pathname = usePathname();
   const { filters, setFilters, currentPage, setCurrentPage } = useJobStore();
 
-  // Init from URL once
+  // Init from URL on first render and whenever the search params actually change
   useEffect(() => {
     const score = sp.get('score');
     const location = sp.get('location');
@@ -27,7 +27,7 @@ export function useUrlFilterSync() {
     });
     setCurrentPage(isFinite(page) && page > 0 ? page : 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sp.toString()]);
 
   // Write to URL on changes
   useEffect(() => {
@@ -39,6 +39,10 @@ export function useUrlFilterSync() {
     if (filters.dateTo) params.set('to', filters.dateTo);
     if (currentPage > 1) params.set('page', String(currentPage));
 
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    const next = `${pathname}?${params.toString()}`;
+    // Avoid loops: only push if different
+    if (next !== `${pathname}?${sp.toString()}`) {
+      router.replace(next, { scroll: false });
+    }
   }, [filters, currentPage, router, pathname]);
 } 

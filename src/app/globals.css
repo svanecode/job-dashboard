@@ -188,6 +188,21 @@ html {
   -webkit-line-clamp: 1;
 }
 
+/* Premium cursor visuals */
+.cursor-dot, .cursor-ring {
+  position: fixed; pointer-events: none; z-index: 9999; transition: transform .12s ease, opacity .2s;
+}
+.cursor-dot  { width:6px; height:6px; border-radius:9999px; background:#fff; opacity:.9; }
+.cursor-ring { width:28px; height:28px; border:1px solid rgba(255,255,255,.25); border-radius:9999px; }
+.cursor-ring--active { transform: scale(.85); border-color: rgba(99,102,241,.55); box-shadow: 0 0 0 2px rgba(99,102,241,.15) inset; }
+
+@media (prefers-reduced-motion: reduce){
+  .cursor-dot,.cursor-ring{ display:none; }
+}
+
+/* Keyboard focus helper */
+.focusable:focus-visible { outline: 2px solid rgba(99,102,241,.8); outline-offset: 3px; }
+
 .line-clamp-2 {
   overflow: hidden;
   display: -webkit-box;

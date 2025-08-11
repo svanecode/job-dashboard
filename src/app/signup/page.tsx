@@ -69,121 +69,106 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Opret konto
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Registrer dig for at få adgang til CFO Dashboard
-          </p>
-        </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Navn *
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Dit fulde navn"
-                disabled={isLoading}
-              />
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-radial" />
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <div className="card-mobile p-6 md:p-8 space-y-6">
+            <div className="space-y-2 text-center">
+              <h2 className="text-2xl font-semibold text-white">Opret konto</h2>
+              <p className="text-slate-400 text-sm">Få adgang til CFO Dashboard</p>
             </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email *
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="din@email.dk"
-                disabled={isLoading}
-              />
-            </div>
+            {message && (
+              <div
+                className={`rounded-xl p-3 border ${
+                  message.type === 'success'
+                    ? 'bg-green-500/10 border-green-500/30 text-green-300'
+                    : 'bg-red-500/10 border-red-500/30 text-red-300'
+                }`}
+              >
+                <p className="text-sm">{message.text}</p>
+              </div>
+            )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password *
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Dit password"
-                disabled={isLoading}
-              />
-            </div>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm text-slate-300">Navn *</label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="glass-input w-full"
+                  placeholder="Dit fulde navn"
+                  disabled={isLoading}
+                />
+              </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Bekræft password *
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Bekræft dit password"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm text-slate-300">Email *</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="glass-input w-full"
+                  placeholder="din@email.dk"
+                  disabled={isLoading}
+                />
+              </div>
 
-          {message && (
-            <div className={`rounded-md p-4 ${
-              message.type === 'success' 
-                ? 'bg-green-50 border border-green-200' 
-                : 'bg-red-50 border border-red-200'
-            }`}>
-              <p className={`text-sm ${
-                message.type === 'success' ? 'text-green-800' : 'text-red-800'
-              }`}>
-                {message.text}
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm text-slate-300">Password *</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="glass-input w-full"
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm text-slate-300">Bekræft password *</label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="glass-input w-full"
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full rounded-xl bg-[#005EB8] hover:bg-[#0091DA] text-white font-medium py-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_30px_rgba(0,0,0,0.25)]"
+              >
+                {isLoading ? 'Opretter konto...' : 'Opret konto'}
+              </button>
+
+              <p className="text-center text-sm text-slate-400">
+                Har du allerede en konto?{' '}
+                <Link href="/login" className="text-slate-200 hover:text-white font-medium">
+                  Log ind her
+                </Link>
               </p>
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Opretter konto...' : 'Opret konto'}
-            </button>
+            </form>
           </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Har du allerede en konto?{' '}
-              <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Log ind her
-              </Link>
-            </p>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

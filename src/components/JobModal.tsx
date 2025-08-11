@@ -40,15 +40,23 @@ export default function JobModal() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Focus management
+  // Focus management + body scroll lock + ESC close
   useEffect(() => {
-    if (isModalOpen) {
-      previousActiveElement.current = document.activeElement as HTMLElement
-      modalRef.current?.focus()
-    } else {
+    if (!isModalOpen) return
+    previousActiveElement.current = document.activeElement as HTMLElement
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    modalRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeJobModal()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
       previousActiveElement.current?.focus()
     }
-  }, [isModalOpen])
+  }, [isModalOpen, closeJobModal])
 
   // Scroll shadow effect for mobile
   useEffect(() => {
@@ -189,9 +197,6 @@ export default function JobModal() {
   // Delete a comment
   const handleDeleteComment = async (commentId: string) => {
     if (!selectedJob?.job_id || !user) return
-    
-    if (!confirm('Er du sikker på, at du vil slette denne kommentar?')) return
-    
     try {
       await savedJobsService.deleteComment(commentId)
       // Reload comments to update the list
@@ -244,7 +249,7 @@ export default function JobModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeJobModal}
-            className="fixed inset-0 bg-black/90 backdrop-blur-sm z-40 cursor-pointer"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] cursor-pointer"
           />
 
           {/* Modal */}
@@ -253,7 +258,8 @@ export default function JobModal() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 20, stiffness: 250 }}
-            className={`fixed z-50 flex items-center justify-center pointer-events-none ${
+            role="dialog" aria-modal="true" aria-labelledby="job-title"
+            className={`fixed z-[90] flex items-center justify-center pointer-events-none ${
               isMobile 
                 ? 'inset-0' 
                 : 'inset-4'
@@ -262,20 +268,52 @@ export default function JobModal() {
             <div
               ref={modalRef}
               onClick={(e) => e.stopPropagation()}
-              className={`relative rounded-2xl border border-white/20 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-md shadow-[0_10px_50px_-10px_rgba(0,0,0,0.9)] overflow-hidden pointer-events-auto ${
+              className={`relative rounded-2xl ring-1 ring-white/10 bg-neutral-900/95 backdrop-blur-md shadow-2xl overflow-hidden pointer-events-auto ${
                 isMobile 
                   ? 'w-full h-full rounded-none border-0' 
-                  : 'max-w-[720px] w-full p-5 sm:p-6'
+                  : 'max-w-[800px] w-full p-6'
               }`}
             >
+                  {/* Floating top-right controls */}
+                  {!isMobile && (
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                      {hasNavigation && (
+                        <>
+                          <button
+                            onClick={handlePreviousJob}
+                            disabled={!canGoPrevious}
+                            className="size-8 grid place-items-center rounded-lg bg-white/5 border border-white/10 text-neutral-300 hover:bg-white/10 hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Forrige"
+                          >
+                            <ChevronLeft className="size-4" />
+                          </button>
+                          <button
+                            onClick={handleNextJob}
+                            disabled={!canGoNext}
+                            className="size-8 grid place-items-center rounded-lg bg-white/5 border border-white/10 text-neutral-300 hover:bg-white/10 hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Næste"
+                          >
+                            <ChevronRight className="size-4" />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={closeJobModal}
+                        className="size-8 grid place-items-center rounded-lg bg-white/5 border border-white/10 text-neutral-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+                        aria-label="Luk"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  )}
               {/* Radial gradient background */}
               <div className="absolute inset-0 bg-gradient-radial from-blue-500/5 via-transparent to-transparent pointer-events-none" />
 
               {/* Mobile: Full screen layout */}
               {isMobile ? (
                 <div className="flex flex-col h-full">
-                  {/* Header with close button and score badge */}
-                  <div className="relative p-4 border-b border-white/20 bg-gray-900/90 backdrop-blur">
+                  {/* Sticky header */}
+                  <div className="sticky top-0 z-10 p-4 border-b border-white/10 bg-neutral-900/95 backdrop-blur">
                     {/* Close button */}
                     <button
                       onClick={closeJobModal}
@@ -319,10 +357,10 @@ export default function JobModal() {
                         <div className="flex items-center gap-2">
                           <Calendar className="size-4 text-slate-400" />
                           <span className="text-slate-300">
-                            {formatDate(selectedJob.publication_date)}
+                            {formatDate((selectedJob.created_at || selectedJob.publication_date) as string)}
                           </span>
                           <span className="text-slate-500 text-sm">
-                            ({getRelativeTime(selectedJob.publication_date)})
+                            ({getRelativeTime((selectedJob.created_at || selectedJob.publication_date) as string)})
                           </span>
                         </div>
                       </div>
@@ -332,7 +370,7 @@ export default function JobModal() {
                   {/* Scrollable content */}
                   <div 
                     ref={contentRef}
-                    className="flex-1 overflow-y-auto p-4 max-h-[60vh]"
+                    className="flex-1 overflow-y-auto p-4 max-h-[60vh] pb-[calc(16px+env(safe-area-inset-bottom))]"
                   >
                     {/* Description */}
                     <DescriptionClamp 
@@ -342,8 +380,8 @@ export default function JobModal() {
                     />
                   </div>
 
-                  {/* Footer with main action button */}
-                  <div className="p-4 border-t border-white/10 bg-black/40 backdrop-blur space-y-3">
+                  {/* Sticky footer actions */}
+                  <div className="sticky bottom-0 p-4 border-t border-white/10 bg-neutral-900/90 backdrop-blur space-y-3">
                     {selectedJob.job_url && (
                       <button
                         onClick={handleOpenJob}
@@ -383,111 +421,82 @@ export default function JobModal() {
                   )}
                 </div>
               ) : (
-                /* Desktop: Original layout */
+                /* Desktop: Enhanced layout with consistent padding */
                 <>
                   {/* Header */}
-                  <div className="relative flex items-start justify-between mb-4">
+                  <div className="relative mb-6">
                     <div className="flex-1 min-w-0">
-                      <header className="space-y-3">
+                      <header className="space-y-3 pr-20 md:pr-24">
                         <h1 
                           id="job-title"
-                          className="text-2xl font-semibold tracking-tight [text-wrap:balance] max-w-[56ch] leading-tight"
+                          className="text-xl font-semibold text-white"
                         >
-                          <span className="text-white">
-                            {selectedJob.title?.split(' - ')[0] || selectedJob.title || 'Ingen titel'}
-                          </span>
-                          {selectedJob.title?.includes(' - ') && (
-                            <span className="block text-slate-200 mt-1">
-                              {selectedJob.title.split(' - ').slice(1).join(' - ')}
-                            </span>
-                          )}
+                          {selectedJob.title?.split(' - ')[0] || selectedJob.title || 'Ingen titel'}
                         </h1>
 
-                        <div className="flex items-center gap-3 text-xs text-slate-400">
-                          {selectedJob.cfo_score && <ScoreBadge score={selectedJob.cfo_score} />}
-                        </div>
+                        {selectedJob.title?.includes(' - ') && (
+                          <span className="block text-neutral-300 mt-1 text-sm">
+                            {selectedJob.title.split(' - ').slice(1).join(' - ')}
+                          </span>
+                        )}
+
+                        {selectedJob.cfo_score === 3 && (
+                          <span className="inline-flex items-center rounded-full bg-blue-500/15 text-blue-300 text-xs font-medium px-3 py-0.5 mt-3">
+                            Akut
+                          </span>
+                        )}
 
                         {/* Enhanced meta-line with icons and better spacing */}
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+                        <div className="flex items-center gap-4 mt-4 text-sm text-neutral-400">
                           <span className="inline-flex items-center gap-1.5">
                             <Building2 className="size-4 opacity-70" aria-hidden="true" />
                             <span className="break-words font-medium">
                               {selectedJob.company || 'Ukendt firma'}
                             </span>
                           </span>
-                          <span aria-hidden="true" className="text-slate-500">•</span>
                           <span className="inline-flex items-center gap-1.5">
                             <MapPin className="size-4 opacity-70" aria-hidden="true" />
                             <span className="break-words">
                               {selectedJob.location || 'Ukendt lokation'}
                             </span>
                           </span>
-                          <span aria-hidden="true" className="text-slate-500">•</span>
                           <span className="inline-flex items-center gap-1.5 tabular-nums">
                             <Calendar className="size-4 opacity-70" aria-hidden="true" />
-                            {formatDate(selectedJob.publication_date)}
-                          </span>
-                          <span className="text-slate-500 text-xs ml-1">
-                            ({getRelativeTime(selectedJob.publication_date)})
+                            {formatDate((selectedJob.created_at || selectedJob.publication_date) as string)}
                           </span>
                         </div>
                       </header>
                     </div>
-                    
-                    <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                      {/* Navigation arrows */}
-                      {hasNavigation && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={handlePreviousJob}
-                            disabled={!canGoPrevious}
-                            className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:scale-105"
-                          >
-                            <ChevronLeft className="size-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            onClick={handleNextJob}
-                            disabled={!canGoNext}
-                            className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:scale-105"
-                          >
-                            <ChevronRight className="size-4" aria-hidden="true" />
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* Close button */}
-                      <button
-                        onClick={closeJobModal}
-                        className="size-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200 hover:shadow-lg hover:scale-105"
-                      >
-                        <X className="size-4" aria-hidden="true" />
-                      </button>
-                    </div>
+                    {/* Controls are rendered as floating buttons top-right */}
                   </div>
 
+                  {/* Divider */}
+                  <div className="border-t border-white/10 my-6" />
+
                   {/* Description with fade effect */}
-                  <DescriptionClamp 
-                    text={selectedJob.description || undefined} 
-                    lines={6} 
-                    className="mt-4" 
-                  />
+                  <div className="mb-8">
+                    {selectedJob.description ? (
+                      <div className="prose prose-invert max-w-none text-neutral-200 leading-relaxed text-[15px]">
+                        {selectedJob.description}
+                      </div>
+                    ) : (
+                      <p className="italic text-neutral-500">Ingen beskrivelse tilgængelig</p>
+                    )}
+                  </div>
 
                   {/* Comments Section */}
-                  <div className="mt-6 border-t border-white/10 pt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium text-white">Kommentarer</h3>
-                      {/* Removed show/hide toggle */}
-                    </div>
-
+                  <div className="mb-8">
+                    <h3 className="text-sm font-medium text-neutral-400 mb-3">Kommentarer</h3>
+                    
                     {/* Comments list */}
-                    <div className="space-y-3">
+                    <div className="space-y-3 mb-4">
                       {isLoadingComments ? (
                         <div className="text-center py-4">
-                          <div className="size-6 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                          <p className="text-sm text-slate-400">Indlæser kommentarer...</p>
+                          <div className="size-6 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                          <p className="text-sm text-neutral-400">Indlæser kommentarer...</p>
                         </div>
                       ) : comments.length === 0 ? (
-                        <p className="text-sm text-slate-400 text-center py-4">
+                        <p className="text-sm text-neutral-500 italic mb-4">
                           Ingen kommentarer endnu. Vær den første til at kommentere!
                         </p>
                       ) : (
@@ -498,7 +507,7 @@ export default function JobModal() {
                                 <span className="text-sm font-medium text-white">
                                   {comment.user_name || 'Anonymous'}
                                 </span>
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-neutral-400">
                                   {getRelativeTime(comment.created_at)}
                                 </span>
                               </div>
@@ -506,14 +515,14 @@ export default function JobModal() {
                               {user && comment.user_id === user.id && (
                                 <button
                                   onClick={() => handleDeleteComment(comment.id)}
-                                  className="p-1 text-slate-400 hover:text-red-400 transition-colors"
+                                  className="p-1 text-neutral-400 hover:text-red-400 transition-colors"
                                   title="Slet kommentar"
                                 >
                                   <Trash2 className="size-3" />
                                 </button>
                               )}
                             </div>
-                            <p className="text-sm text-slate-300">{comment.comment}</p>
+                            <p className="text-sm text-neutral-300">{comment.comment}</p>
                           </div>
                         ))
                       )}
@@ -521,19 +530,19 @@ export default function JobModal() {
 
                     {/* Add comment form */}
                     {user && (
-                      <div className="mt-4 flex gap-2">
+                      <div className="flex gap-3">
                         <input
                           type="text"
                           value={newComment}
                           onChange={(e) => setNewComment(e.target.value)}
                           placeholder="Skriv en kommentar..."
-                          className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:border-white/20"
+                          className="h-10 rounded-lg bg-white/5 border border-white/10 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex-1"
                           onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
                         />
                         <button
                           onClick={handleAddComment}
                           disabled={isAddingComment || !newComment.trim()}
-                          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 rounded-lg text-white text-sm font-medium transition-colors disabled:cursor-not-allowed"
+                          className="h-10 w-10 rounded-lg bg-blue-500 text-white hover:bg-blue-500/90 flex items-center justify-center"
                         >
                           {isAddingComment ? (
                             <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -546,60 +555,57 @@ export default function JobModal() {
                   </div>
 
                   {/* Footer actions - sticky for long content */}
-                  <div className="mt-6 pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-3">
-                      {selectedJob.job_url && (
-                        <a
-                          href={selectedJob.job_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-lg bg-[#005EB8] hover:bg-[#0091DA] px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25"
-                        >
-                          <ExternalLink className="size-4" aria-hidden="true" />
-                          Åbn jobopslag
-                        </a>
-                      )}
-                      
-                      {/* Save job button - only show if user is authenticated */}
-                      {user && (
-                        <button
-                          onClick={handleSaveJob}
-                          disabled={isSaving}
-                          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
-                            isSaved 
-                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                              : 'bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white border border-white/30'
-                          }`}
-                        >
-                          {isSaving ? (
-                            <div className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          ) : isSaved ? (
-                            <Trash2 className="size-4" />
-                          ) : (
-                            <Bookmark className="size-4" />
-                          )}
-                          {isSaved ? 'Fjern fra gemte' : 'Gem job'}
-                        </button>
-                      )}
-                      
-                      {/* Copy link as icon button with tooltip */}
-                      <button
-                        onClick={handleCopyLink}
-                        className="ml-auto size-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:scale-105 group relative"
-                        title={linkCopied ? 'Link kopieret!' : 'Kopiér link'}
+                  <div className="flex justify-center items-center gap-3 flex-wrap">
+                    {selectedJob.job_url && (
+                      <a
+                        href={selectedJob.job_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-10 min-w-[140px] px-5 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-500/90 flex items-center justify-center gap-2 shadow-sm"
                       >
-                        {linkCopied ? (
-                          <Check className="size-4 text-green-400" aria-hidden="true" />
+                        <ExternalLink className="size-4" aria-hidden="true" />
+                        Åbn jobopslag
+                      </a>
+                    )}
+                    
+                    {/* Save job button - only show if user is authenticated */}
+                    {user && (
+                      <button
+                        onClick={handleSaveJob}
+                        disabled={isSaving}
+                        className={`h-10 min-w-[140px] px-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${
+                          isSaved 
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                            : 'bg-white/5 border border-white/10 text-neutral-300 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {isSaving ? (
+                          <div className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : isSaved ? (
+                          <Trash2 className="size-4" />
                         ) : (
-                          <Copy className="size-4" aria-hidden="true" />
+                          <Bookmark className="size-4" />
                         )}
-                        
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-black/90 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
-                          {linkCopied ? 'Link kopieret!' : 'Kopiér link'}
-                        </div>
+                        {isSaved ? 'Fjern fra gemte' : 'Gem job'}
                       </button>
-                    </div>
+                    )}
+
+                    {/* Copy link button */}
+                    <button
+                      onClick={handleCopyLink}
+                      className="h-10 w-10 rounded-lg bg-white/5 border border-white/10 text-neutral-300 hover:bg-white/10 hover:text-white transition-all duration-200 group relative flex items-center justify-center"
+                      title={linkCopied ? 'Link kopieret!' : 'Kopiér link'}
+                      aria-label="Kopiér link"
+                    >
+                      {linkCopied ? (
+                        <Check className="size-4 text-green-400" aria-hidden="true" />
+                      ) : (
+                        <Copy className="size-4" aria-hidden="true" />
+                      )}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-white bg-black/90 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+                        {linkCopied ? 'Link kopieret!' : 'Kopiér link'}
+                      </div>
+                    </button>
                   </div>
                 </>
               )}

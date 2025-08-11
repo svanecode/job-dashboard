@@ -3,7 +3,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 export type Kpis = { urgent: number; high: number; low: number; total: number };
 
 export async function getKpisServer(): Promise<Kpis> {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
 
   // Count per score directly to avoid any RPC drift
   const [urgentRes, highRes, lowRes] = await Promise.all([

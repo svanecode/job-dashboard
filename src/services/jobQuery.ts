@@ -14,7 +14,7 @@ export type BaseFilters = {
 };
 
 const SELECT_COLUMNS =
-  'id, job_id, title, company, location, publication_date, description, cfo_score, job_url';
+  'id, job_id, title, company, location, region, publication_date, created_at, description, cfo_score, job_url';
 
 export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
   let q = supabase
@@ -25,7 +25,8 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
   const minScore = filters.minScore ?? 1;
   if (minScore > 0) q = q.gte('cfo_score', minScore);
   if (filters.score?.length) q = q.in('cfo_score', filters.score);
-  if (filters.location?.length) q = q.in('location', filters.location);
+  // Treat provided locations as regions to match the DB `region` column
+  if (filters.location?.length) q = q.overlaps('region', filters.location);
   if (filters.dateFrom) q = q.gte('publication_date', filters.dateFrom);
   if (filters.dateTo) q = q.lte('publication_date', filters.dateTo);
 

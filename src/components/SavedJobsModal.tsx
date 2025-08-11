@@ -133,7 +133,7 @@ export default function SavedJobsModal({ isOpen, onClose }: SavedJobsModalProps)
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 20, stiffness: 250 }}
-            className="fixed inset-4 z-50 flex items-center justify-center"
+            className="fixed inset-4 z-[60] flex items-center justify-center"
           >
             <div className="relative w-full max-w-6xl h-full max-h-[90vh] bg-white/5 backdrop-blur-sm border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
               {/* Header */}

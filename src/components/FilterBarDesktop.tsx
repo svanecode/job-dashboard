@@ -1,14 +1,9 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { Search, MapPin, Filter, Calendar, RotateCcw, ChevronDown } from 'lucide-react'
+import { MapPin, Filter, Calendar, RotateCcw, ChevronDown, Check, X as CloseIcon } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import clsx from 'clsx'
-
-const base = "h-10 w-full rounded-lg border border-white/10 bg-white/5 pl-10 pr-9 text-sm text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-white/20 hover:border-white/20 transition"
-const selectBase = "appearance-none cursor-pointer"
-const icon = "absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400"
-const chevron = "absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
 
 export default function FilterBarDesktop() {
   const { filters, stagedFilters, setStagedFilters, applyFilters, resetFilters, rowDensity, setRowDensity } = useJobStore()
@@ -36,102 +31,132 @@ export default function FilterBarDesktop() {
   }
 
   // Helper functions to handle array values
-  const getSearchValue = () => {
-    return stagedFilters?.q || stagedFilters?.searchText || ''
+  const regions = ['Hovedstaden', 'Sjælland', 'Fyn', 'Syd- og Sønderjylland', 'Midtjylland', 'Nordjylland', 'Udlandet']
+  const scores = [3, 2, 1]
+
+  const toggleRegion = (region: string) => {
+    const current = Array.isArray(stagedFilters?.location) ? stagedFilters!.location as string[] : (stagedFilters?.location ? [stagedFilters!.location as string] : [])
+    const next = current.includes(region) ? current.filter(r => r !== region) : [...current, region]
+    setStagedFilters?.({ ...stagedFilters, location: next.length ? next : undefined })
   }
 
-  const getLocationValue = () => {
-    if (!stagedFilters?.location) return ''
-    const location = Array.isArray(stagedFilters.location) ? stagedFilters.location[0] : stagedFilters.location
-    return location || ''
+  const toggleScore = (score: number) => {
+    const current = Array.isArray(stagedFilters?.score) ? stagedFilters!.score as number[] : (stagedFilters?.score !== undefined ? [stagedFilters!.score as number] : [])
+    const next = current.includes(score) ? current.filter(s => s !== score) : [...current, score]
+    setStagedFilters?.({ ...stagedFilters, score: next.length ? next : undefined })
   }
 
-  const getScoreValue = () => {
-    if (!stagedFilters?.score) return ''
-    const score = Array.isArray(stagedFilters.score) ? stagedFilters.score[0] : stagedFilters.score
-    return score ? score.toString() : ''
+  const dirtyCount = useMemo(() => {
+    const loc = Array.isArray(stagedFilters?.location) ? stagedFilters!.location.length : (stagedFilters?.location ? 1 : 0)
+    const sc  = Array.isArray(stagedFilters?.score) ? stagedFilters!.score.length : (stagedFilters?.score !== undefined ? 1 : 0)
+    const dt  = stagedFilters?.daysAgo !== undefined ? 1 : 0
+    return loc + sc + dt
+  }, [stagedFilters])
+
+  const removeRegion = (region: string) => {
+    const current = Array.isArray(stagedFilters?.location) ? stagedFilters!.location as string[] : []
+    const next = current.filter(r => r !== region)
+    setStagedFilters?.({ ...stagedFilters, location: next.length ? next : undefined })
+    applyFilters({ ...stagedFilters!, location: next.length ? next : undefined })
   }
 
-  const updateSearch = (value: string) => {
-    setStagedFilters?.({ 
-      ...stagedFilters, 
-      q: value,
-      searchText: value // Legacy compatibility
-    })
-  }
-
-  const updateLocation = (value: string) => {
-    setStagedFilters?.({ 
-      ...stagedFilters, 
-      location: value ? [value] : undefined
-    })
-  }
-
-  const updateScore = (value: string) => {
-    setStagedFilters?.({ 
-      ...stagedFilters, 
-      score: value ? [Number(value)] : undefined
-    })
+  const removeScore = (score: number) => {
+    const current = Array.isArray(stagedFilters?.score) ? stagedFilters!.score as number[] : []
+    const next = current.filter(s => s !== score)
+    setStagedFilters?.({ ...stagedFilters, score: next.length ? next : undefined })
+    applyFilters({ ...stagedFilters!, score: next.length ? next : undefined })
   }
 
   return (
-    <div className="hidden md:block sticky top-3 z-40 overflow-hidden">
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] px-3.5 py-2.5 overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <form onSubmit={onSubmit}>
-          <div className="grid grid-cols-[2fr,1.3fr,1fr,1fr,auto,auto] gap-2.5 min-w-0">
-            {/* Søg */}
-            <div className="relative min-w-0">
-              <Search className={icon} />
-              <input
-                aria-label="Søg i jobopslag"
-                className={base}
-                placeholder="Søg i jobopslag…"
-                value={getSearchValue()}
-                onChange={(e) => updateSearch(e.target.value)}
-              />
+    <div className="hidden md:block sticky top-3 z-[60]">
+      <div className="bg-neutral-900/95 backdrop-blur-xl rounded-xl border border-white/10 p-4 md:p-5 flex flex-wrap gap-4 items-center">
+        <form onSubmit={onSubmit} className="w-full">
+          <div className="grid grid-cols-[auto,1.6fr,auto,1.2fr,auto,auto,auto] gap-4 items-center">
+            {/* Nulstil (left) */}
+            <button
+              type="button"
+              onClick={onReset}
+              className="text-sm text-neutral-500 hover:text-white underline transition"
+              title="Nulstil filtre"
+            >
+              Nulstil
+            </button>
+            
+            {/* Regions (multi-select chips) */}
+            <div className="min-w-0">
+              <div className="uppercase text-[11px] tracking-wider font-medium text-neutral-500 mb-2">
+                REGIONER
+              </div>
+              <div className="flex flex-wrap gap-2 overflow-x-auto scrollbar-hide">
+                {regions.map((r) => {
+                  const active = Array.isArray(stagedFilters?.location) ? stagedFilters!.location!.includes(r) : false
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => toggleRegion(r)}
+                      className={clsx(
+                        'rounded-lg border px-3 py-1.5 text-sm font-medium transition',
+                        'h-9 flex items-center justify-center',
+                        active 
+                          ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' 
+                          : 'border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white'
+                      )}
+                      title={r}
+                    >
+                      {active && <Check className="size-3 mr-1" />}
+                      {r}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Lokation */}
-            <div className="relative min-w-0">
-              <MapPin className={icon} />
-              <input
-                aria-label="Lokation"
-                className={base}
-                placeholder="Lokation…"
-                value={getLocationValue()}
-                onChange={(e) => updateLocation(e.target.value)}
-              />
-            </div>
+            {/* Divider */}
+            <div className="hidden md:block w-px h-10 bg-white/10 self-center rounded-full" />
 
-            {/* Score */}
-            <div className="relative min-w-0">
-              <Filter className={icon} />
-              <select
-                aria-label="Score"
-                className={clsx(base, selectBase, "pl-10")}
-                value={getScoreValue()}
-                onChange={(e) => updateScore(e.target.value)}
-              >
-                <option value="">Alle scores</option>
-                <option value="3">Score 3 – Akut</option>
-                <option value="2">Score 2 – Relevant</option>
-                <option value="1">Score 1 – Lav</option>
-              </select>
-              <ChevronDown className={chevron} />
+            {/* Scores (multi-select chips) */}
+            <div className="min-w-0">
+              <div className="uppercase text-[11px] tracking-wider font-medium text-neutral-500 mb-2">
+                SCORES
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {scores.map((s) => {
+                  const active = Array.isArray(stagedFilters?.score) ? stagedFilters!.score!.includes(s) : stagedFilters?.score === s
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => toggleScore(s)}
+                      className={clsx(
+                        'rounded-lg border px-3 py-1.5 text-sm font-medium transition',
+                        'h-9 flex items-center justify-center',
+                        active 
+                          ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' 
+                          : 'border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white'
+                      )}
+                      title={`Score ${s}`}
+                    >
+                      {active && <Check className="size-3 mr-1" />}
+                      Score {s}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             {/* Dato */}
             <div className="relative min-w-0">
-              <Calendar className={icon} />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-400" />
               <select
                 aria-label="Dato"
-                className={clsx(base, selectBase, "pl-10")}
+                className="h-9 pl-10 pr-9 rounded-lg bg-white/5 border border-white/10 text-sm text-neutral-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer"
                 value={stagedFilters?.daysAgo ?? ''}
-                onChange={(e) => setStagedFilters?.({ 
-                  ...stagedFilters, 
-                  daysAgo: e.target.value ? Number(e.target.value) : undefined 
-                })}
+                onChange={(e) => {
+                  const next = { ...stagedFilters!, daysAgo: e.target.value ? Number(e.target.value) : undefined }
+                  setStagedFilters?.(next)
+                  applyFilters(next)
+                }}
               >
                 <option value="">Alle datoer</option>
                 <option value="1">Seneste 24 timer</option>
@@ -140,16 +165,21 @@ export default function FilterBarDesktop() {
                 <option value="14">Seneste 14 dage</option>
                 <option value="30">Seneste 30 dage</option>
               </select>
-              <ChevronDown className={chevron} />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none size-4 text-neutral-400" />
             </div>
 
             {/* Density toggle */}
             <div className="flex items-center flex-shrink-0">
-              <div className="inline-flex rounded-lg border border-white/10 overflow-hidden">
+              <div className="flex gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
                 <button
                   type="button"
                   onClick={() => setRowDensity?.('comfortable')}
-                  className={`h-10 px-3 text-sm transition ${rowDensity === 'comfortable' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'}`}
+                  className={clsx(
+                    'px-3 py-1 text-sm transition rounded-md',
+                    rowDensity === 'comfortable' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'text-neutral-300 hover:bg-white/10'
+                  )}
                   title="Komfortabel visning"
                 >
                   Normal
@@ -157,7 +187,12 @@ export default function FilterBarDesktop() {
                 <button
                   type="button"
                   onClick={() => setRowDensity?.('compact')}
-                  className={`h-10 px-3 text-sm transition border-l border-white/10 ${rowDensity === 'compact' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'}`}
+                  className={clsx(
+                    'px-3 py-1 text-sm transition rounded-md',
+                    rowDensity === 'compact' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'text-neutral-300 hover:bg-white/10'
+                  )}
                   title="Kompakt visning"
                 >
                   Kompakt
@@ -165,36 +200,48 @@ export default function FilterBarDesktop() {
               </div>
             </div>
 
-            {/* Nulstil */}
-            <div className="flex items-center flex-shrink-0">
-              <button
-                type="button"
-                onClick={onReset}
-                className="h-10 inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 text-sm text-slate-300 hover:border-white/20 hover:bg-white/5 focus:ring-2 focus:ring-white/20 focus:outline-none transition"
-              >
-                <RotateCcw className="size-4" />
-                Nulstil
-              </button>
-            </div>
-
-            {/* Anvend */}
-            <div className="flex items-center flex-shrink-0">
+            {/* Anvend sticky on right */}
+            <div className="flex items-center flex-shrink-0 ml-auto">
               <button
                 type="submit"
-                disabled={!dirty}
+                disabled={!dirtyCount}
                 className={clsx(
-                  "h-10 inline-flex items-center gap-2 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/20 transition",
-                  dirty 
-                    ? "bg-kpmg-700 hover:bg-kpmg-500 text-white" 
-                    : "bg-white/5 text-slate-400 cursor-not-allowed"
+                  'h-9 px-4 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition',
+                  dirtyCount 
+                    ? 'bg-blue-500 hover:bg-blue-500/90 text-white' 
+                    : 'bg-white/5 text-neutral-400 cursor-not-allowed'
                 )}
-                aria-disabled={!dirty}
+                aria-disabled={!dirtyCount}
               >
-                Anvend filtre
+                Anvend filtre{dirtyCount ? ` (${dirtyCount})` : ''}
               </button>
             </div>
           </div>
         </form>
+
+        {/* Active badges row under bar */}
+        {dirtyCount > 0 ? (
+          <div className="px-5 pb-3 pt-1 flex flex-wrap gap-2 text-xs">
+            {Array.isArray(stagedFilters?.location) && stagedFilters!.location!.map((r) => (
+              <span key={r} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/8 text-white/80 ring-1 ring-white/10">
+                {r}
+                <button onClick={() => removeRegion(r)} className="p-0.5 hover:text-white/100 focusable" aria-label={`Fjern ${r}`}>
+                  <CloseIcon className="size-3" />
+                </button>
+              </span>
+            ))}
+            {Array.isArray(stagedFilters?.score) && stagedFilters!.score!.map((s) => (
+              <span key={s} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/8 text-white/80 ring-1 ring-white/10">
+                Score {s}
+                <button onClick={() => removeScore(s)} className="p-0.5 hover:text-white/100 focusable" aria-label={`Fjern score ${s}`}>
+                  <CloseIcon className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="px-5 pb-3 pt-1 text-[11px] uppercase tracking-wide text-neutral-500">Ingen filtre aktive</div>
+        )}
       </div>
     </div>
   )

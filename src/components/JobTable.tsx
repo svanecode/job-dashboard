@@ -67,7 +67,7 @@ type JobTableProps = {
 };
 
 export default function JobTable({ initialData }: JobTableProps = {}) {
-  const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData, rowDensity } = useJobStore()
+  const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData, rowDensity, currentPage } = useJobStore()
   const { user } = useAuth()
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -75,14 +75,13 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
   const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set())
 
-  // Handle initial data from SSR
+  // Handle initial data from SSR whenever it changes (e.g., URL page/filter changed)
   useEffect(() => {
-    if (initialData && paginatedJobs.length === 0) {
-      // If we have initial data and no jobs loaded yet, use the initial data
+    if (initialData) {
       setInitialData(initialData)
-      console.log('Using initial data from SSR:', initialData.data.length, 'jobs')
+      console.log('Using initial data from SSR:', { page: initialData.page, count: initialData.data.length })
     }
-  }, [initialData, paginatedJobs.length, setInitialData])
+  }, [initialData, setInitialData])
 
   // Load saved jobs and comment counts
   useEffect(() => {
@@ -217,7 +216,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                 <th className="w-[6%] px-4 py-4">
                   <button
                     onClick={() => handleSort('score')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
                     aria-sort={getAriaSort('score', sort)}
                   >
                     Score
@@ -231,7 +230,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                 <th className="w-[12%] px-4 py-4">
                   <button
                     onClick={() => handleSort('company')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
                     aria-sort={getAriaSort('company', sort)}
                   >
                     Firma
@@ -245,7 +244,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                 <th className="w-[30%] px-4 py-4">
                   <button
                     onClick={() => handleSort('title')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
                     aria-sort={getAriaSort('title', sort)}
                   >
                     Titel
@@ -259,7 +258,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                 <th className="w-[15%] px-4 py-4">
                   <button
                     onClick={() => handleSort('location')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
                     aria-sort={getAriaSort('location', sort)}
                   >
                     Lokation
@@ -273,7 +272,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                 <th className="w-[10%] px-4 py-4">
                   <button
                     onClick={() => handleSort('date')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none"
+                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
                     aria-sort={getAriaSort('date', sort)}
                   >
                     Dato
@@ -329,17 +328,17 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="size-4 text-slate-400 flex-shrink-0" />
                       <span className="text-slate-200 truncate text-sm">
-                        {job.location || 'Ukendt lokation'}
+                        {(job as any).region || job.location || 'Ukendt lokation'}
                       </span>
                     </div>
                   </td>
 
-                  {/* Date */}
+                  {/* Date (created_at) */}
                   <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[10%]`}>
                     <div className="flex items-center gap-2">
                       <Calendar className="size-4 text-slate-400" />
                       <span className="text-slate-200 tabular-nums text-sm">
-                        {formatDate(job.publication_date)}
+                        {formatDate(job.created_at || job.publication_date)}
                       </span>
                     </div>
                   </td>
@@ -406,7 +405,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
       </div>
 
       {/* Mobile Card List - Hidden on desktop */}
-      <div className="lg:hidden pb-20 with-fab-bottom overflow-hidden w-full max-w-full">
+      <div className="lg:hidden pb-24 with-fab-bottom overflow-hidden w-full max-w-full">
         {isLoading ? (
           // Skeleton loading state
           <div className="grid gap-4 w-full max-w-full">
@@ -442,11 +441,11 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                 key={job.id}
                 className="w-full max-w-full"
               >
-                <CardRow
+                  <CardRow
                   title={job.title || 'Ingen titel'}
                   company={job.company || 'Ukendt firma'}
                   location={job.location || 'Ukendt lokation'}
-                  date={job.publication_date || ''}
+                    date={(job.created_at || job.publication_date || '') as string}
                   score={job.cfo_score || 0}
                   excerpt={job.description || ''}
                   commentCount={commentCounts[job.job_id] || 0}
@@ -463,13 +462,13 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
 
       {/* Job Sheet Modal */}
       {selectedJob && (
-        <JobSheet
+          <JobSheet
           open={isSheetOpen}
           onClose={handleSheetClose}
           title={selectedJob.title || 'Ingen titel'}
           company={selectedJob.company || 'Ukendt firma'}
           location={selectedJob.location || 'Ukendt lokation'}
-          date={selectedJob.publication_date || ''}
+            date={(selectedJob.created_at || selectedJob.publication_date || '') as string}
           score={selectedJob.cfo_score || 0}
           description={selectedJob.description || ''}
           jobUrl={selectedJob.job_url || undefined}

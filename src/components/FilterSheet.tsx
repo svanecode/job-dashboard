@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Search, MapPin, Filter, RotateCcw, Calendar } from 'lucide-react'
+import { X, MapPin, Filter, RotateCcw, Calendar, Check } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 
 interface FilterSheetProps {
@@ -81,17 +81,18 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
     setDragDistance(0)
   }
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ searchText: e.target.value })
+  const regions = ['Hovedstaden', 'Sjælland', 'Fyn', 'Syd- og Sønderjylland', 'Midtjylland', 'Nordjylland', 'Udlandet']
+  const toggleRegion = (region: string) => {
+    const current = Array.isArray(filters.location) ? filters.location as string[] : (filters.location ? [filters.location as string] : [])
+    const next = current.includes(region) ? current.filter(r => r !== region) : [...current, region]
+    setFilters({ location: next.length ? next : undefined })
   }
 
-  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ location: e.target.value })
-  }
-
-  const handleScoreChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const score = e.target.value === '' ? undefined : parseInt(e.target.value)
-    setFilters({ score })
+  const scores = [3,2,1]
+  const toggleScore = (score: number) => {
+    const current = Array.isArray(filters.score) ? filters.score as number[] : (filters.score !== undefined ? [filters.score as number] : [])
+    const next = current.includes(score) ? current.filter(s => s !== score) : [...current, score]
+    setFilters({ score: next.length ? next : undefined })
   }
 
   const handleDaysChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -136,7 +137,7 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
 
@@ -147,7 +148,7 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
             style={{
               transform: isDragging ? `translateY(${dragDistance}px)` : undefined
             }}
-            className="fixed bottom-0 left-0 right-0 z-50 card-mobile rounded-t-3xl border-white/10 bg-white/6 shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[85vh] overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-[90] card-mobile rounded-t-3xl border-white/10 bg-white/6 shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[85vh] overflow-hidden"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -172,49 +173,45 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
             </div>
 
             {/* Content */}
-            <div className="px-4 py-4 overflow-y-auto max-h-[calc(85vh-140px)]">
+            <div className="px-4 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] overflow-y-auto max-h-[calc(85vh-140px)]">
               <div className="grid gap-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Søg i jobopslag..."
-                    value={filters.searchText || ''}
-                    onChange={handleSearchChange}
-                    className="glass-input pl-10 w-full tap-target"
-                  />
+                {/* Regions multi-select */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><MapPin className="size-4" /> Regioner</div>
+                  <div className="flex flex-wrap gap-2">
+                    {regions.map((r) => {
+                      const active = Array.isArray(filters.location) ? (filters.location as string[]).includes(r) : false
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => toggleRegion(r)}
+                          className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-blue-500/15 text-white border-blue-400/30 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
+                        >
+                          {active && <Check className="size-3 inline mr-1" />} {r}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
-                {/* Location */}
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Lokation..."
-                    value={filters.location || ''}
-                    onChange={handleLocationChange}
-                    className="glass-input pl-10 w-full tap-target"
-                  />
-                </div>
-
-                {/* Score Filter */}
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                  <select
-                    value={filters.score?.toString() || ''}
-                    onChange={handleScoreChange}
-                    className="glass-input pl-10 w-full appearance-none cursor-pointer tap-target"
-                  >
-                    <option value="">Alle scores</option>
-                    <option value="3">Score 3 - Akut</option>
-                    <option value="2">Score 2 - Relevant</option>
-                    <option value="1">Score 1 - Lav</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                {/* Scores multi-select */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><Filter className="size-4" /> Scores</div>
+                  <div className="flex flex-wrap gap-2">
+                    {scores.map((s) => {
+                      const active = Array.isArray(filters.score) ? (filters.score as number[]).includes(s) : filters.score === s
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => toggleScore(s)}
+                          className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-green-500/15 text-white border-green-400/30 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
+                        >
+                          {active && <Check className="size-3 inline mr-1" />} Score {s}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 

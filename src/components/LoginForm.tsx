@@ -91,98 +91,82 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Log ind på CFO Dashboard
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Indtast din email og password
-          </p>
+    <div className="space-y-6">
+      <div className="space-y-2 text-center">
+        <h2 className="text-2xl font-semibold text-white">Log ind</h2>
+        <p className="text-slate-400 text-sm">Fortsæt til CFO Dashboard</p>
+      </div>
+
+      {message && (
+        <div
+          className={`rounded-xl p-3 border ${
+            message.type === 'success'
+              ? 'bg-green-500/10 border-green-500/30 text-green-300'
+              : 'bg-red-500/10 border-red-500/30 text-red-300'
+          }`}
+        >
+          <p className="text-sm">{message.text}</p>
         </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="sr-only">
-              Email adresse
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="Email adresse"
-              disabled={isLoading}
-            />
-          </div>
+      )}
 
-          <div>
-            <label htmlFor="password" className="sr-only">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="Password"
-              disabled={isLoading}
-            />
-          </div>
-
-          {message && (
-            <div className={`rounded-md p-4 ${
-              message.type === 'success' 
-                ? 'bg-green-50 border border-green-200' 
-                : 'bg-red-50 border border-red-200'
-            }`}>
-              <p className={`text-sm ${
-                message.type === 'success' ? 'text-green-800' : 'text-red-800'
-              }`}>
-                {message.text}
-              </p>
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Logger ind...' : 'Log ind'}
-            </button>
-          </div>
-        </form>
-
-        <div className="text-center space-y-2">
-          <p className="text-sm text-gray-600">
-            <a 
-              href="/auth/reset-password" 
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Glemt password?
-            </a>
-          </p>
-          <p className="text-sm text-gray-600">
-            Har du ikke en konto?{' '}
-            <a 
-              href="/signup" 
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Opret konto
-            </a>
-          </p>
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm text-slate-300">
+            Email adresse
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="glass-input w-full"
+            placeholder="din@email.dk"
+            disabled={isLoading}
+          />
         </div>
+
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-sm text-slate-300">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="glass-input w-full"
+            placeholder="••••••••"
+            disabled={isLoading}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full rounded-xl bg-[#005EB8] hover:bg-[#0091DA] text-white font-medium py-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_30px_rgba(0,0,0,0.25)]"
+        >
+          {isLoading ? 'Logger ind...' : 'Log ind'}
+        </button>
+      </form>
+
+      <div className="text-center space-y-1">
+        <p className="text-sm text-slate-400">
+          <a href="/auth/reset-password" className="text-slate-300 hover:text-white">
+            Glemt password?
+          </a>
+        </p>
+        <p className="text-sm text-slate-400">
+          Har du ikke en konto?{' '}
+          <a href="/signup" className="text-slate-200 hover:text-white font-medium">
+            Opret konto
+          </a>
+        </p>
       </div>
     </div>
   );

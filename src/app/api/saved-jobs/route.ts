@@ -37,9 +37,6 @@ export async function GET(request: NextRequest) {
               // user sessions.
             }
           },
-        },
-        auth: {
-          storageKey: 'supabase-auth' // Match the client configuration
         }
       }
     );
@@ -136,9 +133,6 @@ export async function POST(request: NextRequest) {
               // user sessions.
             }
           },
-        },
-        auth: {
-          storageKey: 'supabase-auth' // Match the client configuration
         }
       }
     );

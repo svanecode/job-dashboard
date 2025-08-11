@@ -86,7 +86,7 @@ export default function JobSheet({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
 
@@ -105,7 +105,7 @@ export default function JobSheet({
             style={{
               transform: isDragging ? `translateY(${dragDistance}px)` : undefined
             }}
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl border border-white/20 bg-white/5 backdrop-blur-sm shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[90vh] overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-[90] rounded-t-3xl border border-white/20 bg-white/5 backdrop-blur-sm shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[90vh] overflow-hidden"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -116,7 +116,7 @@ export default function JobSheet({
             </div>
 
             {/* Content */}
-            <div className="px-4 pb-4 overflow-y-auto max-h-[70vh]">
+            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] overflow-y-auto max-h-[70vh]">
               {/* Header with title and score badge */}
               <div className="mb-6">
                 <div className="flex items-start justify-between mb-4">

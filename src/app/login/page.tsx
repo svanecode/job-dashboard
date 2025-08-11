@@ -5,14 +5,16 @@ import LoginForm from '@/components/LoginForm'
 
 function LoginPageContent() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Log ind på din konto
-          </h2>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Ambient gradients */}
+      <div className="pointer-events-none absolute inset-0 bg-radial" />
+      {/* Centered auth card */}
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <div className="card-mobile p-6 md:p-8">
+            <LoginForm />
+          </div>
         </div>
-        <LoginForm />
       </div>
     </div>
   )

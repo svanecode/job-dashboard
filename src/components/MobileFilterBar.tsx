@@ -36,11 +36,13 @@ export default function MobileFilterBar() {
       active.push(`"${filters.searchText}"`)
     }
     if (filters.location) {
-      active.push(filters.location)
+      const loc = Array.isArray(filters.location) ? filters.location.join(', ') : filters.location
+      if (loc) active.push(loc)
     }
-    if (filters.score) {
-      const scoreLabels = { 3: 'Akut', 2: 'Relevant', 1: 'Lav' }
-      active.push(`Score ${filters.score} - ${scoreLabels[filters.score as keyof typeof scoreLabels]}`)
+    if (filters.score !== undefined && filters.score !== null && filters.score !== ('' as any)) {
+      const values = Array.isArray(filters.score) ? filters.score : [filters.score]
+      const unique = Array.from(new Set(values.filter((v) => typeof v === 'number')))
+      if (unique.length > 0) active.push(`Score ${unique.join(', ')}`)
     }
     if (filters.daysAgo) {
       const dayLabels = { 1: '24t', 3: '3d', 7: '7d', 14: '14d', 30: '30d' }
@@ -76,7 +78,7 @@ export default function MobileFilterBar() {
   return (
     <>
       {/* Floating Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-[calc(10px+env(safe-area-inset-bottom))] pt-2 pointer-events-none overflow-hidden w-full max-w-full">
+      <div className="fixed bottom-0 left-0 right-0 z-[90] px-4 pb-[calc(10px+env(safe-area-inset-bottom))] pt-2 pointer-events-none overflow-hidden w-full max-w-full">
         {/* Active Filter Chips */}
         <AnimatePresence>
           {activeFilters.length > 0 && (
@@ -119,7 +121,7 @@ export default function MobileFilterBar() {
       </div>
 
       {/* FAB - Always visible on mobile */}
-      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom))] right-4 z-50 flex flex-col gap-3 pointer-events-none w-auto max-w-full">
+      <div className="fixed bottom-[calc(16px+env(safe-area-inset-bottom))] right-4 z-[100] flex flex-col gap-3 pointer-events-none w-auto max-w-full">
         {/* Sort Button */}
         <motion.button
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -174,7 +176,7 @@ export default function MobileFilterBar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm"
               onClick={() => setIsSortSheetOpen(false)}
             />
 
@@ -189,7 +191,7 @@ export default function MobileFilterBar() {
                 stiffness: 300,
                 mass: 0.8
               }}
-              className="fixed bottom-0 left-0 right-0 z-50 card-mobile rounded-t-3xl border-white/10 bg-white/6 shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[60vh] overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 z-[90] card-mobile rounded-t-3xl border-white/10 bg-white/6 shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[60vh] overflow-hidden"
             >
               {/* Drag handle */}
               <div className="flex justify-center pt-2 pb-1">

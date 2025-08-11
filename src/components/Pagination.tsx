@@ -3,9 +3,13 @@
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 
 export default function Pagination() {
   const { totalJobs, totalPages, currentPage, jobsPerPage, setCurrentPage, paginatedJobs } = useJobStore()
+  const router = useRouter()
+  const pathname = usePathname()
+  const sp = useSearchParams()
 
   // Ensure we have valid data
   if (totalPages <= 1 || totalJobs === 0) {
@@ -54,9 +58,14 @@ export default function Pagination() {
   }
 
   const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages && page !== validCurrentPage) {
-      setCurrentPage(page)
-    }
+    if (page < 1 || page > totalPages || page === validCurrentPage) return
+    // Update store
+    setCurrentPage(page)
+    // Force a route URL update to trigger SSR data refresh
+    const params = new URLSearchParams(sp.toString())
+    if (page > 1) params.set('page', String(page))
+    else params.delete('page')
+    router.push(`${pathname}?${params.toString()}`, { scroll: true })
   }
 
   return (

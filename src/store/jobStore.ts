@@ -108,6 +108,7 @@ interface JobStore {
   setSort: (sort: SortConfig) => void
   setRowDensity?: (density: 'comfortable' | 'compact') => void
   initializeFromURL: () => void
+  initializeFromParams: (filters: Partial<JobFilters>, page?: number) => void
   clearCache: () => void
   setInitialData: (data: { data: Job[]; total: number; page: number; pageSize: number; totalPages: number }) => void
   
@@ -191,6 +192,19 @@ export const useJobStore = create<JobStore>((set, get) => ({
       }, 100)
     }
   },
+
+  // Initialize directly from provided params (SSR-provided or parsed searchParams)
+  initializeFromParams: (params, page) => {
+    const { isInitialized } = get()
+    if (isInitialized) return
+    const mergedFilters: JobFilters = {
+      ...get().filters,
+      ...params,
+    }
+    set({ filters: mergedFilters, currentPage: page && page > 0 ? page : 1, isInitialized: true })
+    // Fetch using these filters immediately
+    setTimeout(() => get().applyFilters(mergedFilters), 0)
+  },
   
   // Filter actions
   setFilters: (newFilters) => {
@@ -257,22 +271,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
     // Clear cache to ensure fresh data
     set({ cacheKey: '', lastFetchTime: 0 })
     
-    // Apply filters in priority order
-    if (filtersToApply.searchText) {
-      get().searchJobs(filtersToApply.searchText)
-    } else if (filtersToApply.score !== undefined) {
-      // Handle both single score and array of scores
-      const scoreValue = Array.isArray(filtersToApply.score) ? filtersToApply.score[0] : filtersToApply.score
-      if (scoreValue !== undefined) {
-        get().fetchJobsByScore(scoreValue)
-      }
-    } else if (filtersToApply.location) {
-      // Handle both single location and array of locations
-      const locationValue = Array.isArray(filtersToApply.location) ? filtersToApply.location[0] : filtersToApply.location
-      if (locationValue) {
-        get().fetchJobsByLocation(locationValue)
-      }
-    } else if (filtersToApply.daysAgo !== undefined) {
+    // Respect quick date range (daysAgo) with dedicated endpoint; otherwise fetch with combined filters (supports multi-select score and regions)
+    if (filtersToApply.daysAgo !== undefined) {
       get().fetchJobsByDate(filtersToApply.daysAgo)
     } else {
       get().fetchJobs()

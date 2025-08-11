@@ -77,7 +77,7 @@ export default function VirtualJobList({
                 title={job.title || 'Ingen titel'}
                 company={job.company || 'Ukendt firma'}
                 location={job.location || 'Ukendt lokation'}
-                date={job.publication_date || ''}
+                date={(job.created_at || job.publication_date || '') as string}
                 score={job.cfo_score || 0}
                 excerpt={job.description || ''}
                 commentCount={commentCounts[job.job_id] || 0}

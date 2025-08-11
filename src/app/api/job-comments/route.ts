@@ -37,34 +37,10 @@ export async function GET(request: NextRequest) {
               // user sessions.
             }
           },
-        },
-        auth: {
-          storageKey: 'supabase-auth' // Match the client configuration
         }
       }
     );
     
-    // Try to get session first
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('JobComments API: Session result:', { session: !!session, error: sessionError?.message });
-    
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    console.log('JobComments API: Auth result:', { user: user?.id, error: userError?.message });
-    
-    if (userError || !user) {
-      console.log('JobComments API: Returning 401 - userError:', userError?.message, 'user:', !!user);
-      return NextResponse.json({ 
-        error: 'Unauthorized',
-        details: {
-          sessionError: sessionError?.message,
-          userError: userError?.message,
-          sessionExists: !!session,
-          userExists: !!user
-        }
-      }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const job_id = searchParams.get('job_id')
 
@@ -124,9 +100,6 @@ export async function POST(request: NextRequest) {
               // user sessions.
             }
           },
-        },
-        auth: {
-          storageKey: 'supabase-auth' // Match the client configuration
         }
       }
     );
