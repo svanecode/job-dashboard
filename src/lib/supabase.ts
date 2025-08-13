@@ -23,7 +23,19 @@ try {
       persistSession: true,
       detectSessionInUrl: true,
       storageKey: 'supabase-auth',
+      flowType: 'pkce',
+      debug: process.env.NODE_ENV === 'development',
     },
+    global: {
+      headers: {
+        'X-Client-Info': 'job-dashboard'
+      }
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
+    }
   });
 } catch (error) {
   console.error('Failed to initialize Supabase client:', error);

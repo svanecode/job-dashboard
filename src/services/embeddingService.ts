@@ -8,8 +8,9 @@ const openai = new OpenAI({
 // Simple in-memory LRU cache with TTL for query embeddings
 type CachedEmbedding = { embedding: number[]; timestampMs: number };
 const embeddingCache = new Map<string, CachedEmbedding>();
-const EMBEDDING_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const EMBEDDING_MAX_ENTRIES = 200;
+// Forlæng cache TTL og øg cache størrelse
+const EMBEDDING_TTL_MS = 24 * 60 * 60 * 1000; // 24 timer i stedet for 10 minutter
+const EMBEDDING_MAX_ENTRIES = 1000; // Øg cache størrelse fra 200 til 1000
 
 function cacheGet(key: string): number[] | null {
   const entry = embeddingCache.get(key);
@@ -106,14 +107,17 @@ export async function generateEmbeddingsForJobs() {
 
 export async function generateEmbeddingForText(text: string) {
   try {
+    // Bedre input sanitization (som Supabase guide)
+    const sanitizedText = text.replaceAll('\n', ' ').trim();
+    
     // Cache key based on normalized text
-    const key = text.trim().toLowerCase();
+    const key = sanitizedText.toLowerCase();
     const cached = cacheGet(key);
     if (cached) return cached;
 
     const response = await openai.embeddings.create({
       model: 'text-embedding-3-large',
-      input: text,
+      input: sanitizedText,
       encoding_format: 'float',
     });
 

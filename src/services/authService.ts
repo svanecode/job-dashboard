@@ -47,7 +47,13 @@ export const authService = {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      console.log('AuthService: getCurrentUser - auth user result:', { 
+        hasUser: !!user, 
+        userId: user?.id, 
+        error: error?.message 
+      });
+      
       if (!user) {
         console.log('No auth user found');
         return null;
@@ -55,13 +61,14 @@ export const authService = {
 
       console.log('Auth user found:', user.id, user.email);
 
-      const { data: userData, error } = await supabase
+      // Check if user exists in users table
+      const { data: userData, error: dbError } = await supabase
         .from('users')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error && error.code === 'PGRST116') {
+      if (dbError && dbError.code === 'PGRST116') {
         // User doesn't exist in users table, create them
         console.log('Creating user profile in database...');
         
@@ -85,8 +92,8 @@ export const authService = {
         return newUser;
       }
 
-      if (error) {
-        console.error('Error fetching user data:', error);
+      if (dbError) {
+        console.error('Error fetching user data:', dbError);
         return null;
       }
 
@@ -105,20 +112,51 @@ export const authService = {
     }
 
     try {
+      console.log('AuthService: Attempting sign in with password for:', email);
+      
       // Sign in with email and password
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
-        console.error('Error signing in:', error);
+        console.error('AuthService: Sign in error:', error);
         if (error.message.includes('Invalid login credentials')) {
           return { success: false, message: 'Forkert email eller password' };
         }
         return { success: false, message: 'Fejl ved login' };
       }
 
+      console.log('AuthService: Sign in successful:', { 
+        userId: data.user?.id, 
+        hasSession: !!data.session,
+        sessionExpiresAt: data.session?.expires_at 
+      });
+
+      // Verify session was created
+      if (!data.session) {
+        console.error('AuthService: No session created after sign in');
+        return { success: false, message: 'Session kunne ikke oprettes' };
+      }
+
+      // Verify user was created
+      if (!data.user) {
+        console.error('AuthService: No user created after sign in');
+        return { success: false, message: 'Bruger kunne ikke oprettes' };
+      }
+
+      // Wait a moment for session to be properly established
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify session is still valid
+      const { data: { session: verifySession } } = await supabase.auth.getSession();
+      if (!verifySession) {
+        console.error('AuthService: Session lost after creation');
+        return { success: false, message: 'Session kunne ikke bevares' };
+      }
+
+      console.log('AuthService: Session verification successful');
       return { success: true, message: 'Login succesfuld' };
     } catch (error) {
       console.error('Error in signInWithPassword:', error);

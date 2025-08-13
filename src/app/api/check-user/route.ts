@@ -1,113 +1,32 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { supabaseServer } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
-  const cookieStore = await cookies();
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: { [key: string]: any }) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: { [key: string]: any }) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
-    }
-  );
-
+export async function GET(request: NextRequest) {
   try {
-    // Get current auth user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const supabase = await supabaseServer();
     
-    if (authError || !user) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'No authenticated user found',
-        error: authError?.message 
-      });
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      return NextResponse.json({ user: null, error: 'Not authenticated' })
     }
 
-    console.log('Auth user:', user.id, user.email);
-
-    // Check if user exists in users table
-    const { data: userData, error: userError } = await supabase
+    // Get user profile from database
+    const { data: userProfile, error: profileError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .single()
 
-    if (userError && userError.code === 'PGRST116') {
-      // User doesn't exist in users table, create them
-      console.log('Creating user in users table...');
-      
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          email: user.email,
-          name: user.user_metadata?.name || 'Unknown',
-          role: 'user'
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('Error creating user:', createError);
-        return NextResponse.json({ 
-          success: false, 
-          message: 'Error creating user profile',
-          error: createError.message 
-        });
-      }
-
-      return NextResponse.json({ 
-        success: true, 
-        message: 'User profile created',
-        user: newUser 
-      });
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError)
+      return NextResponse.json({ user: null, error: 'Profile not found' })
     }
 
-    if (userError) {
-      console.error('Error fetching user:', userError);
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Error fetching user profile',
-        error: userError.message 
-      });
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'User profile found',
-      user: userData 
-    });
-
+    return NextResponse.json({ user: userProfile })
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      message: 'Unexpected error',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.error('Error in check-user API:', error)
+    return NextResponse.json({ user: null, error: 'Internal server error' })
   }
 } 

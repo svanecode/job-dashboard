@@ -19,6 +19,7 @@ export default function TopNav() {
     <nav className="flex items-center gap-2">
       <Link href="/" className={makeLinkClass('/')}>Dashboard</Link>
       <Link href="/insights" className={makeLinkClass('/insights')}>Indsigter</Link>
+      <Link href="/chat" className={makeLinkClass('/chat')}>Chat</Link>
     </nav>
   )
 }

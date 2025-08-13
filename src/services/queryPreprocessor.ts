@@ -53,21 +53,14 @@ SVAR FORMAT (JSON):
 
 SVAR KUN MED JSON:`;
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-5-chat',
-      messages: [
-        {
-          role: 'system',
-          content: 'Du er en ekspert i dansk job-søgning og tekstbehandling. Svar altid med gyldig JSON.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+    const resp = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || 'gpt-5',
+      instructions: 'Du er en ekspert i dansk job-søgning og tekstbehandling. Svar altid med gyldig JSON.',
+      input: prompt,
+      max_output_tokens: 300,
     });
 
-    const response = completion.choices[0]?.message?.content;
+    const response = (resp as any).output_text ?? extractResponseText(resp);
     
     if (!response) {
       throw new Error('No response from AI');
@@ -95,6 +88,26 @@ SVAR KUN MED JSON:`;
       suggestions: ['AI preprocessing ikke tilgængelig'],
       confidence: 0.1
     };
+  }
+}
+
+// Robust extractor for OpenAI Responses API
+function extractResponseText(resp: any): string {
+  try {
+    if (!resp) return '';
+    if (typeof resp.output_text === 'string' && resp.output_text.length > 0) return resp.output_text;
+    const output = resp.output || resp.outputs || [];
+    const parts: string[] = [];
+    for (const item of output) {
+      const content = item?.content || [];
+      for (const c of content) {
+        const txt = c?.text?.value || c?.text || c?.content || '';
+        if (typeof txt === 'string') parts.push(txt);
+      }
+    }
+    return parts.join('\n').trim();
+  } catch {
+    return '';
   }
 }
 

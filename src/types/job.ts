@@ -44,7 +44,7 @@ export interface JobFilters {
 }
 
 export interface SavedJob {
-  saved_job_id: string;
+  saved_job_id: string; // This is actually a UUID from the database
   job_id: string;
   title: string;
   company: string;

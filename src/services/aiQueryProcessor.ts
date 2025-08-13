@@ -142,38 +142,31 @@ export class AIQueryProcessor {
       const systemPrompt = this.createSystemPrompt(dbAnalysis);
       
       // Process query with AI
-      const model = process.env.OPENAI_MODEL || 'gpt-5-chat';
-      let completion;
+      const model = process.env.OPENAI_MODEL || 'gpt-4.1';
+      let response: string | undefined;
       try {
-        completion = await openai.chat.completions.create({
+        const resp = await openai.responses.create({
           model,
-          messages: [
-          {
-            role: "system",
-            content: systemPrompt
-          },
-          {
-            role: "user",
-            content: `Process this query: "${query}"`
-          }
-        ]
+          instructions: systemPrompt,
+          input: `Process this query: "${query}"`,
+          max_output_tokens: 400,
         });
+        response = (resp as any).output_text ?? extractResponseText(resp);
       } catch (err: any) {
         const code = err?.code || err?.status;
         if (code === 'model_not_found' || code === 404) {
-          completion = await openai.chat.completions.create({
+          const resp = await openai.responses.create({
             model: 'gpt-5',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: `Process this query: "${query}"` }
-            ]
+            instructions: systemPrompt,
+            input: `Process this query: "${query}"`,
+            max_output_tokens: 400,
           });
+          response = (resp as any).output_text ?? extractResponseText(resp);
         } else {
           throw err;
         }
       }
 
-      const response = completion.choices[0]?.message?.content;
       if (!response) {
         throw new Error('No response from AI');
       }
@@ -217,6 +210,26 @@ Analyser brugerens forespørgsel og vælg den bedste søgestrategi. Du skal retu
   "corrections": ["liste af rettelser"],
   "confidence": 0.95,
   "direct_search": false
+}
+
+// Robust extractor for OpenAI Responses API
+function extractResponseText(resp: any): string {
+  try {
+    if (!resp) return '';
+    if (typeof resp.output_text === 'string' && resp.output_text.length > 0) return resp.output_text;
+    const output = (resp as any).output || (resp as any).outputs || [];
+    const parts: string[] = [];
+    for (const item of output) {
+      const content = (item as any)?.content || [];
+      for (const c of content) {
+        const txt = (c as any)?.text?.value || (c as any)?.text || (c as any)?.content || '';
+        if (typeof txt === 'string') parts.push(txt);
+      }
+    }
+    return parts.join('\n').trim();
+  } catch {
+    return '';
+  }
 }
 
 SØGEMETODER:
@@ -290,6 +303,26 @@ RETURNER KUN JSON - ingen ekstra tekst.`;
       confidence: 0.7,
       corrections: []
     };
+  }
+}
+
+// Helper to extract plain text from Responses API payloads
+function extractResponseText(resp: any): string {
+  try {
+    if (!resp) return '';
+    if (typeof resp.output_text === 'string' && resp.output_text.length > 0) return resp.output_text;
+    const output = (resp as any).output || (resp as any).outputs || [];
+    const parts: string[] = [];
+    for (const item of output) {
+      const content = (item as any)?.content || [];
+      for (const c of content) {
+        const txt = (c as any)?.text?.value || (c as any)?.text || (c as any)?.content || '';
+        if (typeof txt === 'string') parts.push(txt);
+      }
+    }
+    return parts.join('\n').trim();
+  } catch {
+    return '';
   }
 }
 

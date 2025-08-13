@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import { Space_Grotesk, Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import TopNav from '@/components/TopNav'
+import UserMenu from '@/components/UserMenu'
+import MiniChat from '@/components/MiniChat'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -57,9 +60,15 @@ export default function RootLayout({
     <html lang="da" className={`${spaceGrotesk.variable} ${inter.variable}`}>
       <body className="font-body bg-ink text-slate-200 antialiased">
         <AuthProvider>
-          <div className="mx-auto w-full max-w-[1400px]">
+          <div className="mx-auto w-full max-w-[1400px] p-4 md:p-6">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+              <TopNav />
+              <UserMenu />
+            </div>
             {children}
           </div>
+          {/* Global mini chat - ensure it stays below UserMenu z-index */}
+          <MiniChat />
         </AuthProvider>
         {CursorFX()}
       </body>

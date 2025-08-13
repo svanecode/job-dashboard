@@ -1,65 +1,44 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
+    const supabase = await supabaseServer();
     
-    // Minimal cookie capture without console noise
-    const allCookies = Array.from(cookieStore.getAll()).map(c => ({ name: c.name }));
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              console.log('API: Error setting cookie:', error);
-            }
-          },
-          remove(name: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value: '', ...options });
-            } catch (error) {
-              console.log('API: Error removing cookie:', error);
-            }
-          },
-        },
-        auth: {
-          storageKey: 'supabase-auth'
-        }
-      }
-    );
-    
-    // Try to get session first
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    // Then try to get user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    return NextResponse.json({
-      success: true,
-      allCookies,
-      sessionExists: !!session,
-      sessionError: sessionError?.message,
-      userAuthenticated: !!user,
-      userId: user?.id,
-      userEmail: user?.email,
-      userError: userError?.message
+    if (userError || !user) {
+      return NextResponse.json({ 
+        authenticated: false, 
+        error: userError?.message || 'No user found' 
+      })
+    }
+
+    // Get user profile from database
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      return NextResponse.json({ 
+        authenticated: true, 
+        user: { id: user.id, email: user.email },
+        profileError: profileError.message 
+      })
+    }
+
+    return NextResponse.json({ 
+      authenticated: true, 
+      user: userProfile 
     })
   } catch (error) {
     console.error('Error in test-auth API:', error)
     return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      authenticated: false, 
+      error: 'Internal server error' 
     })
   }
 } 

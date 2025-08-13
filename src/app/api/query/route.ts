@@ -1,32 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { supabase } from '@/lib/supabase';
-import { searchJobsSemantic } from '@/services/jobService';
+import { searchJobsSemantic, searchJobsText } from '@/services/jobService';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Prefer gpt-5-chat when available; fall back to gpt-5 automatically on 404/model_not_found
+// Prefer gpt-5 everywhere (som du foretrækker) via Responses API
 async function chatComplete(params: { messages: { role: 'system' | 'user' | 'assistant'; content: string }[]; maxTokens: number }) {
-  const preferred = process.env.OPENAI_MODEL || 'gpt-5-chat';
+  const systemInstructions = params.messages
+    .filter(m => m.role === 'system')
+    .map(m => m.content)
+    .join('\n\n');
+  const inputText = params.messages
+    .filter(m => m.role !== 'system')
+    .map(m => m.content)
+    .join('\n\n');
   try {
-    return await openai.chat.completions.create({
-      model: preferred,
-      messages: params.messages,
-      max_completion_tokens: params.maxTokens,
+    const resp = await openai.responses.create({
+      model: 'gpt-4.1',
+      instructions: systemInstructions || undefined,
+      input: inputText,
+      max_output_tokens: params.maxTokens,
     });
+    const content = (resp as any).output_text ?? extractResponseText(resp);
+    return { choices: [{ message: { content } }] } as any;
   } catch (err: any) {
-    const code = err?.code || err?.status;
-    if (code === 'model_not_found' || code === 404) {
-      // Retry with stable fallback
-      return await openai.chat.completions.create({
-        model: 'gpt-5',
-        messages: params.messages,
-        max_completion_tokens: params.maxTokens,
-      });
+    console.error('gpt-4.1 responses API failed, trying fallback:', err);
+    const resp = await openai.responses.create({
+      model: 'gpt-5',
+      instructions: systemInstructions || undefined,
+      input: inputText,
+      max_output_tokens: params.maxTokens,
+    });
+    const content = (resp as any).output_text ?? extractResponseText(resp);
+    return { choices: [{ message: { content } }] } as any;
+  }
+}
+
+// Robust extractor for OpenAI Responses API
+function extractResponseText(resp: any): string {
+  try {
+    if (!resp) return '';
+    if (typeof resp.output_text === 'string' && resp.output_text.length > 0) return resp.output_text;
+    const output = resp.output || resp.outputs || [];
+    const parts: string[] = [];
+    for (const item of output) {
+      const content = item?.content || [];
+      for (const c of content) {
+        const txt = c?.text?.value || c?.text || c?.content || '';
+        if (typeof txt === 'string') parts.push(txt);
+      }
     }
-    throw err;
+    return parts.join('\n').trim();
+  } catch {
+    return '';
   }
 }
 
@@ -97,21 +126,45 @@ SVAR KUN:
     let response = 'Beklager, jeg kunne ikke generere et svar.';
 
     if (strategy === 'NY_SØGNING') {
-      // STEP 2: Perform semantic search only
+      // STEP 2: Perform semantic search with improved parameters
       console.log('Performing semantic search for:', message);
       
       try {
         const searchParams = {
           page: 1,
-          pageSize: 30,
-          matchThreshold: 0.3, // Require stronger semantic match
-          minScore: 1
+          pageSize: 20,           // Giv modellen 20 kandidater
+          matchThreshold: 0.3,    // Tilbage til 0.3 (bedre coverage)
+          minScore: 1,
+          minContentLength: 0     // Midlertidigt deaktiveret - alle jobs har tomme beskrivelser
         };
 
         const searchResults = await searchJobsSemantic(message, searchParams);
 
         if (searchResults && searchResults.data && searchResults.data.length > 0) {
           candidateJobs = searchResults.data;
+          
+          // With the new match_jobs_semantic_perfect function, all results should have descriptions
+          const isSemanticResults = candidateJobs.some((job: any) => job.similarity !== undefined);
+          const hasDescriptions = candidateJobs.every((job: any) => job.description && job.description.length > 0);
+          
+          if (isSemanticResults && !hasDescriptions) {
+            console.log('Warning: Some semantic results still missing descriptions - check RPC function');
+          }
+          
+          // Augment with text search to catch spelling variations/explicit mentions
+          try {
+            const textTop = await searchJobsText(message, { page: 1, pageSize: 30, minScore: 1 });
+            if (textTop?.data?.length) {
+              const seen = new Set(candidateJobs.map((j: any) => j.id));
+              for (const j of textTop.data) {
+                if (!seen.has((j as any).id)) {
+                  candidateJobs.push(j);
+                  seen.add((j as any).id);
+                }
+              }
+            }
+          } catch {}
+          
           // Generic re-ranking: prioritize candidates that include the query keywords in company/title/description
           const keywords = extractQueryKeywords(message);
           if (keywords.length > 0) {
@@ -125,9 +178,9 @@ SVAR KUN:
               });
             }
           }
-          console.log(`Semantic search found ${candidateJobs.length} candidate jobs`);
+          console.log(`Search found ${candidateJobs.length} candidate jobs (semantic: ${isSemanticResults}, descriptions: ${hasDescriptions})`);
         } else {
-          console.log('Semantic search returned no results');
+          console.log('Search returned no results');
           // No fallback - let AI handle it with empty results
         }
       } catch (error) {
@@ -137,47 +190,86 @@ SVAR KUN:
 
       // STEP 3: Use AI to analyze and select relevant jobs
       if (candidateJobs.length > 0) {
-        const jobDetails = candidateJobs.map((job, index) => `
+        // Use deterministic top-N (post semantic + keyword re-rank) for token budget
+        const MAX_ITEMS_FOR_MODEL = 20; // Giv modellen 20 kandidater at vælge imellem
+        const kwords = extractQueryKeywords(message).map(k => k.toLowerCase());
+        const hits = (j: any) => {
+          const hay = `${j.company || ''} ${j.title || ''} ${j.description || ''}`.toLowerCase();
+          return kwords.reduce((n, k) => n + (hay.includes(k) ? 1 : 0), 0);
+        };
+        const kwFocused = kwords.length > 0 ? candidateJobs.filter(j => hits(j) > 0) : [];
+        const basePool = kwFocused.length >= 2 ? kwFocused : candidateJobs;
+        const itemsForModel = basePool.slice(0, Math.min(MAX_ITEMS_FOR_MODEL, basePool.length));
+        
+        // Debug: Log job data to see what fields are available
+        console.log('Debug: Job data for AI analysis:', itemsForModel.map(job => ({
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          cfo_score: job.cfo_score,
+          similarity: job.similarity,
+          description: job.description,
+          descriptionLength: job.description?.length || 0
+        })));
+
+        // Check if all jobs have empty descriptions
+        const allJobsHaveEmptyDescriptions = itemsForModel.every(job => !job.description || job.description.length === 0);
+        
+        // Forbedret prompt der prioriterer relevans bedre
+        const analysisPrompt = `Du er en ekspert jobrådgiver der skal vurdere relevans af jobs baseret på brugerens spørgsmål.
+
+REGLER:
+- Brug kun information fra de givne job-annoncer
+- Vurder relevans baseret på: jobtitel, virksomhed, beskrivelse og lokation
+- Prioriter jobs der direkte matcher brugerens spørgsmål
+- Vær beslutningsorienteret og kortfattet
+ - Hvis der findes jobs med score 2 eller 3, må du ikke vælge jobs med score 1
+
+RELEVANSVURDERING:
+1. **Direkte match**: Jobtitel, virksomhed eller beskrivelse indeholder direkte nøgleord fra spørgsmålet
+2. **Relateret match**: Jobtitel, virksomhed eller beskrivelse indeholder relaterede termer
+3. **Indirekte match**: Kun generelle økonomi/finans termer uden specifik relevans
+
+Context jobs:
+${itemsForModel.map((job, index) => `
 Job ${index + 1}:
 - Titel: ${job.title}
 - Virksomhed: ${job.company}
 - Lokation: ${job.location}
 - Score: ${job.cfo_score}
-- Relevans: ${job.similarity ? (job.similarity * 100).toFixed(1) + '%' : 'N/A'}
-- Beskrivelse: ${job.description}
-`).join('\n');
+- Semantisk relevans: ${job.similarity ? (job.similarity * 100).toFixed(1) + '%' : 'N/A'}
+- Beskrivelse: ${job.description || 'Ingen beskrivelse tilgængelig'}
+`).join('\n')}
 
-        const analysisPrompt = `Du er en jobassistent. Analyser følgende jobs i forhold til brugerens eksakte søgetekst: "${message}".
+Spørgsmål: "${message}"
 
 ${conversationContext}
 
-Her er ${candidateJobs.length} jobs fra databasen:
-
-${jobDetails}
-
 OPGAVE:
-1. Vurder relevans ift. brugerens ord (match i titel/virksomhed/beskrivelse).
-2. Vælg de mest relevante jobs (0-5 stk). Vægt eksplicit match i titel/virksomhed højest, derefter beskrivelse.
-3. Giv et kort svar (maks 2-3 sætninger).
+1. Analyser hvert job for relevans til brugerens spørgsmål
+2. Prioriter jobs baseret på direkte match → relateret match → indirekte match
+3. Vælg 2-5 mest relevante jobs (minimum 2 hvis relevante)
+4. Giv et kort svar der forklarer hvorfor disse jobs er relevante
 
-REGLER:
-- Hvis der ER relevante jobs: Nævn dem med titel og virksomhed (IKKE job numre)
-- Hvis der IKKE er relevante jobs: "Nej" + kort forklaring
-- Nævn KUN jobs der faktisk er i listen ovenfor
-- OPDIGT IKKE JOBS - kun brug jobs fra listen
-- Vær præcis og konsistent
+SVAR FORMAT:
+[Dit svar om relevante jobs]
 
-RETUR:
-Giv kun et kort svar på dansk. Hvis ingen jobs er relevante, svar "Nej" + kort forklaring. Hvis der er relevante jobs, nævn dem med titel og virksomhed (IKKE job numre).
+RELEVANTE_JOBS: [numre]
 
-KRITISK: Du SKAL altid tilføje en linje med "RELEVANTE_JOBS: [numre]" efter dit svar hvis du nævner jobs. F.eks. "RELEVANTE_JOBS: 1,3,5" eller "RELEVANTE_JOBS: 8". Uden denne linje kan systemet ikke vise job-kortene.`;
+EKSEMPEL:
+Jeg fandt relevante jobs indenfor bilbranchen: Økonomiassistent hos Pedersen & Nielsen Automobilforretning og Økonomielev hos Uggerhøj Biler.
+
+RELEVANTE_JOBS: 1, 2`;
 
         const analysisResponse = await chatComplete({
-          messages: [{ role: 'user', content: analysisPrompt }],
-          maxTokens: 300
+          messages: [
+            { role: 'system', content: 'Du er en ekspert jobrådgiver. Du SKAL returnere dit svar i dette format: [Dit svar] RELEVANTE_JOBS: [numre]. Analyser relevans grundigt og prioriter jobs baseret på direkte match med brugerens spørgsmål. Vælg minimum 2 jobs hvis relevante.' },
+            { role: 'user', content: analysisPrompt }
+          ],
+          maxTokens: 500
         });
 
-        const rawResponse = analysisResponse.choices[0]?.message?.content || 'Beklager, jeg kunne ikke analysere jobs.';
+        const rawResponse = analysisResponse.choices[0]?.message?.content || '';
         console.log('Raw AI response:', rawResponse);
         
         // Remove the "RELEVANTE_JOBS:" line from the response before showing to user
@@ -188,8 +280,13 @@ KRITISK: Du SKAL altid tilføje en linje med "RELEVANTE_JOBS: [numre]" efter dit
         console.log('Parsed job numbers:', jobNumbers);
         
         if (jobNumbers.length > 0) {
-          selectedJobs = jobNumbers.map(num => candidateJobs[num - 1]).filter(Boolean);
+          // Map to the randomized, truncated list we showed the model
+          selectedJobs = jobNumbers.map(num => itemsForModel[num - 1]).filter(Boolean);
           console.log('Selected jobs:', selectedJobs.map(job => `${job.title} hos ${job.company}`));
+          // If model only returned RELEVANTE_JOBS line (cleaned text empty), build a short summary
+          if (!response || response.length === 0) {
+            response = buildFallbackSummary(message, selectedJobs);
+          }
         } else {
           console.log('No job numbers found in response');
           // Fallback: pick top jobs deterministically (keywords + similarity + score + recency)
@@ -198,6 +295,15 @@ KRITISK: Du SKAL altid tilføje en linje med "RELEVANTE_JOBS: [numre]" efter dit
           if (selectedJobs.length > 0) {
             response = buildFallbackSummary(message, selectedJobs);
           }
+        }
+
+        // Enforce score policy: if any candidates have score >=2, drop score 1 from selection and top-up
+        const beforeIds = new Set(selectedJobs.map(j => j.id));
+        const enforced = enforceCfoScorePriority(selectedJobs, candidateJobs);
+        const changed = enforced.length !== selectedJobs.length || enforced.some(j => !beforeIds.has(j.id));
+        if (changed) {
+          selectedJobs = enforced;
+          response = buildFallbackSummary(message, selectedJobs);
         }
         
         console.log('AI selected', selectedJobs.length, 'relevant jobs out of', candidateJobs.length, 'candidates');
@@ -227,30 +333,28 @@ Giv et venligt svar på dansk der forklarer situationen og foreslår alternative
         response = noResultsResponse.choices[0]?.message?.content || 'Beklager, jeg kunne ikke finde nogen relevante jobs.';
       }
     } else {
-      // STEP 4: Handle follow-up questions without new search
+      // STEP 4: Handle follow-up questions with improved prompt
       console.log('Handling follow-up question without new search');
       
-      const followUpPrompt = `Du er en ekspert jobrådgiver. Brugeren spørger om mere information om tidligere nævnte jobs.
+      const followUpPrompt = `Du er en entusiastisk jobrådgiver der elsker at hjælpe folk!
 
 SPØRGSMÅL: "${message}"
 
+TIDLIGERE SAMTALE:
 ${conversationContext}
 
 OPGAVE:
-Giv detaljeret information om de jobs der blev nævnt i den tidligere samtale. Forklar:
-- Hvad virksomheden laver
-- Hvad jobbet indebærer
-- Hvad der kræves af kandidaten
-- Andre relevante detaljer
+- Forstå brugerens hensigt ud fra spørgsmålet og den tidligere liste af jobs
+- Svar beslutningsorienteret og kort (maks 2-4 sætninger i alt)
+- Hvis brugeren beder om prioritering, vælg det bedst egnede job og forklar hvorfor
+- Giv kompakte sammenligninger frem for lange beskrivelser
 
 REGLER:
-- Referer kun til jobs der blev nævnt i den tidligere samtale
-- Giv konkret og detaljeret information
-- Brug naturlig dansk
-- Vær hjælpsom og informativ
-
-SVAR:
-Giv et detaljeret svar på dansk om de tidligere nævnte jobs.`;
+- Brug kun de jobs, der er nævnt i den tidligere samtale
+- Ingen lange oplistninger eller gentagelser
+- Fokus på relevans og anbefaling
+- Skriv på naturligt dansk
+- Vær entusiastisk og hjælpsom`;
 
       const followUpResponse = await chatComplete({
         messages: [{ role: 'user', content: followUpPrompt }],
@@ -281,6 +385,26 @@ Giv et detaljeret svar på dansk om de tidligere nævnte jobs.`;
     console.error('Error in query endpoint:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+
+// Enforce policy: never return score 1 if any score >= 2 exists among candidates
+function enforceCfoScorePriority(selected: any[], candidates: any[]): any[] {
+  if (!Array.isArray(selected) || selected.length === 0) return [];
+  const hasHigh = Array.isArray(candidates) && candidates.some(j => (j?.cfo_score ?? 0) >= 2);
+  if (!hasHigh) return selected;
+  const filtered = selected.filter(j => (j?.cfo_score ?? 0) >= 2);
+  if (filtered.length === selected.length) return selected;
+  // Top-up with highest-ranked >=2 from candidates not already selected
+  const takenIds = new Set(filtered.map(j => j.id));
+  for (const j of candidates) {
+    if ((j?.cfo_score ?? 0) >= 2 && !takenIds.has(j.id)) {
+      filtered.push(j);
+      takenIds.add(j.id);
+      if (filtered.length >= selected.length) break;
+    }
+  }
+  // If still short, keep filtered as-is (better to show fewer than include score 1)
+  return filtered;
+}
 }
 
 // Helper function to parse job numbers from AI response
@@ -397,6 +521,15 @@ function reRankByKeywords(jobs: any[], keywords: string[]): any[] {
     return { ...j, __kwHits: hits, __kwScore: score };
   };
   return jobs.map(scoreJob).sort((a, b) => (b.__kwScore ?? 0) - (a.__kwScore ?? 0));
+}
+
+// Simple Fisher-Yates shuffle
+function shuffleArray<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 // Helper function to generate embedding for query

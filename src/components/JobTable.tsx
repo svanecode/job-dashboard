@@ -68,7 +68,7 @@ type JobTableProps = {
 
 export default function JobTable({ initialData }: JobTableProps = {}) {
   const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData, rowDensity, currentPage } = useJobStore()
-  const { user } = useAuth()
+  const { user, initialized } = useAuth()
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set())
@@ -85,11 +85,16 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
 
   // Load saved jobs and comment counts
   useEffect(() => {
-    if (user && paginatedJobs.length > 0) {
+    if (initialized && user && paginatedJobs.length > 0) {
+      console.log('JobTable: Loading saved jobs for user:', user.id);
       loadSavedJobs()
       loadCommentCounts()
+    } else if (initialized && !user) {
+      console.log('JobTable: No user, clearing saved jobs state');
+      setSavedJobs(new Set())
+      setCommentCounts({})
     }
-  }, [user, paginatedJobs])
+  }, [initialized, user, paginatedJobs])
 
   const loadSavedJobs = async () => {
     try {
@@ -98,6 +103,17 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
       setSavedJobs(savedJobIds)
     } catch (error) {
       console.error('Error loading saved jobs:', error)
+      
+      // Handle auth errors gracefully
+      if (error instanceof Error && error.message.includes('Authentication required')) {
+        console.warn('User authentication expired, clearing saved jobs state')
+        setSavedJobs(new Set())
+        // Optionally show a toast or notification to the user
+        return
+      }
+      
+      // For other errors, keep the existing saved jobs state
+      // but log the error for debugging
     }
   }
 
@@ -328,7 +344,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="size-4 text-slate-400 flex-shrink-0" />
                       <span className="text-slate-200 truncate text-sm">
-                        {(job as any).region || job.location || 'Ukendt lokation'}
+                        {job.location || 'Ukendt lokation'}
                       </span>
                     </div>
                   </td>

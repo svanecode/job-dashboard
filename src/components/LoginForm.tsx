@@ -68,11 +68,11 @@ export default function LoginForm() {
         setEmail('');
         setPassword('');
         
-        // Give a bit more time for user profile creation
+        // Give more time for session to be properly established and cookies to be set
         setTimeout(() => {
           console.log('Redirecting to dashboard...');
           router.push('/');
-        }, 1500);
+        }, 2000);
       } else {
         setMessage({
           type: 'error',

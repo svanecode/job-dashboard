@@ -2,16 +2,12 @@ import StatsOverviewServer from '@/components/StatsOverviewServer';
 import { getJobsFirstPageServer } from '@/services/jobsServer';
 import JobTable from '@/components/JobTable';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import FilterBar from '@/components/FilterBar';
-import MobileFilterBar from '@/components/MobileFilterBar';
+import FilterPopupButton from '@/components/FilterPopupButton';
 import ResultsCount from '@/components/ResultsCount';
 import Pagination from '@/components/Pagination';
-import ChatBot from '@/components/ChatBot';
-import UserMenu from '@/components/UserMenu';
 import JobModal from '@/components/JobModal';
 import AnimatedHeader from '@/components/AnimatedHeader';
 import UrlSyncWrapper from '@/components/UrlSyncWrapper';
-import TopNav from '@/components/TopNav';
 
 export const revalidate = 60;
 
@@ -48,29 +44,21 @@ export default async function Page({
   return (
     <ProtectedRoute>
       <UrlSyncWrapper>
-        <main className="p-4 md:p-6 space-y-6">
+        <main className="space-y-6">
           <div className="flex items-center justify-between">
             <AnimatedHeader />
-            <UserMenu />
           </div>
-
-          <TopNav />
 
           <StatsOverviewServer />
 
-          <div className="hidden md:block">
-            <FilterBar />
+          <div className="flex items-center justify-between">
+            <ResultsCount />
+            <FilterPopupButton />
           </div>
-          <div className="md:hidden">
-            <MobileFilterBar />
-          </div>
-
-          <ResultsCount />
           <JobTable initialData={initial} />
           <Pagination />
 
           <JobModal />
-          <ChatBot />
         </main>
       </UrlSyncWrapper>
     </ProtectedRoute>

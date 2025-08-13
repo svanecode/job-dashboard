@@ -1,46 +1,13 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const cookieStore = await cookies();
-    
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-          remove(name: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value: '', ...options });
-            } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        }
-      }
-    );
+    const supabase = await supabaseServer();
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -51,11 +18,8 @@ export async function PUT(
     // Update the saved job
     const { data, error } = await supabase
       .from('saved_jobs')
-      .update({
-        notes,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', params.id)
+      .update({ notes })
+      .eq('saved_job_id', params.id)
       .eq('user_id', user.id)
       .select()
       .single()
@@ -65,10 +29,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Failed to update saved job' }, { status: 500 })
     }
 
-    if (!data) {
-      return NextResponse.json({ error: 'Saved job not found' }, { status: 404 })
-    }
-
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error in update saved job API:', error)
@@ -76,46 +36,11 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const cookieStore = await cookies();
-    
     console.log('DELETE API: Attempting to delete saved job with ID:', params.id);
     
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            const cookie = cookieStore.get(name);
-            console.log(`DELETE API: Getting cookie ${name}:`, cookie?.value ? 'exists' : 'missing');
-            return cookie?.value;
-          },
-          set(name: string, value: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-          remove(name: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value: '', ...options });
-            } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        }
-      }
-    );
+    const supabase = await supabaseServer();
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -132,7 +57,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('saved_jobs')
       .delete()
-      .eq('id', params.id)
+      .eq('id', params.id) // Use 'id' instead of 'saved_job_id' since that's the actual column name
       .eq('user_id', user.id)
 
     if (error) {

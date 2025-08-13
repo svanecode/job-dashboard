@@ -66,11 +66,11 @@ export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData
   }
 
   return (
-    <article className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div className="space-y-1">
-          <h2 className="text-white text-lg font-medium">{insight.title}</h2>
-          {insight.intro && <p className="text-slate-300">{insight.intro}</p>}
+    <article className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6">
+      <div className="flex items-start justify-between gap-4 mb-4 md:mb-6">
+        <div className="space-y-2">
+          <h2 className="text-white text-xl md:text-2xl font-semibold leading-tight text-balance">{insight.title}</h2>
+          {insight.intro && <p className="text-slate-300 text-base leading-relaxed max-w-2xl">{insight.intro}</p>}
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center rounded-lg bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/30 px-3 py-1 text-xs font-medium shadow-[inset_0_0_8px_rgba(59,130,246,0.25)]">
@@ -79,14 +79,14 @@ export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3 md:space-y-4">
         {(insight.items || []).map((item) => (
-          <div key={item.id} className="rounded-lg bg-white/5 border border-white/10 p-3">
-            <h3 className="text-white font-medium">{item.company}</h3>
-            <p className="text-slate-300 text-sm mt-1">{item.summary}</p>
+          <div key={item.id} className="rounded-xl bg-white/5 border border-white/10 p-3 md:p-4">
+            <h3 className="text-white font-semibold leading-tight">{item.company}</h3>
+            <p className="text-slate-300 text-sm md:text-base mt-1 leading-relaxed">{item.summary}</p>
 
             {item.highlights && item.highlights.length > 0 && (
-              <ul className="text-slate-300 text-sm mt-2 space-y-1">
+              <ul className="text-slate-300 text-sm md:text-base mt-3 space-y-1.5 md:space-y-2">
                 {item.highlights.map((text, idx) => {
                   const jobId = item.job_ids?.[idx]
                   const isLoading = loadingJobId === jobId
@@ -98,7 +98,7 @@ export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => handleOpenJobById(jobId)}
-                          className="w-full text-left p-2 rounded-md bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"
+                          className="w-full text-left p-2.5 md:p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"
                           disabled={isLoading}
                           title="Åbn jobdetaljer"
                         >
@@ -118,7 +118,7 @@ export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData
             {/* Fallback: if there are mapped jobs but no matching highlight indices, show quick chips */}
             {(!item.highlights || (item.job_ids && item.job_ids.length > (item.highlights?.length || 0))) &&
               item.job_ids && item.job_ids.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {item.job_ids.map((jid, i) => (
                     <motion.button
                       key={`${jid}-${i}`}
@@ -126,7 +126,7 @@ export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleOpenJobById(jid)}
-                      className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-slate-300 text-xs hover:bg-white/10 hover:text-white"
+                      className="px-2.5 py-1.5 rounded-md bg-white/5 border border-white/10 text-slate-300 text-xs md:text-sm hover:bg-white/10 hover:text-white"
                     >
                       Se job #{jid}
                     </motion.button>

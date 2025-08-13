@@ -455,6 +455,7 @@ export async function searchJobsSemantic(
     minScore?: number;
     locationFilter?: string;
     companyFilter?: string;
+    minContentLength?: number; // Tilføj ny parameter
   }
 ): Promise<{ data: Job[]; total: number; page: number; pageSize: number; totalPages: number }> {
   if (!supabase) {
@@ -463,11 +464,12 @@ export async function searchJobsSemantic(
 
   const {
     page = 1,
-    pageSize = 30, // Get top 30 results
-    matchThreshold = 0.01, // Very low threshold
-    minScore = 1, // Minimum score filter of 1
+    pageSize = 20, // Giv modellen flere kandidater
+    matchThreshold = 0.3, // Tilbage til 0.3 (bedre coverage)
+    minScore = 1,
     locationFilter = null,
     companyFilter = null,
+    minContentLength = 0, // Midlertidigt deaktiveret - alle jobs har tomme beskrivelser
     ...base
   } = params || {};
 
@@ -478,7 +480,7 @@ export async function searchJobsSemantic(
   const { generateEmbeddingForText } = await import('./embeddingService');
   const queryEmbedding = await generateEmbeddingForText(processedQuery);
 
-  const { data: searchResults, error } = await supabase.rpc('match_jobs_semantic', {
+  const { data: searchResults, error } = await supabase.rpc('match_jobs_semantic_perfect', {
     query_embedding: queryEmbedding,
     match_threshold: matchThreshold,
     match_count: pageSize,
@@ -487,6 +489,24 @@ export async function searchJobsSemantic(
     company_filter: companyFilter
   });
 
+  // Apply minContentLength filter after RPC call since it's not supported in the function
+  let filteredResults = searchResults;
+  if (minContentLength && minContentLength > 0) {
+    // Debug: Log description lengths before filtering
+    console.log('Debug: Description lengths before filtering:', searchResults?.map((job: any) => ({
+      job_id: job.job_id,
+      title: job.title,
+      descriptionLength: job.description?.length || 0,
+      hasDescription: !!job.description,
+      hasEmbedding: !!job.embedding
+    })) || []);
+    
+    filteredResults = searchResults?.filter((job: any) => 
+      job.description && job.description.length >= minContentLength
+    ) || [];
+    console.log(`Filtered ${searchResults?.length || 0} results to ${filteredResults.length} with minContentLength >= ${minContentLength}`);
+  }
+
   if (error) {
     console.error('Semantic search error:', error);
     // Fallback to text search
@@ -494,16 +514,20 @@ export async function searchJobsSemantic(
   }
 
   // If no results from semantic search, try text search
-  if (!searchResults || searchResults.length === 0) {
-    console.log('No semantic results, trying text search fallback');
+  if (!filteredResults || filteredResults.length === 0) {
+    console.log('No semantic results after filtering, trying text search fallback');
     return searchJobs(query, params);
   }
 
+  // The new match_jobs_semantic_perfect function already filters out jobs without descriptions
+  // So we don't need the fallback logic anymore
+  console.log(`Semantic search returned ${filteredResults.length} jobs with descriptions`);
+
   // For semantic search, we don't have total count easily, so we'll estimate
   // In a production system, you might want to implement a separate count function
-  const estimatedTotal = searchResults?.length || 0;
+  const estimatedTotal = filteredResults?.length || 0;
   // Re-rank by score, similarity, recency and dedupe
-  const ranked = (searchResults || []).slice().sort((a: any, b: any) => {
+  const ranked = (filteredResults || []).slice().sort((a: any, b: any) => {
     const scoreDiff = (b.cfo_score ?? 0) - (a.cfo_score ?? 0);
     if (scoreDiff !== 0) return scoreDiff;
     const simDiff = (b.similarity ?? 0) - (a.similarity ?? 0);

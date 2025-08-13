@@ -6,6 +6,11 @@ class SavedJobsService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       console.error('Get saved jobs error:', response.status, errorData)
+      
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in again.')
+      }
+      
       throw new Error(`Failed to fetch saved jobs: ${errorData.error || response.statusText}`)
     }
     return response.json()
@@ -15,6 +20,10 @@ class SavedJobsService {
     try {
       const response = await fetch(`/api/saved-jobs?job_id=${jobId}`)
       if (!response.ok) {
+        if (response.status === 401) {
+          console.warn('User not authenticated when checking saved job status')
+          return false
+        }
         return false
       }
       const data = await response.json()
@@ -42,7 +51,7 @@ class SavedJobsService {
         throw new Error('Job already saved')
       }
       if (response.status === 401) {
-        throw new Error('Not authenticated')
+        throw new Error('Authentication required. Please log in again.')
       }
       throw new Error(`Failed to save job: ${errorData.error || response.statusText}`)
     }
@@ -60,6 +69,9 @@ class SavedJobsService {
     })
     
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in again.')
+      }
       throw new Error('Failed to update saved job')
     }
     
@@ -78,6 +90,11 @@ class SavedJobsService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       console.error('savedJobsService: Delete error:', response.status, errorData)
+      
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in again.')
+      }
+      
       throw new Error(`Failed to delete saved job: ${errorData.error || response.statusText}`)
     }
     
@@ -87,6 +104,10 @@ class SavedJobsService {
   async getJobComments(jobId: string): Promise<JobComment[]> {
     const response = await fetch(`/api/job-comments?job_id=${jobId}`)
     if (!response.ok) {
+      if (response.status === 401) {
+        console.warn('User not authenticated when fetching job comments')
+        return []
+      }
       throw new Error('Failed to fetch comments')
     }
     return response.json()
@@ -102,6 +123,9 @@ class SavedJobsService {
     })
     
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in again.')
+      }
       throw new Error('Failed to add comment')
     }
     
@@ -118,6 +142,9 @@ class SavedJobsService {
     })
     
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in again.')
+      }
       throw new Error('Failed to update comment')
     }
     
@@ -130,6 +157,9 @@ class SavedJobsService {
     })
     
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in again.')
+      }
       throw new Error('Failed to delete comment')
     }
   }
@@ -137,6 +167,9 @@ class SavedJobsService {
   async getUserComments(): Promise<JobComment[]> {
     const response = await fetch('/api/job-comments/user')
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in again.')
+      }
       throw new Error('Failed to fetch user comments')
     }
     return response.json()

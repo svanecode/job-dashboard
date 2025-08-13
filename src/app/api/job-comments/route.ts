@@ -1,120 +1,43 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
+    const supabase = await supabaseServer();
     
-    // Debug logs removed
-    
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-          remove(name: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value: '', ...options });
-            } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        }
-      }
-    );
-    
+    // Check if we're looking for a specific job
     const { searchParams } = new URL(request.url)
-    const job_id = searchParams.get('job_id')
+    const jobId = searchParams.get('job_id')
 
-    if (!job_id) {
+    if (!jobId) {
       return NextResponse.json({ error: 'Job ID is required' }, { status: 400 })
     }
 
-    // Get comments for the job (visible to all users)
+    // Get comments for the job, including user name via RPC that joins public.users
     const { data: comments, error } = await supabase
-      .rpc('get_job_comments', { 
-        job_id_param: job_id
-      })
+      .rpc('get_job_comments', { job_id_param: jobId })
 
     if (error) {
-      console.error('JobComments API: Error fetching comments:', error)
-      return NextResponse.json({ error: 'Failed to fetch comments', details: error }, { status: 500 })
+      console.error('Error fetching comments:', error)
+      return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 })
     }
 
-    return NextResponse.json(comments)
+    return NextResponse.json(comments || [])
   } catch (error) {
-    console.error('JobComments API: Error in job comments API:', error)
+    console.error('Error in job comments API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    
-    // Debug logs removed
-    
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-          remove(name: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value: '', ...options });
-            } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        }
-      }
-    );
-    
-    // Try to get session first
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const supabase = await supabaseServer();
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
-      return NextResponse.json({ 
-        error: 'Unauthorized',
-        details: {
-          sessionError: sessionError?.message,
-          userError: userError?.message,
-          sessionExists: !!session,
-          userExists: !!user
-        }
-      }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -125,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add the comment
-    const { data, error } = await supabase
+    const { data: inserted, error } = await supabase
       .from('job_comments')
       .insert({
         user_id: user.id,
@@ -136,13 +59,21 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('JobComments API: Error adding comment:', error)
+      console.error('Error adding comment:', error)
       return NextResponse.json({ error: 'Failed to add comment' }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    if (error) {
+      console.error('Error adding comment:', error)
+      return NextResponse.json({ error: 'Failed to add comment' }, { status: 500 })
+    }
+    // Return the freshly inserted comment with user_name by reusing the RPC for a single id
+    const { data: withUser } = await supabase
+      .rpc('get_job_comments', { job_id_param: job_id })
+    const enriched = Array.isArray(withUser) ? withUser.find((c: any) => c.id === inserted.id) : null
+    return NextResponse.json(enriched || inserted)
   } catch (error) {
-    console.error('JobComments API: Error in add comment API:', error)
+    console.error('Error in add comment API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

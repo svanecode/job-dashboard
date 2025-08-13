@@ -111,11 +111,19 @@ export default function JobModal() {
         console.log('JobModal: Attempting to unsave job:', selectedJob.job_id);
         // First get the saved job ID
         const savedJobs = await savedJobsService.getSavedJobs()
-        const savedJob = savedJobs.find(job => job.job_id === selectedJob.job_id)
+        console.log('JobModal: Retrieved saved jobs:', savedJobs);
         
-        if (savedJob) {
+        const savedJob = savedJobs.find(job => job.job_id === selectedJob.job_id)
+        console.log('JobModal: Found saved job:', savedJob);
+        
+        if (savedJob && savedJob.saved_job_id) {
+          console.log('JobModal: Deleting saved job with ID:', savedJob.saved_job_id);
           await savedJobsService.deleteSavedJob(savedJob.saved_job_id)
           setIsSaved(false)
+        } else {
+          console.error('JobModal: Could not find saved job to delete or missing saved_job_id');
+          console.error('JobModal: savedJob object:', savedJob);
+          alert('Kunne ikke finde det gemte job')
         }
       } else {
         // Job is not saved, so save it

@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, initialized } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -29,7 +29,8 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
     }
   }, [user, loading, requireAdmin, router]);
 
-  if (loading) {
+  // Only show full-screen loader during the initial auth resolution
+  if (!initialized || loading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>

@@ -68,8 +68,8 @@ export default function FilterBarDesktop() {
   }
 
   return (
-    <div className="hidden md:block sticky top-3 z-[60]">
-      <div className="bg-neutral-900/95 backdrop-blur-xl rounded-xl border border-white/10 p-4 md:p-5 flex flex-wrap gap-4 items-center">
+    <div className="hidden md:block sticky top-3 z-[70]">
+      <div className="card p-4 md:p-5 flex flex-wrap gap-4 items-center">
         <form onSubmit={onSubmit} className="w-full">
           <div className="grid grid-cols-[auto,1.6fr,auto,1.2fr,auto,auto,auto] gap-4 items-center">
             {/* Nulstil (left) */}
@@ -177,7 +177,7 @@ export default function FilterBarDesktop() {
                   className={clsx(
                     'px-3 py-1 text-sm transition rounded-md',
                     rowDensity === 'comfortable' 
-                      ? 'bg-blue-500 text-white' 
+                      ? 'bg-kpmg-500 text-white' 
                       : 'text-neutral-300 hover:bg-white/10'
                   )}
                   title="Komfortabel visning"
@@ -190,7 +190,7 @@ export default function FilterBarDesktop() {
                   className={clsx(
                     'px-3 py-1 text-sm transition rounded-md',
                     rowDensity === 'compact' 
-                      ? 'bg-blue-500 text-white' 
+                      ? 'bg-kpmg-500 text-white' 
                       : 'text-neutral-300 hover:bg-white/10'
                   )}
                   title="Kompakt visning"
@@ -206,9 +206,9 @@ export default function FilterBarDesktop() {
                 type="submit"
                 disabled={!dirtyCount}
                 className={clsx(
-                  'h-9 px-4 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition',
+                  'h-9 px-4 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-kpmg-500/50 transition',
                   dirtyCount 
-                    ? 'bg-blue-500 hover:bg-blue-500/90 text-white' 
+                    ? 'bg-kpmg-500 hover:bg-kpmg-700 text-white' 
                     : 'bg-white/5 text-neutral-400 cursor-not-allowed'
                 )}
                 aria-disabled={!dirtyCount}

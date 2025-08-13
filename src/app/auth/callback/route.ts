@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -15,57 +14,51 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const cookieStore = await cookies();
-    
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-          remove(name: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value: '', ...options });
-            } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        },
+    try {
+      const supabase = await supabaseServer();
+      
+      console.log('Auth callback: Exchanging code for session');
+      const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (exchangeError) {
+        console.error('Error exchanging code for session:', exchangeError);
+        return NextResponse.redirect(`${requestUrl.origin}/login?error=session_error`);
       }
-    );
 
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      console.log('Auth callback: Session exchange successful:', { 
+        hasSession: !!data.session, 
+        userId: data.session?.user?.id 
+      });
 
-    if (exchangeError) {
-      console.error('Error exchanging code for session:', exchangeError);
-      return NextResponse.redirect(`${requestUrl.origin}/login?error=session_error`);
-    }
+      // Verify session was created
+      if (!data.session) {
+        console.error('Auth callback: No session created after code exchange');
+        return NextResponse.redirect(`${requestUrl.origin}/login?error=session_error`);
+      }
 
-    // Check if this is a password reset or email confirmation
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      // Check if this is a password reset (user has password but needs to update it)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.app_metadata?.provider === 'email' && !session?.user?.user_metadata?.email_confirmed_at) {
-        // This is likely a password reset, redirect to update password
-        return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
+      // Check if this is a password reset or email confirmation
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        console.log('Auth callback: User authenticated:', user.id);
+        
+        // Check if this is a password reset (user has password but needs to update it)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.app_metadata?.provider === 'email' && !session?.user?.user_metadata?.email_confirmed_at) {
+          // This is likely a password reset, redirect to update password
+          console.log('Auth callback: Redirecting to password update');
+          return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
+        } else {
+          // This is likely an email confirmation, redirect to login with success message
+          console.log('Auth callback: Redirecting to login with success message');
+          return NextResponse.redirect(`${requestUrl.origin}/login?message=email_confirmed`);
+        }
       } else {
-        // This is likely an email confirmation, redirect to login with success message
-        return NextResponse.redirect(`${requestUrl.origin}/login?message=email_confirmed`);
+        console.error('Auth callback: No user found after session exchange');
+        return NextResponse.redirect(`${requestUrl.origin}/login?error=session_error`);
       }
+    } catch (error) {
+      console.error('Auth callback error:', error);
+      return NextResponse.redirect(`${requestUrl.origin}/login?error=session_error`);
     }
   }
 

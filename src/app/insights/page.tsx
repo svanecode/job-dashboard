@@ -1,44 +1,96 @@
 import TopNav from '@/components/TopNav'
 import UserMenu from '@/components/UserMenu'
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { supabaseServer } from '@/lib/supabase/server'
 import InsightsWeekly from '@/components/InsightsWeekly'
 
 export const revalidate = 3600
 
-export default async function InsightsPage() {
-  // Try fetching latest published weekly insight via the view
+export default async function InsightsPage({ searchParams }: { searchParams?: { id?: string } }) {
+  // Hent arkivliste og valgt indsigts-uge
   const supabase = await supabaseServer()
-  const { data } = await supabase
+
+  const { data: archive } = await supabase
     .from('weekly_insights_public')
-    .select('*')
+    .select('id, week_year, week_number, title, published_at')
     .order('published_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(200)
+
+  const selectedId = searchParams?.id
+
+  // Hent den valgte indsigt (eller seneste hvis ingen valgt)
+  let selectedInsight = null as any
+  if (selectedId) {
+    const { data: chosen } = await supabase
+      .from('weekly_insights_public')
+      .select('*')
+      .eq('id', selectedId)
+      .maybeSingle()
+    selectedInsight = chosen
+  }
+  if (!selectedInsight) {
+    const { data: latest } = await supabase
+      .from('weekly_insights_public')
+      .select('*')
+      .order('published_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    selectedInsight = latest
+  }
 
   return (
-    <main className="p-4 md:p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-3xl sm:text-4xl tracking-tight text-white mb-1">Ugens indsigter</h1>
-          <p className="text-slate-400">Læse korte, skarpe indsigter om CFO-markedet – opdateret hver uge.</p>
+    <main className="container-mobile md:container mx-auto py-6 md:py-10 space-y-6 md:space-y-8">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl tracking-tight text-white leading-tight text-balance">Ugens indsigter</h1>
+          <p className="text-slate-400 text-base md:text-lg max-w-2xl">Læse korte, skarpe indsigter om CFO-markedet – opdateret hver uge.</p>
         </div>
-        <UserMenu />
-      </div>
-
-      <div className="flex items-center justify-between">
-        <Suspense>
-          <TopNav />
-        </Suspense>
         <SubscribeForm />
       </div>
 
-      <section className="space-y-4">
-        {data ? (
-          <InsightsWeekly insight={data as any} />
-        ) : (
-          <p className="text-slate-400">Ingen publicerede indsigter endnu.</p>
-        )}
+      {/* Content: venstresidet arkiv + højresidet detaljer */}
+      <section className="md:grid md:grid-cols-[280px_1fr] md:gap-6 lg:gap-8">
+        {/* Venstre: Scrollbart arkiv */}
+        <aside className="hidden md:block">
+          <nav className="rounded-xl border border-white/10 bg-white/5 p-2">
+            <div className="sticky top-24 max-h-[70vh] overflow-y-auto pr-1">
+              <ul className="space-y-1">
+                {(archive || []).map((it: any) => {
+                  const isActive = selectedInsight?.id === it.id
+                  const week = String(it.week_number).padStart(2, '0')
+                  const dateStr = it.published_at ? new Date(it.published_at).toLocaleDateString('da-DK') : ''
+                  return (
+                    <li key={it.id}>
+                      <Link
+                        href={`/insights?id=${it.id}`}
+                        className={
+                          `block rounded-lg px-3 py-2 border transition-colors ` +
+                          (isActive
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white')
+                        }
+                      >
+                        <div className="text-xs text-slate-400">Uge {week}, {it.week_year} • {dateStr}</div>
+                        <div className="text-sm font-medium truncate">{it.title}</div>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          </nav>
+        </aside>
+
+        {/* Højre: valgt indsigt */}
+        <div className="space-y-5 md:space-y-6 max-w-3xl md:max-w-none">
+          {selectedInsight ? (
+            <InsightsWeekly insight={selectedInsight as any} />
+          ) : (
+            <p className="text-slate-400">Ingen publicerede indsigter endnu.</p>
+          )}
+        </div>
       </section>
     </main>
   )
@@ -60,22 +112,12 @@ function InsightCard({ title, date, excerpt }: { title: string; date: string; ex
 
 function SubscribeForm() {
   return (
-    <form
-      className="flex items-center gap-2"
-      action="/api/insights/subscribe"
-      method="post"
-    >
-      <input
-        type="email"
-        name="email"
-        required
-        placeholder="Din e-mail"
-        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white/20"
+    <form className="hidden md:flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl p-1.5"
+      action="/api/insights/subscribe" method="post">
+      <input type="email" name="email" required placeholder="Din e-mail"
+        className="bg-transparent outline-none px-3 py-2 text-sm text-white placeholder:text-slate-400 w-64"
       />
-      <button
-        type="submit"
-        className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-500"
-      >
+      <button type="submit" className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-500">
         Tilmeld
       </button>
     </form>

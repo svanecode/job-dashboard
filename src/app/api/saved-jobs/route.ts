@@ -1,45 +1,9 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    
-    // Log available cookies for debugging
-    console.log('API: Available cookies:', Array.from(cookieStore.getAll()).map(c => c.name));
-    
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            const cookie = cookieStore.get(name);
-            console.log(`API: Getting cookie ${name}:`, cookie?.value ? 'exists' : 'missing');
-            return cookie?.value;
-          },
-          set(name: string, value: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-          remove(name: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value: '', ...options });
-            } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        }
-      }
-    );
+    const supabase = await supabaseServer();
     
     // Try to get session first
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -92,6 +56,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch saved jobs' }, { status: 500 })
     }
 
+    console.log('API: Retrieved saved jobs:', savedJobs);
     return NextResponse.json(savedJobs)
   } catch (error) {
     console.error('Error in saved jobs API:', error)
@@ -101,41 +66,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    
-    console.log('API: Available cookies:', Array.from(cookieStore.getAll()).map(c => c.name));
-    
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            const cookie = cookieStore.get(name);
-            console.log(`API: Getting cookie ${name}:`, cookie?.value ? 'exists' : 'missing');
-            return cookie?.value;
-          },
-          set(name: string, value: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-          remove(name: string, options: { [key: string]: any }) {
-            try {
-              cookieStore.set({ name, value: '', ...options });
-            } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        }
-      }
-    );
+    const supabase = await supabaseServer();
     
     // Try to get session first
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();

@@ -149,7 +149,7 @@ export default function AdminPanel() {
               </div>
               <div>
                 <p className="text-slate-400">Model</p>
-                <p className="text-white">{process.env.OPENAI_MODEL || 'gpt-5-chat (fallback: gpt-5)'}</p>
+                <p className="text-white">{process.env.OPENAI_MODEL || 'gpt-4.1 (fallback: gpt-5)'}</p>
               </div>
               <div>
                 <p className="text-slate-400">Embeddings</p>

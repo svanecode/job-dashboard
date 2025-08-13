@@ -34,15 +34,7 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
   useEffect(() => {
     prefersReducedMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }, [])
-
-
-
-
-
-  // Early return if not mobile
-  if (!isMobile) {
-    return null
-  }
+  
 
   // Handle swipe to close with snap points
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -141,123 +133,234 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
             onClick={onClose}
           />
 
-          {/* Sheet */}
-          <motion.div
-            ref={sheetRef}
-            {...animationVariants}
-            style={{
-              transform: isDragging ? `translateY(${dragDistance}px)` : undefined
-            }}
-            className="fixed bottom-0 left-0 right-0 z-[90] card-mobile rounded-t-3xl border-white/10 bg-white/6 shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[85vh] overflow-hidden"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-2 pb-1">
-              <div className="h-1.5 w-10 rounded-full bg-white/20" />
-            </div>
-
-            {/* Header */}
-            <div className="px-4 pb-4 border-b border-white/10">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white">Filtre</h2>
-                <button
-                  onClick={onClose}
-                                        className="p-2 -m-2 rounded-full hover:bg-white/10 transition-colors"
-                  
-                >
-                  <X className="size-5 text-slate-400" />
-                </button>
+          {/* Mobile bottom sheet variant */}
+          {isMobile ? (
+            <motion.div
+              ref={sheetRef}
+              {...animationVariants}
+              style={{
+                transform: isDragging ? `translateY(${dragDistance}px)` : undefined
+              }}
+              className="fixed bottom-0 left-0 right-0 z-[90] card-mobile rounded-t-3xl border-white/10 bg-white/6 shadow-[0_-16px_60px_rgba(0,0,0,0.55)] max-h-[85vh] overflow-hidden"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Drag handle */}
+              <div className="flex justify-center pt-2 pb-1">
+                <div className="h-1.5 w-10 rounded-full bg-white/20" />
               </div>
-            </div>
 
-            {/* Content */}
-            <div className="px-4 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] overflow-y-auto max-h-[calc(85vh-140px)]">
-              <div className="grid gap-4">
-                {/* Regions multi-select */}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><MapPin className="size-4" /> Regioner</div>
-                  <div className="flex flex-wrap gap-2">
-                    {regions.map((r) => {
-                      const active = Array.isArray(filters.location) ? (filters.location as string[]).includes(r) : false
-                      return (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => toggleRegion(r)}
-                          className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-blue-500/15 text-white border-blue-400/30 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
-                        >
-                          {active && <Check className="size-3 inline mr-1" />} {r}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Scores multi-select */}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><Filter className="size-4" /> Scores</div>
-                  <div className="flex flex-wrap gap-2">
-                    {scores.map((s) => {
-                      const active = Array.isArray(filters.score) ? (filters.score as number[]).includes(s) : filters.score === s
-                      return (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => toggleScore(s)}
-                          className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-green-500/15 text-white border-green-400/30 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
-                        >
-                          {active && <Check className="size-3 inline mr-1" />} Score {s}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Date Filter */}
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                  <select
-                    value={filters.daysAgo?.toString() || ''}
-                    onChange={handleDaysChange}
-                    className="glass-input pl-10 w-full appearance-none cursor-pointer tap-target"
+              {/* Header */}
+              <div className="px-4 pb-4 border-b border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-white">Filtre</h2>
+                  <button
+                    onClick={onClose}
+                    className="p-2 -m-2 rounded-full hover:bg-white/10 transition-colors"
                   >
-                    <option value="">Alle datoer</option>
-                    <option value="1">Seneste 24 timer</option>
-                    <option value="3">Seneste 3 dage</option>
-                    <option value="7">Seneste 7 dage</option>
-                    <option value="14">Seneste 14 dage</option>
-                    <option value="30">Seneste 30 dage</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <X className="size-5 text-slate-400" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-4 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] overflow-y-auto max-h-[calc(85vh-140px)]">
+                <div className="grid gap-4">
+                  {/* Regions multi-select */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><MapPin className="size-4" /> Regioner</div>
+                    <div className="flex flex-wrap gap-2">
+                      {regions.map((r) => {
+                        const active = Array.isArray(filters.location) ? (filters.location as string[]).includes(r) : false
+                        return (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => toggleRegion(r)}
+                            className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-blue-500/15 text-white border-blue-400/30 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
+                          >
+                            {active && <Check className="size-3 inline mr-1" />} {r}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Scores multi-select */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><Filter className="size-4" /> Scores</div>
+                    <div className="flex flex-wrap gap-2">
+                      {scores.map((s) => {
+                        const active = Array.isArray(filters.score) ? (filters.score as number[]).includes(s) : filters.score === s
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => toggleScore(s)}
+                            className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-green-500/15 text-white border-green-400/30 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
+                          >
+                            {active && <Check className="size-3 inline mr-1" />} Score {s}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Date Filter */}
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                    <select
+                      value={filters.daysAgo?.toString() || ''}
+                      onChange={handleDaysChange}
+                      className="glass-input pl-10 w-full appearance-none cursor-pointer tap-target"
+                    >
+                      <option value="">Alle datoer</option>
+                      <option value="1">Seneste 24 timer</option>
+                      <option value="3">Seneste 3 dage</option>
+                      <option value="7">Seneste 7 dage</option>
+                      <option value="14">Seneste 14 dage</option>
+                      <option value="30">Seneste 30 dage</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Sticky footer */}
-            <div className="sticky bottom-0 px-4 pb-4 pt-2 bg-gradient-to-t from-white/6 to-transparent">
-              <div className="flex gap-3">
-                <button
-                  onClick={handleReset}
-                  className="flex items-center justify-center gap-2 px-4 py-3 border border-white/10 hover:border-white/20 hover:bg-white/5 rounded-xl transition-colors tap-target"
-                >
-                  <RotateCcw className="size-4" />
-                  Nulstil
-                </button>
-                <button
-                  onClick={handleApply}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-kpmg-500 hover:bg-kpmg-700 text-white font-medium rounded-xl transition-colors tap-target"
-                >
-                  Anvend filtre
-                </button>
+              {/* Sticky footer */}
+              <div className="sticky bottom-0 px-4 pb-4 pt-2 bg-gradient-to-t from-white/6 to-transparent">
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleReset}
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-white/10 hover:border-white/20 hover:bg-white/5 rounded-xl transition-colors tap-target"
+                  >
+                    <RotateCcw className="size-4" />
+                    Nulstil
+                  </button>
+                  <button
+                    onClick={handleApply}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-kpmg-500 hover:bg-kpmg-700 text-white font-medium rounded-xl transition-colors tap-target"
+                  >
+                    Anvend filtre
+                  </button>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          ) : (
+            // Desktop centered modal variant
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+            >
+              <div className="w-full max-w-2xl card rounded-2xl border border-white/10 bg-white/6 shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="px-5 py-4 border-b border-white/10">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-white">Filtre</h2>
+                    <button
+                      onClick={onClose}
+                      className="p-2 -m-2 rounded-full hover:bg-white/10 transition-colors"
+                      aria-label="Luk"
+                    >
+                      <X className="size-5 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="px-5 py-5 max-h-[70vh] overflow-y-auto">
+                  <div className="grid gap-5">
+                    {/* Regions multi-select */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><MapPin className="size-4" /> Regioner</div>
+                      <div className="flex flex-wrap gap-2">
+                        {regions.map((r) => {
+                          const active = Array.isArray(filters.location) ? (filters.location as string[]).includes(r) : false
+                          return (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => toggleRegion(r)}
+                              className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-blue-500/15 text-white border-blue-400/30 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
+                            >
+                              {active && <Check className="size-3 inline mr-1" />} {r}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Scores multi-select */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><Filter className="size-4" /> Scores</div>
+                      <div className="flex flex-wrap gap-2">
+                        {scores.map((s) => {
+                          const active = Array.isArray(filters.score) ? (filters.score as number[]).includes(s) : filters.score === s
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => toggleScore(s)}
+                              className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-green-500/15 text-white border-green-400/30 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
+                            >
+                              {active && <Check className="size-3 inline mr-1" />} Score {s}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Date Filter */}
+                    <div className="relative max-w-sm">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                      <select
+                        value={filters.daysAgo?.toString() || ''}
+                        onChange={handleDaysChange}
+                        className="glass-input pl-10 w-full appearance-none cursor-pointer tap-target"
+                      >
+                        <option value="">Alle datoer</option>
+                        <option value="1">Seneste 24 timer</option>
+                        <option value="3">Seneste 3 dage</option>
+                        <option value="7">Seneste 7 dage</option>
+                        <option value="14">Seneste 14 dage</option>
+                        <option value="30">Seneste 30 dage</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-5 py-4 border-t border-white/10 bg-white/2">
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={handleReset}
+                      className="px-4 py-2 border border-white/10 hover:border-white/20 hover:bg-white/5 rounded-xl transition-colors"
+                    >
+                      Nulstil
+                    </button>
+                    <button
+                      onClick={handleApply}
+                      className="px-4 py-2 bg-kpmg-500 hover:bg-kpmg-700 text-white font-medium rounded-xl transition-colors"
+                    >
+                      Anvend filtre
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </>
       )}
     </AnimatePresence>

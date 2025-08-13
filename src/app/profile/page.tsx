@@ -367,17 +367,25 @@ export default function ProfilePage() {
                           <Trash2 className="size-4 text-red-400" />
                         </button>
                       </div>
-                      {comment.job_url && (
-                        <a
-                          href={comment.job_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-                        >
-                          <ExternalLink className="size-3" />
-                          {comment.job_title || 'Se jobopslag'}
-                        </a>
-                      )}
+                      <div className="flex items-center gap-4 text-sm">
+                        {comment.job_url && (
+                          <a
+                            href={comment.job_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+                          >
+                            <ExternalLink className="size-3" />
+                            {comment.job_title || 'Se jobopslag'}
+                          </a>
+                        )}
+                        {comment.company && (
+                          <div className="inline-flex items-center gap-2 text-slate-400">
+                            <Building2 className="size-3" />
+                            <span className="truncate max-w-[60ch]">{comment.company}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
