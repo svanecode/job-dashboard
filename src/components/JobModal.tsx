@@ -276,10 +276,10 @@ export default function JobModal() {
             <div
               ref={modalRef}
               onClick={(e) => e.stopPropagation()}
-              className={`relative rounded-2xl ring-1 ring-white/10 bg-neutral-900/95 backdrop-blur-md shadow-2xl overflow-hidden pointer-events-auto ${
+              className={`relative shadow-2xl overflow-hidden pointer-events-auto ${
                 isMobile 
-                  ? 'w-full h-full rounded-none border-0' 
-                  : 'max-w-[800px] w-full p-6'
+                  ? 'w-full h-full rounded-none border-0 bg-neutral-950' 
+                  : 'rounded-2xl ring-1 ring-white/10 bg-neutral-900/95 backdrop-blur-md max-w-[800px] w-full p-6'
               }`}
             >
                   {/* Floating top-right controls */}
@@ -321,7 +321,7 @@ export default function JobModal() {
               {isMobile ? (
                 <div className="flex flex-col h-full">
                   {/* Sticky header */}
-                  <div className="sticky top-0 z-10 p-4 border-b border-white/10 bg-neutral-900/95 backdrop-blur">
+                  <div className="sticky top-0 z-10 p-4 border-b border-white/10 bg-neutral-900">
                     {/* Close button */}
                     <button
                       onClick={closeJobModal}
@@ -389,7 +389,7 @@ export default function JobModal() {
                   </div>
 
                   {/* Sticky footer actions */}
-                  <div className="sticky bottom-0 p-4 border-t border-white/10 bg-neutral-900/90 backdrop-blur space-y-3">
+                  <div className="sticky bottom-0 p-4 border-t border-white/10 bg-neutral-900 space-y-3">
                     {selectedJob.job_url && (
                       <button
                         onClick={handleOpenJob}

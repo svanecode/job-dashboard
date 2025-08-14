@@ -489,6 +489,7 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
           description={selectedJob.description || ''}
           jobUrl={selectedJob.job_url || undefined}
           tags={[]}
+          jobId={selectedJob.job_id}
         />
       )}
     </>

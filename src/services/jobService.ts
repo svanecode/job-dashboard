@@ -39,6 +39,38 @@ export async function getJobById(id: number): Promise<Job | null> {
 
   if (error) {
     console.error('Error fetching job:', error);
+    console.error('Error details:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
+    return null;
+  }
+
+  return data;
+}
+
+export async function getJobByJobId(jobId: string): Promise<Job | null> {
+  if (!supabase) {
+    throw new Error('Supabase client not initialized');
+  }
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('job_id', jobId)
+    .is('deleted_at', null)
+    .single();
+
+  if (error) {
+    console.error('Error fetching job by job_id:', error);
+    console.error('Error details:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
     return null;
   }
 

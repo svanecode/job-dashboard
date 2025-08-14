@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { supabaseServer } from '@/lib/supabase/server'
 import InsightsWeekly from '@/components/InsightsWeekly'
+import InsightsArchiveMobile from '@/components/InsightsArchiveMobile'
 
 export const revalidate = 3600
 
@@ -49,6 +50,9 @@ export default async function InsightsPage({ searchParams }: { searchParams?: { 
         </div>
         <SubscribeForm />
       </div>
+
+      {/* Mobil: arkiv-åbner */}
+      <InsightsArchiveMobile archive={(archive || []) as any} selectedId={selectedInsight?.id} />
 
       {/* Content: venstresidet arkiv + højresidet detaljer */}
       <section className="md:grid md:grid-cols-[280px_1fr] md:gap-6 lg:gap-8">

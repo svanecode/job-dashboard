@@ -61,12 +61,27 @@ export const authService = {
 
       console.log('Auth user found:', user.id, user.email);
 
-      // Check if user exists in users table
-      const { data: userData, error: dbError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // Helper: timebox any DB call to avoid hanging the UI
+      const withTimeout = async <T,>(promise: Promise<T>, ms: number, onTimeout: () => T): Promise<T> => {
+        return await Promise.race([
+          promise,
+          new Promise<T>((resolve) => setTimeout(() => resolve(onTimeout()), ms)),
+        ]);
+      };
+
+      // Check if user exists in users table (with timeout + safe fallback)
+      const { data: userData, error: dbError } = await withTimeout(
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single(),
+        3000,
+        () => {
+          console.warn('AuthService: getCurrentUser timed out fetching user profile. Falling back to auth user.');
+          return { data: null as any, error: null as any } as any;
+        }
+      );
 
       if (dbError && dbError.code === 'PGRST116') {
         // User doesn't exist in users table, create them
@@ -85,7 +100,14 @@ export const authService = {
 
         if (createError) {
           console.error('Error creating user profile:', createError);
-          return null;
+          // Fall back to minimal user object to avoid blocking UI
+          return {
+            id: user.id,
+            email: user.email ?? '',
+            name: user.user_metadata?.name || user.email || 'User',
+            role: 'user',
+            created_at: user.created_at ?? new Date().toISOString(),
+          } satisfies User;
         }
 
         console.log('User profile created:', newUser);
@@ -94,11 +116,30 @@ export const authService = {
 
       if (dbError) {
         console.error('Error fetching user data:', dbError);
-        return null;
+        // Fall back to minimal user object to avoid blocking UI
+        return {
+          id: user.id,
+          email: user.email ?? '',
+          name: user.user_metadata?.name || user.email || 'User',
+          role: 'user',
+          created_at: user.created_at ?? new Date().toISOString(),
+        } satisfies User;
+      }
+
+      // If timed out fallback returned null-ish data, also fallback to auth user
+      if (!userData) {
+        console.warn('AuthService: No userData returned, using auth user fallback');
+        return {
+          id: user.id,
+          email: user.email ?? '',
+          name: user.user_metadata?.name || user.email || 'User',
+          role: 'user',
+          created_at: user.created_at ?? new Date().toISOString(),
+        } satisfies User;
       }
 
       console.log('User data found:', userData);
-      return userData;
+      return userData as User;
     } catch (error) {
       console.error('Error getting current user:', error);
       return null;

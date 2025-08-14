@@ -13,7 +13,7 @@ import ScoreBadge from '@/components/ScoreBadge'
 import JobModal from '@/components/JobModal'
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth()
+  const { user, loading, initialized } = useAuth()
   const router = useRouter()
   const { openJobModal } = useJobStore()
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([])
@@ -25,16 +25,13 @@ export default function ProfilePage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
-    // Wait for auth to be ready
-    if (loading) return
-    
+    if (!initialized || loading) return
     if (!user) {
       router.push('/login')
       return
     }
-
     loadUserData()
-  }, [user, loading, router])
+  }, [user, loading, initialized, router])
 
   const loadUserData = async () => {
     try {
@@ -125,12 +122,40 @@ export default function ProfilePage() {
     openJobModal(job)
   }
 
+  const handleOpenComment = (comment: JobComment) => {
+    const job = {
+      id: 0,
+      job_id: comment.job_id,
+      title: comment.job_title ?? null,
+      job_url: comment.job_url ?? null,
+      company: comment.company ?? null,
+      company_url: null,
+      location: null,
+      publication_date: null,
+      description: null,
+      created_at: null,
+      deleted_at: null,
+      cfo_score: null,
+      scored_at: null,
+      job_info: null,
+      last_seen: null,
+    }
+    openJobModal(job as any)
+  }
+
+  if (!initialized || (loading && !user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    )
+  }
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b0f14] via-[#0f141b] to-[#0b0f14]">
+    <div className="min-h-screen bg-[#0b0f14]">
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/20 backdrop-blur relative">
+      <div className="border-b border-white/10 bg-black/10 backdrop-blur relative">
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -143,12 +168,7 @@ export default function ProfilePage() {
               </button>
               <h1 className="text-xl font-semibold text-white">Min Profil</h1>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-sm font-medium text-white">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-white font-medium">{user.name}</span>
-            </div>
+            {/* Removed duplicate user name display to avoid redundancy with global navigation */}
           </div>
         </div>
       </div>
@@ -160,9 +180,9 @@ export default function ProfilePage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.04] p-5 mb-6 relative overflow-hidden"
+          className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.02] p-5 mb-6 relative overflow-hidden"
         >
-          <div className="pointer-events-none absolute -top-24 -right-24 size-64 rounded-full bg-kpmg-500/10 blur-3xl" />
+          {/* Removed bright decorative orb for a more blended background */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="size-12 rounded-xl bg-indigo-600/90 flex items-center justify-center text-lg font-semibold text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)]">{user.name.charAt(0).toUpperCase()}</div>
@@ -281,7 +301,7 @@ export default function ProfilePage() {
                   visibleSavedJobs.map((savedJob) => (
                     <div 
                       key={savedJob.saved_job_id} 
-                  className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer shadow-[0_8px_30px_rgba(0,0,0,0.25)]"
+                      className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
                       onClick={() => handleOpenJob(savedJob)}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -351,40 +371,57 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   comments.map((comment) => (
-                    <div key={comment.id} className="bg-white/5 rounded-xl p-6 border border-white/10">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs text-slate-500">{getRelativeTime(comment.created_at)}</span>
+                    <div
+                      key={comment.id}
+                      className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+                      onClick={() => handleOpenComment(comment)}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-white">
+                              {comment.job_title || 'Ingen titel'}
+                            </h3>
                           </div>
-                          <p className="text-slate-200 text-sm leading-relaxed break-words">{comment.comment}</p>
+                          <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
+                            {comment.company && (
+                              <div className="flex items-center gap-1">
+                                <Building2 className="size-4" />
+                                {comment.company}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <Calendar className="size-4" />
+                              {getRelativeTime(comment.created_at)}
+                            </div>
+                          </div>
+                          {comment.comment && (
+                            <p className="text-slate-300 text-sm mb-3">{comment.comment}</p>
+                          )}
                         </div>
-                        <button
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors"
-                          title="Slet kommentar"
-                        >
-                          <Trash2 className="size-4 text-red-400" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        {comment.job_url && (
-                          <a
-                            href={comment.job_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          {comment.job_url && (
+                            <a
+                              href={comment.job_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                              title="Åbn jobopslag"
+                            >
+                              <ExternalLink className="size-4 text-slate-400" />
+                            </a>
+                          )}
+                          <button
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                            title="Slet kommentar"
                           >
-                            <ExternalLink className="size-3" />
-                            {comment.job_title || 'Se jobopslag'}
-                          </a>
-                        )}
-                        {comment.company && (
-                          <div className="inline-flex items-center gap-2 text-slate-400">
-                            <Building2 className="size-3" />
-                            <span className="truncate max-w-[60ch]">{comment.company}</span>
-                          </div>
-                        )}
+                            <Trash2 className="size-4 text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        Kommenteret {getRelativeTime(comment.created_at)}
                       </div>
                     </div>
                   ))

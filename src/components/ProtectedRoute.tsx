@@ -16,7 +16,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   useEffect(() => {
     console.log('ProtectedRoute - loading:', loading, 'user:', user);
     // Only check after loading is complete AND we have a definitive user state
-    if (!loading && user !== undefined) {
+    if (!loading && initialized) {
       if (!user) {
         console.log('ProtectedRoute - No user, redirecting to login');
         router.push('/login');
@@ -27,10 +27,10 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
         console.log('ProtectedRoute - User authenticated, allowing access');
       }
     }
-  }, [user, loading, requireAdmin, router]);
+  }, [user, loading, initialized, requireAdmin, router]);
 
   // Only show full-screen loader during the initial auth resolution
-  if (!initialized || loading && !user) {
+  if (!initialized || (loading && !user)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
