@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import TopNav from '@/components/TopNav'
 import UserMenu from '@/components/UserMenu'
 import MiniChat from '@/components/MiniChat'
+import NavigationWrapper from '@/components/NavigationWrapper'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -21,6 +22,13 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'KPMG CFO Dashboard',
   description: 'Dashboard til at finde virksomheder der har behov for CFO Interim Assistance',
+  other: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'X-App-Version': '0.2.0',
+    'X-Cache-Buster': Date.now().toString(),
+  },
 }
 
 function CursorFX() {
@@ -61,10 +69,7 @@ export default function RootLayout({
       <body className="font-body bg-ink text-slate-200 antialiased">
         <AuthProvider>
           <div className="mx-auto w-full max-w-[1400px] p-4 md:p-6">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <TopNav />
-              <UserMenu />
-            </div>
+            <NavigationWrapper />
             {children}
           </div>
           {/* Global mini chat - ensure it stays below UserMenu z-index */}

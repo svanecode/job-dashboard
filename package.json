@@ -1,14 +1,16 @@
 {
   "name": "job-dashboard",
-  "version": "0.1.0",
+  "version": "0.2.0-1755157820354-1755157827412-1755157867959-1755157896069-1755157931901-1755157948524-1755157970163-1755158003654-1755158006472-1755158029235-1755158032185",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build-cache-buster.js && next build",
+    "build:cache-buster": "node scripts/build-cache-buster.js && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
-    "generate-embeddings": "node scripts/generate-embeddings.mjs"
+    "generate-embeddings": "node scripts/generate-embeddings.mjs",
+    "cache-buster": "node scripts/build-cache-buster.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.10",
