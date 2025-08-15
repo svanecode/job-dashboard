@@ -18,7 +18,9 @@ Dashboardet giver cheferne mulighed for at:
 - **📋 Total jobs**: Antal jobs i alt
 
 ### 🔍 Søge og filtrering
-- Fritekst søgning i titel, firma og beskrivelse
+- **Fritekst søgning** i titel, firma, beskrivelse og lokation
+- **Real-time søgning** med debouncing (500ms)
+- **URL-synkronisering** for delbare søgninger
 - Filtrering efter lokation
 - Filtrering efter score (0-3)
 - Nulstil filtre funktion
@@ -96,6 +98,7 @@ src/
 │   ├── JobTable.tsx       # Jobtabel
 │   ├── ResultsCount.tsx   # Resultat tæller
 │   ├── ScoreBadge.tsx     # Score badge komponent
+│   ├── SearchInput.tsx    # Søgefelt komponent
 │   └── StatsOverview.tsx  # Statistik oversigt
 ├── data/
 │   └── mockJobs.ts        # Mock job data

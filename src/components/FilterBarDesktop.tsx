@@ -57,14 +57,14 @@ export default function FilterBarDesktop() {
     const current = Array.isArray(stagedFilters?.location) ? stagedFilters!.location as string[] : []
     const next = current.filter(r => r !== region)
     setStagedFilters?.({ ...stagedFilters, location: next.length ? next : undefined })
-    applyFilters({ ...stagedFilters!, location: next.length ? next : undefined })
+    // Don't apply immediately - let user apply with "Anvend filtre" button
   }
 
   const removeScore = (score: number) => {
     const current = Array.isArray(stagedFilters?.score) ? stagedFilters!.score as number[] : []
     const next = current.filter(s => s !== score)
     setStagedFilters?.({ ...stagedFilters, score: next.length ? next : undefined })
-    applyFilters({ ...stagedFilters!, score: next.length ? next : undefined })
+    // Don't apply immediately - let user apply with "Anvend filtre" button
   }
 
   return (
@@ -155,7 +155,7 @@ export default function FilterBarDesktop() {
                 onChange={(e) => {
                   const next = { ...stagedFilters!, daysAgo: e.target.value ? Number(e.target.value) : undefined }
                   setStagedFilters?.(next)
-                  applyFilters(next)
+                  // Don't apply immediately - let user apply with "Anvend filtre" button
                 }}
               >
                 <option value="">Alle datoer</option>

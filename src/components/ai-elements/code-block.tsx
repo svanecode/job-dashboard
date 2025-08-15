@@ -2,12 +2,8 @@
 
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import type { ComponentProps, HTMLAttributes, ReactNode } from 'react';
-import { createContext, useContext, useState } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import {
-  oneDark,
-  oneLight,
-} from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { codeToHtml } from 'shiki';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -33,71 +29,63 @@ export const CodeBlock = ({
   className,
   children,
   ...props
-}: CodeBlockProps) => (
-  <CodeBlockContext.Provider value={{ code }}>
-    <div
-      className={cn(
-        'relative w-full overflow-hidden rounded-md border bg-background text-foreground',
-        className,
-      )}
-      {...props}
-    >
-      <div className="relative">
-        <SyntaxHighlighter
-          language={language}
-          style={oneLight}
-          customStyle={{
-            margin: 0,
-            padding: '1rem',
-            fontSize: '0.875rem',
-            background: 'hsl(var(--background))',
-            color: 'hsl(var(--foreground))',
-          }}
-          showLineNumbers={showLineNumbers}
-          lineNumberStyle={{
-            color: 'hsl(var(--muted-foreground))',
-            paddingRight: '1rem',
-            minWidth: '2.5rem',
-          }}
-          codeTagProps={{
-            className: 'font-mono text-sm',
-          }}
-          className="dark:hidden overflow-hidden"
-        >
-          {code}
-        </SyntaxHighlighter>
-        <SyntaxHighlighter
-          language={language}
-          style={oneDark}
-          customStyle={{
-            margin: 0,
-            padding: '1rem',
-            fontSize: '0.875rem',
-            background: 'hsl(var(--background))',
-            color: 'hsl(var(--foreground))',
-          }}
-          showLineNumbers={showLineNumbers}
-          lineNumberStyle={{
-            color: 'hsl(var(--muted-foreground))',
-            paddingRight: '1rem',
-            minWidth: '2.5rem',
-          }}
-          codeTagProps={{
-            className: 'font-mono text-sm',
-          }}
-          className="hidden dark:block overflow-hidden"
-        >
-          {code}
-        </SyntaxHighlighter>
-        {children && (
-          <div className="absolute right-2 top-2 flex items-center gap-2">
-            {children}
-          </div>
+}: CodeBlockProps) => {
+  const [highlightedCode, setHighlightedCode] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const highlightCode = async () => {
+      try {
+        setIsLoading(true);
+        
+        const highlighted = await codeToHtml(code, {
+          lang: language as any || 'javascript',
+          theme: 'github-dark'
+        });
+        
+        setHighlightedCode(highlighted);
+      } catch (error) {
+        console.error('Error highlighting code:', error);
+        // Fallback to plain text if highlighting fails
+        setHighlightedCode(code);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    highlightCode();
+  }, [code, language]);
+
+  return (
+    <CodeBlockContext.Provider value={{ code }}>
+      <div
+        className={cn(
+          'relative w-full overflow-hidden rounded-md border bg-background text-foreground',
+          className,
         )}
+        {...props}
+      >
+        <div className="relative">
+          {isLoading ? (
+            <div className="p-4 text-sm text-muted-foreground">
+              Loading syntax highlighting...
+            </div>
+          ) : (
+            <div
+              className="p-4 text-sm font-mono overflow-x-auto"
+              dangerouslySetInnerHTML={{ __html: highlightedCode }}
+            />
+          )}
+          {children && (
+            <div className="absolute right-2 top-2 flex items-center gap-2">
+              {children}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  </CodeBlockContext.Provider>
-);
+    </CodeBlockContext.Provider>
+  );
+};
 
 export type CodeBlockCopyButtonProps = ComponentProps<typeof Button> & {
   onCopy?: () => void;

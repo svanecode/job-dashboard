@@ -153,7 +153,10 @@ export async function POST(request: NextRequest) {
     const msgs = await listMessages(threadId)
     const text = extractLatestAssistantText(msgs)
 
-    return NextResponse.json({ success: true, threadId, response: text })
+    // Rens teksten for kildehenvisninger med et regulært udtryk
+    const cleanText = text.replace(/【[^】]+】/g, '').trim();
+
+    return NextResponse.json({ success: true, threadId, response: cleanText })
   } catch (error) {
     console.error('assistants-chat error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -10,7 +10,7 @@ import { Loader } from '@/components/ai-elements/loader'
 import { Sparkles } from 'lucide-react'
 import JobModal from '@/components/JobModal'
 import { useJobStore } from '@/store/jobStore'
-import { getJobById, getJobByJobId } from '@/services/jobService'
+import { getJobByJobId } from '@/services/jobService'
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -98,75 +98,54 @@ export default function ChatPage() {
 
   const renderAssistantContent = (text: string) => {
     if (!text || typeof text !== 'string') return text;
+
+    // 1. FORBEDRET: Rens teksten for ALLE typer kildehenvisninger.
+    // Denne kode fanger alt mellem 【 og 】, uanset indhold.
+    let cleanText = text.replace(/【[^】]+】/g, '').trim();
+
+    // 2. Konverter Markdown-formatering til HTML
+    // **fed tekst** -> <strong>fed tekst</strong>
+    cleanText = cleanText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // Normalize non-breaking spaces and odd whitespace
-    text = text.replace(/\u00A0/g, ' ')
-    
-    // Remove citation artifacts like 【...】 or [n:...json]
-    text = text.replace(/【[^】]*】/g, '')
-    text = text.replace(/\[\d+:[^\]]*?\.json\]/gi, '')
-    
-    // Improve list formatting: convert lines starting with "1. ", "2. " etc. to markdown bullets
-    text = text.replace(/(^|\n)\s*\d+\.\s+/g, '$1- ')
-    
-    // Normalize excessive whitespace
-    text = text.replace(/\n{3,}/g, '\n\n')
-    
-    // Split by multiple id marker patterns and render as buttons
-    // Supported forms inside text: (id: 123), (job_id: abc123), [id: 123], {id:123}
-    const parts = text.split(/(\([\s\[]?id:\s*[^)\]}\s]+\)|\([\s\[]?job_id:\s*[^)\]}\s]+\))/gi);
-    
-    return parts.map((seg, i) => {
-      const trimmed = seg.trim();
-      const mId = /^\(?\[?id:\s*([^\)\]\s]+)\)?\]?$/i.exec(trimmed);
-      const mJobId = /^\(?\[?job_id:\s*([^\)\]\s]+)\)?\]?$/i.exec(trimmed);
-      if (!mId && !mJobId) return <span key={i}>{seg}</span>;
-      const id = (mId?.[1] || mJobId?.[1] || '').replace(/[\]\)\}]$/, '')
+    // *kursiv tekst* -> <em>kursiv tekst</em>
+    cleanText = cleanText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // 3. Opdel teksten for at finde og formatere "Se job"-knapper.
+    const parts = cleanText.split(/(\(ID:\s*[^)]+\))/gi);
+
+    return parts.map((segment, index) => {
+      const match = segment.match(/\(ID:\s*([^)]+)\)/);
+
+      if (!match) {
+        // Hvis det ikke er et ID, returneres det blot som tekst med Markdown-formatering.
+        return <span key={index} dangerouslySetInnerHTML={{ __html: segment }} />;
+      }
+
+      const jobId = match[1].trim();
+      if (!jobId) return <span key={index} dangerouslySetInnerHTML={{ __html: segment }} />;
+
       return (
         <button
-          key={`job-${id}-${i}`}
-          data-jobid={id}
+          key={`job-${jobId}-${index}`}
           onClick={async () => {
             try {
-              const idString = String(id)
-              const numericId = Number(idString)
-              let job = null
-              
-              console.log('Attempting to fetch job with id:', idString, 'numericId:', numericId)
-              
-              if (Number.isFinite(numericId) && numericId > 0) {
-                console.log('Fetching by numeric ID:', numericId)
-                job = await getJobById(numericId)
-                console.log('Result from getJobById:', job)
-              }
-              
-              if (!job) {
-                console.log('Fetching by job_id:', idString)
-                job = await getJobByJobId(idString)
-                console.log('Result from getJobByJobId:', job)
-              }
-              
+              console.log('Attempting to fetch job with job_id:', jobId);
+              const job = await getJobByJobId(jobId);
+
               if (job) {
-                console.log('Opening job modal for:', job)
-                openJobModal(job as any)
+                openJobModal(job as any);
               } else {
-                console.warn('Job not found for id/job_id:', idString)
-                alert('Kunne ikke finde jobbet for: ' + idString)
+                console.warn('Job not found for job_id:', jobId);
+                alert('Jobbet kunne ikke findes. Det er muligvis blevet fjernet.');
               }
-            } catch (e: any) { 
-              console.error('Open job failed:', e)
-              console.error('Error details:', {
-                message: e?.message,
-                stack: e?.stack,
-                name: e?.name
-              })
-              alert('Noget gik galt ved åbning af job: ' + (e?.message || 'Ukendt fejl'))
+            } catch (e: any) {
+              console.error('Open job failed:', e);
+              alert('Der opstod en fejl ved åbning af jobbet.');
             }
           }}
           type="button"
-          role="link"
-          className="inline align-baseline ml-1 p-0 text-[0.95em] font-bold underline decoration-white underline-offset-2 hover:decoration-gray-300 text-white hover:text-gray-200 focus-visible:outline-none focus-visible:underline cursor-pointer bg-transparent border-0"
-          title={`Se job (id:${id})`}
+          className="inline align-baseline ml-1 p-0 text-[0.95em] font-bold underline decoration-dotted decoration-white/70 underline-offset-2 hover:decoration-white text-white hover:text-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
+          title={`Se detaljer for job ID: ${jobId}`}
         >
           Se job
         </button>

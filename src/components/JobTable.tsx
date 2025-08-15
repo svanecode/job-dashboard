@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronUp, ChevronDown, Building2, MapPin, Calendar, ExternalLink, Bookmark, Trash2, MessageSquare } from 'lucide-react'
+import { ChevronUp, ChevronDown, Building2, MapPin, Calendar, ExternalLink, Bookmark, Trash2, MessageSquare, ChevronDown as ChevronDownIcon } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import { Job } from '@/types/job'
 import { SortKey, SortDirection, getAriaSort } from '@/utils/sort'
@@ -10,7 +10,7 @@ import CardRow from './CardRow'
 import VirtualJobList from './VirtualJobList'
 import ScoreBadge from './ScoreBadge'
 import JobSheet from './JobSheet'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { savedJobsService } from '@/services/savedJobsService'
 
@@ -64,16 +64,37 @@ type Paged = {
 
 type JobTableProps = {
   initialData?: Paged;
+  initialPageSize?: number;
 };
 
-export default function JobTable({ initialData }: JobTableProps = {}) {
-  const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData, rowDensity, currentPage } = useJobStore()
+export default function JobTable({ initialData, initialPageSize }: JobTableProps = {}) {
+  const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData, rowDensity, currentPage, jobsPerPage, setJobsPerPage } = useJobStore()
   const { user, initialized } = useAuth()
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set())
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
   const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set())
+  const [isPageSizeOpen, setIsPageSizeOpen] = useState(false)
+  const pageSizeRef = useRef<HTMLDivElement>(null)
+  const hasInitializedFromSSR = useRef(false)
+
+  // Handle click outside to close page size dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pageSizeRef.current && !pageSizeRef.current.contains(event.target as Node)) {
+        setIsPageSizeOpen(false)
+      }
+    }
+
+    if (isPageSizeOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isPageSizeOpen])
 
   // Handle initial data from SSR whenever it changes (e.g., URL page/filter changed)
   useEffect(() => {
@@ -82,6 +103,18 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
       console.log('Using initial data from SSR:', { page: initialData.page, count: initialData.data.length })
     }
   }, [initialData, setInitialData])
+
+  // Initialize jobsPerPage from SSR if provided, but only once per component lifecycle
+  useEffect(() => {
+    console.log('JobTable: initialPageSize:', initialPageSize, 'jobsPerPage:', jobsPerPage)
+    
+    // Only initialize once per component lifecycle
+    if (initialPageSize && !hasInitializedFromSSR.current && jobsPerPage === 20) {
+      console.log('JobTable: Setting jobsPerPage to:', initialPageSize)
+      setJobsPerPage(initialPageSize)
+      hasInitializedFromSSR.current = true
+    }
+  }, [initialPageSize, jobsPerPage, setJobsPerPage])
 
   // Load saved jobs and comment counts
   useEffect(() => {
@@ -205,6 +238,11 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
     setSelectedJob(null)
   }
 
+  const handlePageSizeChange = (newPageSize: number) => {
+    setJobsPerPage(newPageSize)
+    setIsPageSizeOpen(false)
+  }
+
   if (paginatedJobs.length === 0 && !isLoading) {
     return (
       <div className="card p-8 text-center">
@@ -223,6 +261,38 @@ export default function JobTable({ initialData }: JobTableProps = {}) {
 
   return (
     <>
+      {/* Jobs Per Page Selector */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3" ref={pageSizeRef}>
+          <span className="text-sm text-slate-400">Jobs per side:</span>
+          <div className="relative">
+            <button
+              onClick={() => setIsPageSizeOpen(!isPageSizeOpen)}
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-all duration-200 focus-ring"
+            >
+              <span>{jobsPerPage}</span>
+              <ChevronDownIcon className={`size-4 transition-transform duration-200 ${isPageSizeOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isPageSizeOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-zinc-800 border border-white/20 rounded-lg shadow-lg z-50 min-w-[120px]">
+                {[10, 20, 50, 100].map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => handlePageSizeChange(size)}
+                    className={`w-full px-3 py-2 text-sm text-left hover:bg-white/10 transition-colors duration-200 ${
+                      size === jobsPerPage ? 'bg-white/10 text-white' : 'text-slate-300'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Desktop Table - Hidden on mobile */}
       <div className="hidden lg:block rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] overflow-hidden">
         <div className="overflow-x-auto max-w-full">

@@ -14,9 +14,11 @@ export type BaseFilters = {
 };
 
 const SELECT_COLUMNS =
-  'id, job_id, title, company, location, region, publication_date, created_at, description, cfo_score, job_url';
+  'id, job_id, title, company, location, publication_date, created_at, description, cfo_score, job_url, region';
 
 export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
+  console.log('jobQuery: buildJobsQuery called with filters:', filters);
+  
   let q = supabase
     .from('jobs')
     .select(SELECT_COLUMNS, { count: 'exact' })
@@ -25,15 +27,21 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
   const minScore = filters.minScore ?? 1;
   if (minScore > 0) q = q.gte('cfo_score', minScore);
   if (filters.score?.length) q = q.in('cfo_score', filters.score);
-  // Treat provided locations as regions to match the DB `region` column
-  if (filters.location?.length) q = q.overlaps('region', filters.location);
+  // Filter by region using the actual region column (text array)
+  if (filters.location?.length) {
+    console.log('jobQuery: Applying region filter (cs):', filters.location);
+    // RETTELSE: Brug .filter() med 'cs' (contains) operatoren til array-kolonner.
+    q = q.filter('region', 'cs', `{${filters.location.join(',')}}`);
+  } else {
+    console.log('jobQuery: No region filter applied');
+  }
   if (filters.dateFrom) q = q.gte('publication_date', filters.dateFrom);
   if (filters.dateTo) q = q.lte('publication_date', filters.dateTo);
 
   if (filters.q?.trim()) {
     const term = filters.q.trim();
     q = q.or(
-      `title.ilike.%${term}%,company.ilike.%${term}%,description.ilike.%${term}%`
+      `title.ilike.%${term}%,company.ilike.%${term}%,description.ilike.%${term}%,location.ilike.%${term}%`
     );
   }
 

@@ -14,6 +14,7 @@ export interface Job {
   scored_at: string | null;
   job_info: string | null;
   last_seen: string | null;
+  region: string[] | null;
 }
 
 export interface JobFilters {

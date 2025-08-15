@@ -11,13 +11,20 @@ interface FilterSheetProps {
 }
 
 export default function FilterSheet({ open, onClose }: FilterSheetProps) {
-  const { filters, setFilters, resetFilters, applyFilters } = useJobStore()
+  const { filters, stagedFilters, setFilters, setStagedFilters, resetFilters, applyFilters } = useJobStore()
   const [isDragging, setIsDragging] = useState(false)
   const [dragDistance, setDragDistance] = useState(0)
   const touchStartY = useRef<number>(0)
   const sheetRef = useRef<HTMLDivElement>(null)
   const prefersReducedMotion = useRef(false)
   const [isMobile, setIsMobile] = useState(false)
+
+  // Initialize staged filters when component opens
+  useEffect(() => {
+    if (open) {
+      setStagedFilters(filters)
+    }
+  }, [open, filters, setStagedFilters])
 
   // Check if mobile on mount
   useEffect(() => {
@@ -75,21 +82,24 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
 
   const regions = ['Hovedstaden', 'Sjælland', 'Fyn', 'Syd- og Sønderjylland', 'Midtjylland', 'Nordjylland', 'Udlandet']
   const toggleRegion = (region: string) => {
-    const current = Array.isArray(filters.location) ? filters.location as string[] : (filters.location ? [filters.location as string] : [])
+    const currentFilters = stagedFilters || filters
+    const current = Array.isArray(currentFilters.location) ? currentFilters.location as string[] : (currentFilters.location ? [currentFilters.location as string] : [])
     const next = current.includes(region) ? current.filter(r => r !== region) : [...current, region]
-    setFilters({ location: next.length ? next : undefined })
+    setStagedFilters({ ...currentFilters, location: next.length ? next : undefined })
   }
 
   const scores = [3,2,1]
   const toggleScore = (score: number) => {
-    const current = Array.isArray(filters.score) ? filters.score as number[] : (filters.score !== undefined ? [filters.score as number] : [])
+    const currentFilters = stagedFilters || filters
+    const current = Array.isArray(currentFilters.score) ? currentFilters.score as number[] : (currentFilters.score !== undefined ? [currentFilters.score as number] : [])
     const next = current.includes(score) ? current.filter(s => s !== score) : [...current, score]
-    setFilters({ score: next.length ? next : undefined })
+    setStagedFilters({ ...currentFilters, score: next.length ? next : undefined })
   }
 
   const handleDaysChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const days = e.target.value === '' ? undefined : parseInt(e.target.value)
-    setFilters({ daysAgo: days })
+    const currentFilters = stagedFilters || filters
+    setStagedFilters({ ...currentFilters, daysAgo: days })
   }
 
   const handleApply = () => {
@@ -99,6 +109,8 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
 
   const handleReset = () => {
     resetFilters()
+    // Also reset staged filters to match
+    setStagedFilters(filters)
   }
 
   // Animation variants based on motion preference
@@ -172,7 +184,8 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                     <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><MapPin className="size-4" /> Regioner</div>
                     <div className="flex flex-wrap gap-2">
                       {regions.map((r) => {
-                        const active = Array.isArray(filters.location) ? (filters.location as string[]).includes(r) : false
+                        const currentFilters = stagedFilters || filters
+                        const active = Array.isArray(currentFilters.location) ? (currentFilters.location as string[]).includes(r) : false
                         return (
                           <button
                             key={r}
@@ -192,7 +205,8 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                     <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><Filter className="size-4" /> Scores</div>
                     <div className="flex flex-wrap gap-2">
                       {scores.map((s) => {
-                        const active = Array.isArray(filters.score) ? (filters.score as number[]).includes(s) : filters.score === s
+                        const currentFilters = stagedFilters || filters
+                        const active = Array.isArray(currentFilters.score) ? (currentFilters.score as number[]).includes(s) : currentFilters.score === s
                         return (
                           <button
                             key={s}
@@ -211,7 +225,7 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                     <select
-                      value={filters.daysAgo?.toString() || ''}
+                      value={(stagedFilters || filters).daysAgo?.toString() || ''}
                       onChange={handleDaysChange}
                       className="glass-input pl-10 w-full appearance-none cursor-pointer tap-target"
                     >
@@ -282,7 +296,8 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                       <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><MapPin className="size-4" /> Regioner</div>
                       <div className="flex flex-wrap gap-2">
                         {regions.map((r) => {
-                          const active = Array.isArray(filters.location) ? (filters.location as string[]).includes(r) : false
+                          const currentFilters = stagedFilters || filters
+                          const active = Array.isArray(currentFilters.location) ? (currentFilters.location as string[]).includes(r) : false
                           return (
                             <button
                               key={r}
@@ -302,7 +317,8 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                       <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><Filter className="size-4" /> Scores</div>
                       <div className="flex flex-wrap gap-2">
                         {scores.map((s) => {
-                          const active = Array.isArray(filters.score) ? (filters.score as number[]).includes(s) : filters.score === s
+                          const currentFilters = stagedFilters || filters
+                          const active = Array.isArray(currentFilters.score) ? (currentFilters.score as number[]).includes(s) : currentFilters.score === s
                           return (
                             <button
                               key={s}
@@ -321,7 +337,7 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                     <div className="relative max-w-sm">
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                       <select
-                        value={filters.daysAgo?.toString() || ''}
+                        value={(stagedFilters || filters).daysAgo?.toString() || ''}
                         onChange={handleDaysChange}
                         className="glass-input pl-10 w-full appearance-none cursor-pointer tap-target"
                       >

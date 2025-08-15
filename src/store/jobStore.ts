@@ -3,10 +3,6 @@ import { Job, JobFilters } from '@/types/job'
 import { 
   getAllJobs, 
   getJobStatistics, 
-  searchJobs, 
-  getJobsByScore, 
-  getJobsByLocation, 
-  getJobsByDate,
   createJob as createJobService,
   updateJob as updateJobService,
   deleteJob as deleteJobService
@@ -16,54 +12,6 @@ import { type SortConfig } from '@/utils/sort'
 // Cache configuration for daily job updates
 // - Job data: 5 minutes cache (increased from 2 minutes)
 // - Statistics: 10 minutes cache (increased from 5 minutes)
-// - URL filters: 500ms debounce
-
-// URL synchronization utilities
-const parseFiltersFromURL = (): Partial<JobFilters> => {
-  if (typeof window === 'undefined') return {}
-  
-  const urlParams = new URLSearchParams(window.location.search)
-  return {
-    q: urlParams.get('q') || undefined,
-    searchText: urlParams.get('q') || undefined, // Legacy compatibility
-    location: urlParams.get('location') ? urlParams.get('location')!.split(',') : undefined,
-    score: urlParams.get('score') ? urlParams.get('score')!.split(',').map(Number) : undefined,
-    dateFrom: urlParams.get('from') || undefined,
-    dateTo: urlParams.get('to') || undefined,
-    daysAgo: urlParams.get('days') ? parseInt(urlParams.get('days')!) : undefined, // Legacy
-  }
-}
-
-const updateURLWithFilters = (filters: JobFilters) => {
-  if (typeof window === 'undefined') return
-  
-  const url = new URL(window.location.href)
-  const params = url.searchParams
-  
-  // Clear existing filter params
-  params.delete('q')
-  params.delete('location')
-  params.delete('score')
-  params.delete('from')
-  params.delete('to')
-  params.delete('days') // Legacy
-  
-  // Add new filter params
-  if (filters.q) params.set('q', filters.q)
-  if (filters.location) {
-    const locationArray = Array.isArray(filters.location) ? filters.location : [filters.location]
-    if (locationArray.length > 0) params.set('location', locationArray.join(','))
-  }
-  if (filters.score) {
-    const scoreArray = Array.isArray(filters.score) ? filters.score : [filters.score]
-    if (scoreArray.length > 0) params.set('score', scoreArray.join(','))
-  }
-  if (filters.dateFrom) params.set('from', filters.dateFrom)
-  if (filters.dateTo) params.set('to', filters.dateTo)
-  
-  // Update URL without full navigation
-  window.history.replaceState({}, '', url.toString())
-}
 
 interface JobStore {
   // Data
@@ -106,6 +54,7 @@ interface JobStore {
   applyFilters: (payload?: JobFilters) => void
   setCurrentPage: (page: number) => void
   setSort: (sort: SortConfig) => void
+  setJobsPerPage: (jobsPerPage: number) => void
   setRowDensity?: (density: 'comfortable' | 'compact') => void
   initializeFromURL: () => void
   initializeFromParams: (filters: Partial<JobFilters>, page?: number) => void
@@ -115,10 +64,6 @@ interface JobStore {
   // Data fetching
   fetchJobs: () => Promise<void>
   fetchStatistics: () => Promise<void>
-  searchJobs: (query: string) => Promise<void>
-  fetchJobsByScore: (score: number) => Promise<void>
-  fetchJobsByLocation: (location: string) => Promise<void>
-  fetchJobsByDate: (daysAgo: number) => Promise<void>
   
   // CRUD operations
   createJob: (job: Omit<Job, 'id'>) => Promise<void>
@@ -162,7 +107,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   
   stagedFilters: undefined,
   
-  sort: { key: 'score', dir: 'desc' },
+  sort: { key: 'date', dir: 'desc' },
   
   // Cache
   lastFetchTime: 0,
@@ -175,39 +120,38 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const { isInitialized } = get()
     if (isInitialized) return // Prevent double initialization
     
-    const urlFilters = parseFiltersFromURL()
-    if (Object.keys(urlFilters).length > 0) {
-      set((state) => ({
-        filters: { ...state.filters, ...urlFilters },
-        isInitialized: true
-      }))
-      // Apply filters after initialization
-      setTimeout(() => get().applyFilters(), 100)
-    } else {
-      // If no filters, just fetch jobs and statistics
-      set({ isInitialized: true })
-      setTimeout(() => {
-        get().fetchJobs()
-        get().fetchStatistics()
-      }, 100)
-    }
+    // Mark as initialized and fetch data
+    set({ isInitialized: true })
+    setTimeout(() => {
+      get().fetchJobs()
+      get().fetchStatistics()
+    }, 100)
   },
 
   // Initialize directly from provided params (SSR-provided or parsed searchParams)
   initializeFromParams: (params, page) => {
     const { isInitialized } = get()
     if (isInitialized) return
+    
     const mergedFilters: JobFilters = {
       ...get().filters,
       ...params,
     }
-    set({ filters: mergedFilters, currentPage: page && page > 0 ? page : 1, isInitialized: true })
+    
+    set({ 
+      filters: mergedFilters, 
+      currentPage: page && page > 0 ? page : 1, 
+      isInitialized: true 
+    })
+    
     // Fetch using these filters immediately
     setTimeout(() => get().applyFilters(mergedFilters), 0)
   },
   
   // Filter actions
   setFilters: (newFilters) => {
+    console.log('JobStore: setFilters called with:', newFilters);
+    
     set((state) => {
       let updatedFilters = { ...state.filters, ...newFilters }
       
@@ -216,11 +160,18 @@ export const useJobStore = create<JobStore>((set, get) => ({
         updatedFilters = { ...updatedFilters, score: undefined }
       }
       
+      console.log('JobStore: Updated filters:', updatedFilters);
+      
       return {
         filters: updatedFilters,
         currentPage: 1, // Reset to first page when filters change
       }
     })
+    
+    // Clear cache and fetch jobs with new filters
+    console.log('JobStore: Clearing cache and fetching jobs');
+    set({ cacheKey: '', lastFetchTime: 0 })
+    get().fetchJobs()
   },
   
   setStagedFilters: (stagedFilters) => {
@@ -244,19 +195,6 @@ export const useJobStore = create<JobStore>((set, get) => ({
       currentPage: 1,
     }))
     
-    // Clear URL params
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href)
-      const params = url.searchParams
-      params.delete('q')
-      params.delete('location')
-      params.delete('score')
-      params.delete('from')
-      params.delete('to')
-      params.delete('days')
-      window.history.replaceState({}, '', url.toString())
-    }
-    
     // Fetch all jobs and statistics again after resetting filters
     get().fetchJobs()
     get().fetchStatistics()
@@ -271,16 +209,12 @@ export const useJobStore = create<JobStore>((set, get) => ({
     // Clear cache to ensure fresh data
     set({ cacheKey: '', lastFetchTime: 0 })
     
-    // Respect quick date range (daysAgo) with dedicated endpoint; otherwise fetch with combined filters (supports multi-select score and regions)
-    if (filtersToApply.daysAgo !== undefined) {
-      get().fetchJobsByDate(filtersToApply.daysAgo)
-    } else {
-      get().fetchJobs()
-    }
+    // Always use the centralized fetchJobs method
+    get().fetchJobs()
   },
   
   setCurrentPage: (page) => {
-    const { currentPage: oldPage, jobsPerPage, sort, filters } = get()
+    const { currentPage: oldPage } = get()
     
     // Don't do anything if we're already on the requested page
     if (page === oldPage) {
@@ -292,14 +226,30 @@ export const useJobStore = create<JobStore>((set, get) => ({
     // Clear cache for this specific page to force fresh data
     set({ cacheKey: '', lastFetchTime: 0 })
     
-    // Use the centralized getAllJobs method with the new page
+    // Use the centralized fetchJobs method with the new page
     get().fetchJobs()
   },
   
   setSort: (newSort) => {
     set({ sort: newSort })
-    // Re-fetch data with new sort config
-    get().applyFilters()
+    // Clear cache and re-fetch data with new sort config
+    set({ cacheKey: '', lastFetchTime: 0 })
+    get().fetchJobs()
+  },
+
+  setJobsPerPage: (newJobsPerPage: number) => {
+    console.log('JobStore: setJobsPerPage called with:', newJobsPerPage)
+    set({ jobsPerPage: newJobsPerPage, currentPage: 1 })
+    console.log('JobStore: jobsPerPage updated to:', newJobsPerPage)
+    
+    // Mark that user has chosen a page size (for persistence across Fast Refresh)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('userPageSizeChoice', 'true')
+    }
+    
+    // Clear cache and re-fetch data with new page size
+    set({ cacheKey: '', lastFetchTime: 0 })
+    get().fetchJobs()
   },
 
   setRowDensity: (density) => {
@@ -319,7 +269,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const { lastStatsFetchTime } = get()
     const now = Date.now()
     
-    // Check if we can use cached statistics (cache for 10 minutes - increased from 5 minutes)
+    // Check if we can use cached statistics (cache for 10 minutes)
     if ((now - lastStatsFetchTime) < 600000) {
       return
     }
@@ -338,8 +288,11 @@ export const useJobStore = create<JobStore>((set, get) => ({
     }
   },
 
+  // Centralized job fetching - always uses current filters, sort, and pagination
   fetchJobs: async () => {
     const { currentPage, jobsPerPage, sort, filters, lastFetchTime, cacheKey } = get()
+    console.log('JobStore: fetchJobs called with filters:', filters);
+    
     const newCacheKey = `${currentPage}-${jobsPerPage}-${sort.key}-${sort.dir}-${JSON.stringify(filters)}`
     const now = Date.now()
     
@@ -353,6 +306,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
       // Failsafe to ensure UI does not hang on spinner if something stalls
       set({ isLoading: false })
     }, 5000)
+    
     try {
       // Convert filters to the correct format for getAllJobs
       const baseFilters = {
@@ -361,7 +315,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
         location: Array.isArray(filters.location) ? filters.location : filters.location ? [filters.location] : undefined,
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
-        minScore: 1, // Default minimum score
+        minScore: (filters.score && (Array.isArray(filters.score) ? filters.score.length > 0 : true)) ? undefined : 1, // Kun sæt minScore hvis der ikke er score-filtre
       }
       
       const response = await getAllJobs({ 
@@ -392,128 +346,13 @@ export const useJobStore = create<JobStore>((set, get) => ({
     }
   },
   
-  searchJobs: async (query: string) => {
-    set({ isLoading: true, error: null })
-    try {
-      const { currentPage, jobsPerPage, sort } = get()
-      const response = await searchJobs(query, { 
-        page: currentPage, 
-        pageSize: jobsPerPage,
-        sort 
-      })
-      
-      set({
-        jobs: response.data,
-        paginatedJobs: response.data,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
-        isLoading: false,
-        // Clear cache for search results to ensure fresh data
-        cacheKey: '',
-        lastFetchTime: 0,
-      })
-    } catch (error) {
-      console.error('Error searching jobs:', error)
-      set({
-        error: 'Fejl ved søgning',
-        isLoading: false,
-      })
-    }
-  },
-  
-  fetchJobsByScore: async (score: number) => {
-    set({ isLoading: true, error: null })
-    try {
-      const { currentPage, jobsPerPage, sort } = get()
-      const response = await getJobsByScore(score, { 
-        page: currentPage, 
-        pageSize: jobsPerPage,
-        sort 
-      })
-      
-      set({
-        jobs: response.data,
-        paginatedJobs: response.data,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
-        isLoading: false,
-        // Clear cache for filtered results to ensure fresh data
-        cacheKey: '',
-        lastFetchTime: 0,
-      })
-    } catch (error) {
-      console.error('Error fetching jobs by score:', error)
-      set({
-        error: 'Fejl ved indlæsning af jobs',
-        isLoading: false,
-      })
-    }
-  },
-  
-  fetchJobsByLocation: async (location: string) => {
-    set({ isLoading: true, error: null })
-    try {
-      const { currentPage, jobsPerPage, sort } = get()
-      const response = await getJobsByLocation(location, { 
-        page: currentPage, 
-        pageSize: jobsPerPage,
-        sort 
-      })
-      
-      set({
-        jobs: response.data,
-        paginatedJobs: response.data,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
-        isLoading: false,
-        // Clear cache for filtered results to ensure fresh data
-        cacheKey: '',
-        lastFetchTime: 0,
-      })
-    } catch (error) {
-      console.error('Error fetching jobs by location:', error)
-      set({
-        error: 'Fejl ved indlæsning af jobs',
-        isLoading: false,
-      })
-    }
-  },
-  
-  fetchJobsByDate: async (daysAgo: number) => {
-    set({ isLoading: true, error: null })
-    try {
-      const { currentPage, jobsPerPage, sort } = get()
-      const response = await getJobsByDate(daysAgo, { 
-        page: currentPage, 
-        pageSize: jobsPerPage,
-        sort 
-      })
-      
-      set({
-        jobs: response.data,
-        paginatedJobs: response.data,
-        totalJobs: response.total,
-        totalPages: response.totalPages,
-        isLoading: false,
-        // Clear cache for filtered results to ensure fresh data
-        cacheKey: '',
-        lastFetchTime: 0,
-      })
-    } catch (error) {
-      console.error('Error fetching jobs by date:', error)
-      set({
-        error: 'Fejl ved indlæsning af jobs',
-        isLoading: false,
-      })
-    }
-  },
-  
   // CRUD operations
   createJob: async (job) => {
     try {
       await createJobService(job)
       get().clearCache() // Clear cache to force refresh
-      get().applyFilters() // Refresh data and statistics
+      get().fetchJobs() // Refresh data
+      get().fetchStatistics() // Refresh statistics
     } catch (error) {
       console.error('Error creating job:', error)
       set({ error: 'Fejl ved oprettelse af job' })
@@ -524,7 +363,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
     try {
       await updateJobService(id, job)
       get().clearCache() // Clear cache to force refresh
-      get().applyFilters() // Refresh data and statistics
+      get().fetchJobs() // Refresh data
+      get().fetchStatistics() // Refresh statistics
     } catch (error) {
       console.error('Error updating job:', error)
       set({ error: 'Fejl ved opdatering af job' })
@@ -535,7 +375,8 @@ export const useJobStore = create<JobStore>((set, get) => ({
     try {
       await deleteJobService(id)
       get().clearCache() // Clear cache to force refresh
-      get().applyFilters() // Refresh data and statistics
+      get().fetchJobs() // Refresh data
+      get().fetchStatistics() // Refresh statistics
     } catch (error) {
       console.error('Error deleting job:', error)
       set({ error: 'Fejl ved sletning af job' })

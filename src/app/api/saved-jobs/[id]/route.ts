@@ -19,7 +19,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { data, error } = await supabase
       .from('saved_jobs')
       .update({ notes })
-      .eq('saved_job_id', params.id)
+      .eq('id', params.id) // Use 'id' - that's the actual column name in the database
       .eq('user_id', user.id)
       .select()
       .single()
@@ -57,7 +57,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { error } = await supabase
       .from('saved_jobs')
       .delete()
-      .eq('id', params.id) // Use 'id' instead of 'saved_job_id' since that's the actual column name
+      .eq('id', params.id) // Use 'id' - that's the actual column name in the database
       .eq('user_id', user.id)
 
     if (error) {

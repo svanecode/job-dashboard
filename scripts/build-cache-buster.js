@@ -12,10 +12,22 @@ console.log(`🚀 Generating cache buster build ID: ${buildId}`);
 const envPath = path.join(process.cwd(), '.env.local');
 const backupEnvPath = path.join(process.cwd(), '.env.local.backup');
 
-// Read existing env vars from backup
+// Read existing env vars from .env.local (not backup)
 let existingEnvVars = '';
-if (fs.existsSync(backupEnvPath)) {
-  existingEnvVars = fs.readFileSync(backupEnvPath, 'utf8');
+if (fs.existsSync(envPath)) {
+  existingEnvVars = fs.readFileSync(envPath, 'utf8');
+  
+  // Remove any existing build-related variables to avoid duplicates
+  const lines = existingEnvVars.split('\n');
+  const filteredLines = lines.filter(line => 
+    !line.startsWith('NEXT_PUBLIC_BUILD_ID=') &&
+    !line.startsWith('NEXT_PUBLIC_BUILD_TIME=') &&
+    !line.startsWith('NEXT_PUBLIC_CACHE_VERSION=') &&
+    !line.startsWith('NEXT_PUBLIC_FORCE_REFRESH=') &&
+    !line.startsWith('# Cache Buster Build ID') &&
+    !line.startsWith('# Force cache refresh')
+  );
+  existingEnvVars = filteredLines.join('\n');
 }
 
 // Add OpenAI API key if not present

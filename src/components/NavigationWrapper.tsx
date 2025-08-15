@@ -7,8 +7,15 @@ import UserMenu from './UserMenu'
 export default function NavigationWrapper() {
   const { user, loading, initialized } = useAuth()
 
-  // Don't show navigation while loading or if user is not authenticated
-  if (loading || !initialized || !user) {
+  // Vis kun intet, hvis appen initialiserer for første gang,
+  // ELLER hvis den indlæser OG vi endnu ikke har en bruger.
+  // Dette forhindrer, at navigationen forsvinder ved session-genvalidering.
+  if (!initialized || (loading && !user)) {
+    return null
+  }
+
+  // Hvis initialiseringen er færdig, og der ikke er nogen bruger, skal du heller ikke vise noget.
+  if (!user) {
     return null
   }
 
