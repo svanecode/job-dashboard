@@ -10,6 +10,7 @@ export default function Pagination() {
     totalPages, 
     currentPage, 
     jobsPerPage,
+    setJobsPerPage,
     setCurrentPage 
   } = useJobStore()
 
@@ -72,11 +73,27 @@ export default function Pagination() {
       transition={{ duration: 0.3, delay: 0.3 }}
       className="flex flex-col items-center justify-center gap-4 py-6"
     >
-      {/* Results Info */}
-      <div className="text-sm text-slate-400">
-        Viser <span className="text-white font-medium">{startItem}</span> til{' '}
-        <span className="text-white font-medium">{endItem}</span> af{' '}
-        <span className="text-white font-medium">{totalJobs}</span> jobs
+      {/* NYT: Saml info og kontroller her */}
+      <div className="flex items-center gap-6 text-sm text-slate-400">
+        <div className="text-sm text-slate-400">
+          Viser <span className="text-white font-medium">{startItem}</span> til{' '}
+          <span className="text-white font-medium">{endItem}</span> af{' '}
+          <span className="text-white font-medium">{totalJobs}</span> jobs
+        </div>
+        <div className="flex items-center gap-2">
+          <span>Jobs pr. side:</span>
+          <select 
+            value={jobsPerPage} 
+            onChange={(e) => setJobsPerPage(Number(e.target.value))}
+            className="bg-white/5 border border-white/10 rounded-md px-2 py-1 text-white focus:ring-kpmg-500 focus:border-kpmg-500"
+            aria-label="Antal jobs per side"
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </div>
       </div>
       
 

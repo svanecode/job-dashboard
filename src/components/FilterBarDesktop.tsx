@@ -68,7 +68,7 @@ export default function FilterBarDesktop() {
   }
 
   return (
-    <div className="hidden md:block sticky top-3 z-[70]">
+    <div className="hidden md:block sticky top-3 z-[70] mb-6">
       <div className="card p-4 md:p-5 flex flex-wrap gap-4 items-center">
         <form onSubmit={onSubmit} className="w-full">
           <div className="grid grid-cols-[auto,1.6fr,auto,1.2fr,auto,auto,auto] gap-4 items-center">

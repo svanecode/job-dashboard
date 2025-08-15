@@ -1,15 +1,17 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronUp, ChevronDown, Building2, MapPin, Calendar, ExternalLink, Bookmark, Trash2, MessageSquare, ChevronDown as ChevronDownIcon } from 'lucide-react'
+import { ChevronUp, ChevronDown, Building2, MapPin, Calendar, ExternalLink, Bookmark, Trash2, MessageSquare } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import { Job } from '@/types/job'
 import { SortKey, SortDirection, getAriaSort } from '@/utils/sort'
 import { formatDate } from '@/utils/format'
 import CardRow from './CardRow'
 import VirtualJobList from './VirtualJobList'
-import ScoreBadge from './ScoreBadge'
+import ScoreBars from './ScoreBars'
 import JobSheet from './JobSheet'
+import FilterBar from './FilterBar'
+import FilterPopupButton from './FilterPopupButton'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { savedJobsService } from '@/services/savedJobsService'
@@ -75,26 +77,10 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set())
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
   const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set())
-  const [isPageSizeOpen, setIsPageSizeOpen] = useState(false)
-  const pageSizeRef = useRef<HTMLDivElement>(null)
+
   const hasInitializedFromSSR = useRef(false)
 
-  // Handle click outside to close page size dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (pageSizeRef.current && !pageSizeRef.current.contains(event.target as Node)) {
-        setIsPageSizeOpen(false)
-      }
-    }
 
-    if (isPageSizeOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isPageSizeOpen])
 
   // Handle initial data from SSR whenever it changes (e.g., URL page/filter changed)
   useEffect(() => {
@@ -238,10 +224,7 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
     setSelectedJob(null)
   }
 
-  const handlePageSizeChange = (newPageSize: number) => {
-    setJobsPerPage(newPageSize)
-    setIsPageSizeOpen(false)
-  }
+
 
   if (paginatedJobs.length === 0 && !isLoading) {
     return (
@@ -261,36 +244,14 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
 
   return (
     <>
-      {/* Jobs Per Page Selector */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3" ref={pageSizeRef}>
-          <span className="text-sm text-slate-400">Jobs per side:</span>
-          <div className="relative">
-            <button
-              onClick={() => setIsPageSizeOpen(!isPageSizeOpen)}
-              className="flex items-center gap-2 px-3 py-2 text-sm border border-white/10 rounded-lg text-slate-300 hover:border-white/20 hover:bg-white/5 transition-all duration-200 focus-ring"
-            >
-              <span>{jobsPerPage}</span>
-              <ChevronDownIcon className={`size-4 transition-transform duration-200 ${isPageSizeOpen ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {isPageSizeOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-zinc-800 border border-white/20 rounded-lg shadow-lg z-50 min-w-[120px]">
-                {[10, 20, 50, 100].map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => handlePageSizeChange(size)}
-                    className={`w-full px-3 py-2 text-sm text-left hover:bg-white/10 transition-colors duration-200 ${
-                      size === jobsPerPage ? 'bg-white/10 text-white' : 'text-slate-300'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      {/* NYT: Vis den fulde filter-bjælke på desktop */}
+      <div className="hidden md:block">
+        <FilterBar />
+      </div>
+
+      {/* NYT: Vis kun filter-knappen på mobil */}
+      <div className="md:hidden flex items-center justify-end mb-4">
+        <FilterPopupButton />
       </div>
 
       {/* Desktop Table - Hidden on mobile */}
@@ -389,14 +350,16 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                 >
                   {/* Score */}
                   <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[6%]`}>
-                    <ScoreBadge score={job.cfo_score || 0} />
+                    {/* UDSKIFT ScoreBadge MED ScoreBars */}
+                    <ScoreBars level={(job.cfo_score || 1) as 1 | 2 | 3} size="sm" />
                   </td>
 
                   {/* Company */}
                   <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[12%]`}>
                     <div className="flex items-center gap-2 min-w-0">
-                      <Building2 className="size-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-slate-200 font-medium truncate text-sm">
+                      <Building2 className="size-4 text-slate-500 flex-shrink-0" />
+                      {/* Gør firma lidt mindre fremtrædende */}
+                      <span className="text-slate-300 font-medium truncate text-sm"> 
                         {job.company || 'Ukendt firma'}
                       </span>
                     </div>
@@ -404,7 +367,8 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
 
                   {/* Title */}
                   <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[30%]`}>
-                    <span className="text-slate-200 font-medium line-clamp-1 text-sm">
+                    {/* GØR TITLEN MERE FREMTRÆDENDE */}
+                    <span className="font-semibold text-white line-clamp-1 text-sm group-hover:text-slate-100 transition-colors">
                       {job.title || 'Ingen titel'}
                     </span>
                   </td>
@@ -412,8 +376,9 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   {/* Location */}
                   <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[15%]`}>
                     <div className="flex items-center gap-2 min-w-0">
-                      <MapPin className="size-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-slate-200 truncate text-sm">
+                      <MapPin className="size-4 text-slate-500 flex-shrink-0" />
+                      {/* Gør lokation lidt mindre fremtrædende */}
+                      <span className="text-slate-400 truncate text-sm">
                         {job.location || 'Ukendt lokation'}
                       </span>
                     </div>
@@ -422,8 +387,9 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   {/* Date (created_at) */}
                   <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[10%]`}>
                     <div className="flex items-center gap-2">
-                      <Calendar className="size-4 text-slate-400" />
-                      <span className="text-slate-200 tabular-nums text-sm">
+                      <Calendar className="size-4 text-slate-500" />
+                      {/* Gør dato lidt mindre fremtrædende */}
+                      <span className="text-slate-400 tabular-nums text-sm">
                         {formatDate(job.created_at || job.publication_date)}
                       </span>
                     </div>
@@ -432,8 +398,9 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   {/* Comments */}
                   <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[8%] text-center`}>
                     <div className="flex items-center gap-1.5 justify-center">
-                      <MessageSquare className="size-4 text-slate-400" />
-                      <span className="text-slate-200 text-sm font-medium">
+                      <MessageSquare className="size-4 text-slate-500" />
+                      {/* Gør kommentarer lidt mindre fremtrædende */}
+                      <span className="text-slate-400 text-sm font-medium">
                         {commentCounts[job.job_id] || 0}
                       </span>
                     </div>

@@ -2,8 +2,6 @@ import StatsOverviewServer from '@/components/StatsOverviewServer';
 import { getJobsFirstPageServer } from '@/services/jobsServer';
 import JobTable from '@/components/JobTable';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import FilterPopupButton from '@/components/FilterPopupButton';
-import ResultsCount from '@/components/ResultsCount';
 import Pagination from '@/components/Pagination';
 import JobModal from '@/components/JobModal';
 import AnimatedHeader from '@/components/AnimatedHeader';
@@ -53,29 +51,31 @@ export default async function Page({
   return (
     <ProtectedRoute>
       <UrlSyncWrapper>
-        <main className="space-y-6">
-          <div className="flex items-center justify-between">
-            <AnimatedHeader />
-          </div>
-
-          <StatsOverviewServer />
-
-          {/* Søgefelt */}
-          <div className="flex justify-center px-4 py-4">
-            <div className="w-full max-w-2xl">
-              <SearchInput />
+        {/* Tilføj en container med max-width og centrering */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"> 
+          <main className="space-y-6">
+            <div className="flex items-center justify-between">
+              <AnimatedHeader />
             </div>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <ResultsCount />
-            <FilterPopupButton />
-          </div>
-          <JobTable initialData={initial} initialPageSize={pageSize} />
-          <Pagination />
+            <StatsOverviewServer />
 
-          <JobModal />
-        </main>
+            {/* Søgefelt */}
+            <div className="flex justify-center">
+              <div className="w-full max-w-2xl">
+                <SearchInput />
+              </div>
+            </div>
+
+            {/* TILFØJ EN VISUEL ADSKILLELSE HER */}
+            <div className="border-t border-white/10 pt-6">
+              <JobTable initialData={initial} initialPageSize={pageSize} />
+              <Pagination />
+            </div>
+
+            <JobModal />
+          </main>
+        </div>
       </UrlSyncWrapper>
     </ProtectedRoute>
   );
