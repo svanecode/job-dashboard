@@ -17,59 +17,56 @@ export default async function Page({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const sp = await searchParams;
-  const pageParam = Array.isArray(sp?.page) ? sp.page[0] : sp?.page;
-  const scoreParam = Array.isArray(sp?.score) ? sp.score[0] : sp?.score;
-  const locationParam = Array.isArray(sp?.location) ? sp.location[0] : sp?.location;
-  const qParam = Array.isArray(sp?.q) ? sp.q[0] : sp?.q;
-  const sortParam = Array.isArray(sp?.sort) ? sp.sort[0] : sp?.sort;
-  const dirParam = Array.isArray(sp?.dir) ? sp.dir[0] : sp?.dir;
-  const pageSizeParam = Array.isArray(sp?.pageSize) ? sp.pageSize[0] : sp?.pageSize;
+  
+  // Parse search parameters for initial data
+  const page = Array.isArray(sp.page) 
+    ? parseInt(sp.page[0]) 
+    : parseInt(sp.page || '1');
+  
+  const pageSize = Array.isArray(sp.pageSize) 
+    ? parseInt(sp.pageSize[0]) 
+    : parseInt(sp.pageSize || '20');
+  
+  const sort: SortConfig = {
+    key: Array.isArray(sp.sort) 
+      ? (sp.sort[0] as any) || 'date'
+      : (sp.sort as any) || 'date',
+    dir: Array.isArray(sp.dir) 
+      ? (sp.dir[0] as 'asc' | 'desc') || 'desc'
+      : (sp.dir as 'asc' | 'desc') || 'desc',
+  };
+  
+  const score = Array.isArray(sp.score) 
+    ? sp.score.map(s => parseInt(s)).filter(n => !isNaN(n))
+    : sp.score ? [parseInt(sp.score)].filter(n => !isNaN(n)) : undefined;
+  
+  const location = Array.isArray(sp.location) 
+    ? sp.location
+    : sp.location ? [sp.location] : undefined;
+  
+  const q = Array.isArray(sp.q) 
+    ? sp.q[0] 
+    : sp.q;
 
-  const page = Number(pageParam);
-  const score = scoreParam ? scoreParam.split(',').map(Number) : undefined;
-  const location = locationParam ? locationParam.split(',') : undefined;
-  const q = qParam || undefined;
-  const pageSize = pageSizeParam ? Number(pageSizeParam) : 20;
-  const sort: SortConfig = sortParam && ['score', 'company', 'title', 'location', 'date'].includes(sortParam) 
-    ? { key: sortParam as 'score' | 'company' | 'title' | 'location' | 'date', dir: (dirParam as 'asc' | 'desc') || 'desc' }
-    : { key: 'date', dir: 'desc' };
-
-  let initial;
-  try {
-    initial = await getJobsFirstPageServer(
+  const initial = await getJobsFirstPageServer(
       { minScore: 1, score, location, q },
       sort,
       Number.isFinite(page) && page > 0 ? page : 1,
       pageSize
-    );
-  } catch (error) {
-    console.error('Failed to fetch initial jobs:', error);
-    // Provide fallback data to prevent SSR failure
-    initial = { data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 };
-  }
+  );
 
   return (
     <ProtectedRoute>
       <UrlSyncWrapper>
-        {/* Tilføj en container med max-width og centrering */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"> 
           <main className="space-y-6">
-            <div className="flex items-center justify-between">
-              <AnimatedHeader />
-            </div>
-
+            <AnimatedHeader />
             <StatsOverviewServer />
+            <SearchInput />
 
-            {/* Søgefelt */}
-            <div className="flex justify-center">
-              <div className="w-full max-w-2xl">
-                <SearchInput />
-              </div>
-            </div>
-
-            {/* TILFØJ EN VISUEL ADSKILLELSE HER */}
             <div className="border-t border-white/10 pt-6">
-              <JobTable initialData={initial} initialPageSize={pageSize} />
+              {/* Send kun initialData. jobStore og hooks håndterer resten */}
+              <JobTable initialData={initial} /> 
               <Pagination />
             </div>
 

@@ -4,9 +4,9 @@ import { motion } from 'framer-motion'
 import { useJobStore } from '@/store/jobStore'
 
 export default function ResultsCount() {
-  const { totalJobs, jobs } = useJobStore()
+  const { totalJobs, paginatedJobs } = useJobStore()
 
-  const currentJobsCount = jobs.length
+  const currentJobsCount = paginatedJobs.length
   const isFiltered = currentJobsCount !== totalJobs
 
   return (

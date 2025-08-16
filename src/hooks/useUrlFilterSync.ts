@@ -2,6 +2,8 @@
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useJobStore } from '@/store/jobStore';
+import { JobFilters } from '@/types/job';
+import { SortConfig } from '@/utils/sort';
 
 export function useUrlFilterSync() {
   const router = useRouter();
@@ -16,69 +18,77 @@ export function useUrlFilterSync() {
     setJobsPerPage, 
     sort, 
     setSort, 
-    isInitialized,
-    applyFilters 
+    setInitialData // Brug den nye funktion til at sætte SSR data
   } = useJobStore();
+  
   const isInitialLoad = useRef(true);
 
-  // 1. Initialiser fra URL ved første indlæsning
+  // 1. Initialiser fra URL kun én gang
   useEffect(() => {
-    if (isInitialLoad.current && !isInitialized) {
+    if (isInitialLoad.current) {
       const params = new URLSearchParams(searchParams.toString());
       
-      const restoredFilters = {
+      const restoredFilters: JobFilters = {
         q: params.get('q') || undefined,
-        score: params.get('score') ? params.get('score')!.split(',').map(Number) : undefined,
-        location: params.get('location') ? params.get('location')!.split(',').filter(s => s.trim()) : undefined,
-        dateFrom: params.get('from') || undefined,
-        dateTo: params.get('to') || undefined,
+        location: params.get('location') ? params.get('location')!.split(',') : undefined,
       };
-      
       const restoredPage = Number(params.get('page') || '1');
       const restoredPageSize = Number(params.get('pageSize') || '20');
-      const restoredSort = {
-        key: params.get('sort') || 'date',
+      const restoredSort: SortConfig = {
+        key: (params.get('sort') as any) || 'date',
         dir: (params.get('dir') as 'asc' | 'desc') || 'desc',
       };
 
-      // Valider sort key
-      const validKeys: Array<'score' | 'company' | 'title' | 'location' | 'date'> = ['score', 'company', 'title', 'location', 'date'];
-      const validSortKey = validKeys.includes(restoredSort.key as any) ? restoredSort.key as any : 'date';
-      
-      // Valider page size
-      const validPageSizes = [10, 20, 50, 100];
-      const validPageSize = validPageSizes.includes(restoredPageSize) ? restoredPageSize : 20;
+      console.log('🔍 useUrlFilterSync - Restoring state from URL:', {
+        filters: restoredFilters,
+        page: restoredPage,
+        pageSize: restoredPageSize,
+        sort: restoredSort
+      });
 
-      console.log('useUrlFilterSync: Restoring filters from URL:', restoredFilters);
+      // Sæt den initielle state uden at fetche data endnu
+      const currentState = useJobStore.getState();
       
-      setFilters(restoredFilters);
-      setCurrentPage(restoredPage);
-      setJobsPerPage(validPageSize);
-      setSort({ key: validSortKey, dir: restoredSort.dir });
+      // Tjek om state allerede er sat korrekt
+      const needsUpdate = 
+        JSON.stringify(currentState.filters) !== JSON.stringify(restoredFilters) ||
+        currentState.currentPage !== restoredPage ||
+        currentState.jobsPerPage !== restoredPageSize ||
+        JSON.stringify(currentState.sort) !== JSON.stringify(restoredSort);
       
-      // Anvend de gendannede filtre for at hente data
-      console.log('useUrlFilterSync: Applying filters:', restoredFilters);
-      applyFilters(restoredFilters);
+      if (needsUpdate) {
+        console.log('🔍 useUrlFilterSync - Updating state from URL');
+        useJobStore.setState({
+            filters: restoredFilters,
+            currentPage: restoredPage,
+            jobsPerPage: restoredPageSize,
+            sort: restoredSort,
+            isInitialized: true // Marker som initialiseret
+        });
+      } else {
+        console.log('🔍 useUrlFilterSync - State already correct, just marking as initialized');
+        useJobStore.setState({
+            isInitialized: true // Marker som initialiseret
+        });
+      }
       
       isInitialLoad.current = false;
+      
+      // IKKE kald fetchJobs her - data kommer allerede fra SSR via JobTable
+      // useJobStore.getState().fetchJobs();
     }
-  }, [searchParams, isInitialized, setFilters, setCurrentPage, setJobsPerPage, setSort, applyFilters]);
+  }, [searchParams]);
 
   // 2. Opdater URL, når state ændrer sig
   useEffect(() => {
-    if (isInitialLoad.current) return; // Vent på initialisering
+    if (isInitialLoad.current) return;
 
     const params = new URLSearchParams();
     
     if (filters.q) params.set('q', filters.q);
-    if (filters.score && Array.isArray(filters.score) && filters.score.length > 0) {
-      params.set('score', filters.score.join(','));
-    }
     if (filters.location && Array.isArray(filters.location) && filters.location.length > 0) {
       params.set('location', filters.location.join(','));
     }
-    if (filters.dateFrom) params.set('from', filters.dateFrom);
-    if (filters.dateTo) params.set('to', filters.dateTo);
     if (currentPage > 1) params.set('page', String(currentPage));
     if (jobsPerPage !== 20) params.set('pageSize', String(jobsPerPage));
     if (sort.key !== 'date' || sort.dir !== 'desc') {
@@ -88,8 +98,8 @@ export function useUrlFilterSync() {
 
     const queryString = params.toString();
     const newPath = queryString ? `${pathname}?${queryString}` : pathname;
-
-    // Brug 'replace' for at undgå at tilføje til browserhistorikken
+    
+    // Brug 'replace' for at undgå unødvendige browserhistorik-entries
     router.replace(newPath, { scroll: false });
 
   }, [filters, currentPage, jobsPerPage, sort, pathname, router]);

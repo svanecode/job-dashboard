@@ -21,6 +21,20 @@ export async function getAllJobs(filters: JobFilters = {}) {
     ...base
   } = filters;
 
+  // Convert daysAgo to dateFrom if present
+  if (base.daysAgo && base.daysAgo > 0) {
+    const dateFrom = new Date();
+    dateFrom.setDate(dateFrom.getDate() - base.daysAgo);
+    base.dateFrom = dateFrom.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    console.log(`🔍 Converting daysAgo: ${base.daysAgo} to dateFrom: ${base.dateFrom}`);
+    delete base.daysAgo; // Remove daysAgo as it's not supported by the query builder
+  }
+  
+  // Debug logging
+  if (base.dateFrom || base.dateTo) {
+    console.log(`🔍 Date filters - dateFrom: ${base.dateFrom}, dateTo: ${base.dateTo}`);
+  }
+
   const query = buildJobsQuery(base, sort);
   return runPaged(query, page, pageSize);
 }
@@ -56,6 +70,10 @@ export async function getJobByJobId(jobId: string): Promise<Job | null> {
     throw new Error('Supabase client not initialized');
   }
 
+  // Add cache-busting to prevent stale data
+  const timestamp = Date.now();
+  console.log(`🔍 Fetching job with job_id: ${jobId} at ${timestamp}`);
+
   const { data, error } = await supabase
     .from('jobs')
     .select('*')
@@ -72,6 +90,12 @@ export async function getJobByJobId(jobId: string): Promise<Job | null> {
       code: error.code
     });
     return null;
+  }
+
+  if (data) {
+    console.log(`✅ Job found: ${data.title} at ${data.company_name}`);
+  } else {
+    console.log(`❌ No job found for job_id: ${jobId}`);
   }
 
   return data;

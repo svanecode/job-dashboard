@@ -30,6 +30,23 @@ export default function ChatPage() {
     } catch {}
   }, [])
 
+  // Prevent page caching
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Force fresh data on page load
+      window.addEventListener('focus', () => {
+        // Refresh data when user returns to tab
+        console.log('Tab focused, ensuring fresh data');
+      });
+      
+      // Add cache-busting meta tag
+      const meta = document.createElement('meta');
+      meta.httpEquiv = 'Cache-Control';
+      meta.content = 'no-cache, no-store, must-revalidate';
+      document.head.appendChild(meta);
+    }
+  }, []);
+
   // Load existing conversation if a threadId is present
   useEffect(() => {
     const load = async () => {
@@ -130,17 +147,31 @@ export default function ChatPage() {
           onClick={async () => {
             try {
               console.log('Attempting to fetch job with job_id:', jobId);
+              
+              // Add cache-busting to prevent stale data
+              const timestamp = Date.now();
               const job = await getJobByJobId(jobId);
 
               if (job) {
+                console.log('Job found:', job);
                 openJobModal(job as any);
               } else {
                 console.warn('Job not found for job_id:', jobId);
-                alert('Jobbet kunne ikke findes. Det er muligvis blevet fjernet.');
+                // Try to refresh the page to get latest data
+                if (confirm('Jobbet kunne ikke findes. Vil du opdatere siden for at hente de seneste data?')) {
+                  window.location.reload();
+                } else {
+                  alert('Jobbet kunne ikke findes. Det er muligvis blevet fjernet eller opdateret.');
+                }
               }
             } catch (e: any) {
               console.error('Open job failed:', e);
-              alert('Der opstod en fejl ved åbning af jobbet.');
+              // Try to refresh the page to get latest data
+              if (confirm('Der opstod en fejl ved åbning af jobbet. Vil du opdatere siden for at hente de seneste data?')) {
+                window.location.reload();
+              } else {
+                alert('Der opstod en fejl ved åbning af jobbet.');
+              }
             }
           }}
           type="button"

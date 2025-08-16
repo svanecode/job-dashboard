@@ -1,17 +1,18 @@
 'use client';
 
 import { useJobStore } from '@/store/jobStore';
-import { Loader2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 export default function SearchInput() {
-  const { filters, setFilters, applyFilters, isLoading } = useJobStore();
+  const { filters, setFilters } = useJobStore();
   const [localQuery, setLocalQuery] = useState(filters.q || '');
 
   // Debounce søgningen - vent 500ms efter sidste tastetrykning
   useEffect(() => {
     const timer = setTimeout(() => {
       if (localQuery !== filters.q) {
+        // For fritekst-søgning bruger vi setFilters direkte (ingen "Anvend filtre" knap)
         setFilters({ q: localQuery });
       }
     }, 500);
@@ -25,9 +26,9 @@ export default function SearchInput() {
 
   const handleClearSearch = useCallback(() => {
     setLocalQuery('');
+    // For fritekst-søgning bruger vi setFilters direkte
     setFilters({ q: '' });
-    applyFilters();
-  }, [setFilters, applyFilters]);
+  }, [setFilters]);
 
   return (
     // Wrap i en sektion for at adskille den visuelt
@@ -40,11 +41,7 @@ export default function SearchInput() {
         {/* Søgefelt */}
         <div className="relative">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 text-slate-400 animate-spin" />
-            ) : (
-              <div className="h-5 w-5 text-slate-400" />
-            )}
+            <div className="h-5 w-5 text-slate-400" />
           </div>
           <input
             type="text"
@@ -52,22 +49,18 @@ export default function SearchInput() {
             onChange={handleInputChange}
             placeholder="Søg i titel, firma, beskrivelse, lokation..."
             className="block w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-white placeholder-slate-400 focus:border-kpmg-500 focus:ring-kpmg-500 sm:text-sm transition-colors duration-200"
-            disabled={isLoading}
           />
           {localQuery && (
             <button
               type="button"
               onClick={handleClearSearch}
               className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white transition-colors duration-200"
-              disabled={isLoading}
               title="Ryd søgning"
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
-
-
       </div>
     </div>
   );

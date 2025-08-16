@@ -39,15 +39,6 @@ export default function MobileFilterBar() {
       const loc = Array.isArray(filters.location) ? filters.location.join(', ') : filters.location
       if (loc) active.push(loc)
     }
-    if (filters.score !== undefined && filters.score !== null && filters.score !== ('' as any)) {
-      const values = Array.isArray(filters.score) ? filters.score : [filters.score]
-      const unique = Array.from(new Set(values.filter((v) => typeof v === 'number')))
-      if (unique.length > 0) active.push(`Score ${unique.join(', ')}`)
-    }
-    if (filters.daysAgo) {
-      const dayLabels = { 1: '24t', 3: '3d', 7: '7d', 14: '14d', 30: '30d' }
-      active.push(`Seneste ${dayLabels[filters.daysAgo as keyof typeof dayLabels]}`)
-    }
     
     return active.slice(0, 3) // Max 3 chips
   }
@@ -217,19 +208,6 @@ export default function MobileFilterBar() {
               {/* Content */}
               <div className="px-4 py-4 overflow-y-auto max-h-[calc(60vh-140px)]">
                 <div className="grid gap-2">
-                  {/* Score */}
-                  <button
-                    onClick={() => handleSortChange('score', sort.key === 'score' && sort.dir === 'desc' ? 'asc' : 'desc')}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none ${
-                      sort.key === 'score' ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5'
-                    }`}
-                  >
-                    <span className="text-white">Score</span>
-                    {sort.key === 'score' && (
-                      <span className="text-slate-300 text-sm">{sort.dir === 'desc' ? 'Akut-Relevant-Lav' : 'Lav-Relevant-Akut'}</span>
-                    )}
-                  </button>
-
                   {/* Company */}
                   <button
                     onClick={() => handleSortChange('company', sort.key === 'company' && sort.dir === 'desc' ? 'asc' : 'desc')}

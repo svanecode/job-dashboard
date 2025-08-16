@@ -17,55 +17,74 @@ export async function getJobsFirstPageServer(
       .from('jobs')
       .select(SELECT_COLUMNS, { count: 'exact' })
       .is('deleted_at', null);
-
-    const minScore = filters.minScore ?? 1;
-    if (minScore > 0) q = q.gte('cfo_score', minScore);
-    if (filters.score?.length) q = q.in('cfo_score', filters.score);
-    if (filters.location?.length) {
-      // RETTELSE: Brug .filter() med 'cs' (contains) på 'region'-kolonnen.
-      // Dette matcher nu logikken i jobQuery.ts.
-      q = q.filter('region', 'cs', `{${filters.location.join(',')}}`);
-    }
-    if (filters.dateFrom) q = q.gte('publication_date', filters.dateFrom);
-    if (filters.dateTo) q = q.lte('publication_date', filters.dateTo);
+      
+    // Søgning
     if (filters.q?.trim()) {
-      const term = filters.q.trim();
-      q = q.or(`title.ilike.%${term}%,company.ilike.%${term}%,description.ilike.%${term}%,location.ilike.%${term}%`);
+        const term = filters.q.trim();
+        q = q.or(`title.ilike.%${term}%,company.ilike.%${term}%,description.ilike.%${term}%,location.ilike.%${term}%`);
     }
 
-    if (sort.key === 'score') {
-      q = q.order('cfo_score', { ascending: sort.dir === 'asc' })
-           .order('publication_date', { ascending: false });
-    } else if (sort.key === 'date') {
-      q = q.order('publication_date', { ascending: sort.dir === 'asc' });
+    // Score filter
+    if (filters.score?.length) {
+        q = q.in('cfo_score', filters.score);
     } else {
-      const field =
-        sort.key === 'company' ? 'company' :
-        sort.key === 'title' ? 'title' :
-        sort.key === 'location' ? 'location' : 'publication_date';
-      q = q.order(field, { ascending: sort.dir === 'asc' });
+        q = q.gte('cfo_score', filters.minScore ?? 1);
+    }
+    
+    // Location (Region) filter - RETTET til 'ov'
+    if (filters.location?.length) {
+      q = q.filter('region', 'ov', `{${filters.location.join(',')}}`);
+    }
+    
+    // Date filters
+    if (filters.dateFrom) {
+        q = q.gte('publication_date', filters.dateFrom);
+    }
+    if (filters.dateTo) {
+        q = q.lte('publication_date', filters.dateTo);
+    }
+    if (filters.daysAgo) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - filters.daysAgo);
+        q = q.gte('publication_date', cutoffDate.toISOString().split('T')[0]);
     }
 
+    // Sorting
+    if (sort.key === 'score') {
+        q = q.order('cfo_score', { ascending: sort.dir === 'asc' });
+    } else if (sort.key === 'date') {
+        q = q.order('publication_date', { ascending: sort.dir === 'asc' });
+    } else if (sort.key === 'company') {
+        q = q.order('company', { ascending: sort.dir === 'asc' });
+    } else if (sort.key === 'title') {
+        q = q.order('title', { ascending: sort.dir === 'asc' });
+    } else if (sort.key === 'location') {
+        q = q.order('location', { ascending: sort.dir === 'asc' });
+    }
+
+    // Pagination
     const from = (page - 1) * pageSize;
-    const to   = from + pageSize - 1;
+    const to = from + pageSize - 1;
+    q = q.range(from, to);
 
-    const { data, count, error } = await q.range(from, to);
+    const { data, error, count } = await q;
+
     if (error) {
-      console.error('SSR jobs error:', error);
-      return { data: [], total: 0, page, pageSize, totalPages: 0 };
+        console.error('Error fetching jobs:', error);
+        throw error;
     }
 
-    const total = count ?? 0;
+    const totalPages = Math.ceil((count || 0) / pageSize);
+
     return {
-      data: data ?? [],
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / (pageSize || 1)),
+        data: data || [],
+        total: count || 0,
+        totalPages,
+        page,
+        pageSize,
     };
   } catch (error) {
-    console.error('SSR jobs connection error:', error);
-    // Return empty data on connection errors to prevent SSR failures
-    return { data: [], total: 0, page, pageSize, totalPages: 0 };
+    console.error('Error in getJobsFirstPageServer:', error);
+    throw error;
   }
 } 

@@ -10,8 +10,9 @@ import CardRow from './CardRow'
 import VirtualJobList from './VirtualJobList'
 import ScoreBars from './ScoreBars'
 import JobSheet from './JobSheet'
-import FilterBar from './FilterBar'
+
 import FilterPopupButton from './FilterPopupButton'
+import FilterBarDesktop from './FilterBarDesktop'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { savedJobsService } from '@/services/savedJobsService'
@@ -70,7 +71,7 @@ type JobTableProps = {
 };
 
 export default function JobTable({ initialData, initialPageSize }: JobTableProps = {}) {
-  const { paginatedJobs, openJobModal, sort, setSort, isLoading, setInitialData, rowDensity, currentPage, jobsPerPage, setJobsPerPage } = useJobStore()
+  const { paginatedJobs, openJobModal, sort, setSort, setInitialData, rowDensity, currentPage, jobsPerPage, setJobsPerPage, resetFilters } = useJobStore()
   const { user, initialized } = useAuth()
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -78,27 +79,26 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
   const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set())
 
-  const hasInitializedFromSSR = useRef(false)
-
-
 
   // Handle initial data from SSR whenever it changes (e.g., URL page/filter changed)
   useEffect(() => {
     if (initialData) {
-      setInitialData(initialData)
-      console.log('Using initial data from SSR:', { page: initialData.page, count: initialData.data.length })
+      console.log('JobTable: Setting SSR data from server:', { 
+        page: initialData.page, 
+        count: initialData.data.length,
+        pageSize: initialData.pageSize 
+      });
+      setInitialData(initialData);
     }
   }, [initialData, setInitialData])
 
-  // Initialize jobsPerPage from SSR if provided, but only once per component lifecycle
+  // Initialize jobsPerPage from SSR if provided
   useEffect(() => {
     console.log('JobTable: initialPageSize:', initialPageSize, 'jobsPerPage:', jobsPerPage)
     
-    // Only initialize once per component lifecycle
-    if (initialPageSize && !hasInitializedFromSSR.current && jobsPerPage === 20) {
+    if (initialPageSize && jobsPerPage === 20) {
       console.log('JobTable: Setting jobsPerPage to:', initialPageSize)
       setJobsPerPage(initialPageSize)
-      hasInitializedFromSSR.current = true
     }
   }, [initialPageSize, jobsPerPage, setJobsPerPage])
 
@@ -226,30 +226,48 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
 
 
 
-  if (paginatedJobs.length === 0 && !isLoading) {
+  if (paginatedJobs.length === 0) {
     return (
-      <div className="card p-8 text-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="size-16 rounded-full bg-white/5 flex items-center justify-center">
-            <Building2 className="size-8 text-slate-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-medium text-white mb-2">Ingen jobs fundet</h3>
-            <p className="text-slate-400">Prøv at ændre dine filtre eller søgekriterier</p>
+      <>
+              {/* Desktop filter bar */}
+        <div className="hidden md:block">
+          <FilterBarDesktop />
+        </div>
+        
+        {/* Vis kun filter-knappen på mobil */}
+        <div className="md:hidden flex items-center justify-end mb-4">
+          <FilterPopupButton />
+        </div>
+
+        <div className="card p-8 text-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="size-16 rounded-full bg-white/5 flex items-center justify-center">
+              <Building2 className="size-8 text-slate-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-white mb-2">Ingen jobs fundet</h3>
+              <p className="text-slate-400">Prøv at ændre dine filtre eller søgekriterier</p>
+              <button 
+                onClick={() => resetFilters()} 
+                className="mt-4 px-4 py-2 bg-kpmg-500 hover:bg-kpmg-700 text-white rounded-lg transition-colors"
+              >
+                Nulstil filtre
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     )
   }
 
   return (
     <>
-      {/* NYT: Vis den fulde filter-bjælke på desktop */}
+      {/* Desktop filter bar */}
       <div className="hidden md:block">
-        <FilterBar />
+        <FilterBarDesktop />
       </div>
 
-      {/* NYT: Vis kun filter-knappen på mobil */}
+      {/* Vis kun filter-knappen på mobil */}
       <div className="md:hidden flex items-center justify-end mb-4">
         <FilterPopupButton />
       </div>
@@ -459,22 +477,7 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
 
       {/* Mobile Card List - Hidden on desktop */}
       <div className="lg:hidden pb-24 with-fab-bottom overflow-hidden w-full max-w-full">
-        {isLoading ? (
-          // Skeleton loading state
-          <div className="grid gap-4 w-full max-w-full">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="w-full max-w-full"
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                  <SkeletonCard />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : paginatedJobs.length > 250 ? (
+        {paginatedJobs.length > 250 ? (
           // Virtual list for large datasets
           <div className="h-[calc(100vh-300px)] overflow-hidden w-full max-w-full">
             <VirtualJobList 

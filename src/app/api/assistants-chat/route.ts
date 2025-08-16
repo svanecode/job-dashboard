@@ -156,7 +156,14 @@ export async function POST(request: NextRequest) {
     // Rens teksten for kildehenvisninger med et regulært udtryk
     const cleanText = text.replace(/【[^】]+】/g, '').trim();
 
-    return NextResponse.json({ success: true, threadId, response: cleanText })
+    const response = NextResponse.json({ success: true, threadId, response: cleanText })
+    
+    // Prevent caching of job data
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    
+    return response
   } catch (error) {
     console.error('assistants-chat error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -172,7 +179,15 @@ export async function GET(request: NextRequest) {
     }
     const msgs = await listMessages(threadId)
     const normalized = normalizeMessages(msgs)
-    return NextResponse.json({ success: true, threadId, messages: normalized })
+    
+    const response = NextResponse.json({ success: true, threadId, messages: normalized })
+    
+    // Prevent caching of chat history
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    
+    return response
   } catch (error) {
     console.error('assistants-chat GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

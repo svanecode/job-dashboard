@@ -81,38 +81,39 @@ export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData
 
       <div className="space-y-3 md:space-y-4">
         {(insight.items || []).map((item) => (
-          <div key={item.id} className="rounded-xl bg-white/5 border border-white/10 p-3 md:p-4">
-            <h3 className="text-white font-semibold leading-tight">{item.company}</h3>
-            <p className="text-slate-300 text-sm md:text-base mt-1 leading-relaxed">{item.summary}</p>
+          <div key={item.id} className="rounded-xl bg-transparent border-t border-white/10 p-4 md:p-6">
+            {/* Gør firmanavnet større og mere fremtrædende */}
+            <h3 className="text-lg font-semibold text-white leading-tight mb-2">{item.company}</h3>
+            <p className="text-slate-300 text-base mt-1 leading-relaxed">{item.summary}</p>
 
             {item.highlights && item.highlights.length > 0 && (
-              <ul className="text-slate-300 text-sm md:text-base mt-3 space-y-1.5 md:space-y-2">
+              // Gør job-links mere "klikkebare"
+              <div className="mt-4 space-y-2">
                 {item.highlights.map((text, idx) => {
                   const jobId = item.job_ids?.[idx]
                   const isLoading = loadingJobId === jobId
                   return (
-                    <li key={idx}>
+                    <div key={idx}>
                       {jobId ? (
                         <motion.button
                           type="button"
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => handleOpenJobById(jobId)}
-                          className="w-full text-left p-2.5 md:p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"
+                          className="w-full text-left p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-colors"
                           disabled={isLoading}
                           title="Åbn jobdetaljer"
                         >
-                          <span className="underline decoration-dotted underline-offset-2">
-                            {isLoading ? 'Åbner…' : text}
-                          </span>
+                          {isLoading ? 'Åbner...' : text}
                         </motion.button>
                       ) : (
-                        <span className="list-disc list-inside inline-block">{text}</span>
+                        // Vis highlights uden link mere simpelt
+                        <p className="text-slate-400 text-sm pl-4 border-l-2 border-white/10">{text}</p>
                       )}
-                    </li>
+                    </div>
                   )
                 })}
-              </ul>
+              </div>
             )}
 
             {/* Fallback: if there are mapped jobs but no matching highlight indices, show quick chips */}

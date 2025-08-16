@@ -22,16 +22,8 @@ export interface JobFilters {
   q?: string;
   searchText?: string; // Legacy field for backward compatibility
   
-  // Score filters (can be array for multiple scores)
-  score?: number | number[];
-  
   // Location filters (can be array for multiple locations)
   location?: string | string[];
-  
-  // Date filters
-  dateFrom?: string; // 'YYYY-MM-DD'
-  dateTo?: string;   // 'YYYY-MM-DD'
-  daysAgo?: number;  // Legacy field for backward compatibility
   
   // Pagination
   page?: number;

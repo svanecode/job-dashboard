@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MapPin, Filter, RotateCcw, Calendar, Check } from 'lucide-react'
+import { X, MapPin, Filter, RotateCcw, Check } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 
 interface FilterSheetProps {
@@ -86,20 +86,6 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
     const current = Array.isArray(currentFilters.location) ? currentFilters.location as string[] : (currentFilters.location ? [currentFilters.location as string] : [])
     const next = current.includes(region) ? current.filter(r => r !== region) : [...current, region]
     setStagedFilters({ ...currentFilters, location: next.length ? next : undefined })
-  }
-
-  const scores = [3,2,1]
-  const toggleScore = (score: number) => {
-    const currentFilters = stagedFilters || filters
-    const current = Array.isArray(currentFilters.score) ? currentFilters.score as number[] : (currentFilters.score !== undefined ? [currentFilters.score as number] : [])
-    const next = current.includes(score) ? current.filter(s => s !== score) : [...current, score]
-    setStagedFilters({ ...currentFilters, score: next.length ? next : undefined })
-  }
-
-  const handleDaysChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const days = e.target.value === '' ? undefined : parseInt(e.target.value)
-    const currentFilters = stagedFilters || filters
-    setStagedFilters({ ...currentFilters, daysAgo: days })
   }
 
   const handleApply = () => {
@@ -199,49 +185,6 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                       })}
                     </div>
                   </div>
-
-                  {/* Scores multi-select */}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><Filter className="size-4" /> Scores</div>
-                    <div className="flex flex-wrap gap-2">
-                      {scores.map((s) => {
-                        const currentFilters = stagedFilters || filters
-                        const active = Array.isArray(currentFilters.score) ? (currentFilters.score as number[]).includes(s) : currentFilters.score === s
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => toggleScore(s)}
-                            className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-green-500/15 text-white border-green-400/30 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
-                          >
-                            {active && <Check className="size-3 inline mr-1" />} Score {s}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Date Filter */}
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                    <select
-                      value={(stagedFilters || filters).daysAgo?.toString() || ''}
-                      onChange={handleDaysChange}
-                      className="glass-input pl-10 w-full appearance-none cursor-pointer tap-target"
-                    >
-                      <option value="">Alle datoer</option>
-                      <option value="1">Seneste 24 timer</option>
-                      <option value="3">Seneste 3 dage</option>
-                      <option value="7">Seneste 7 dage</option>
-                      <option value="14">Seneste 14 dage</option>
-                      <option value="30">Seneste 30 dage</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -309,49 +252,6 @@ export default function FilterSheet({ open, onClose }: FilterSheetProps) {
                             </button>
                           )
                         })}
-                      </div>
-                    </div>
-
-                    {/* Scores multi-select */}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-2 text-[12px] text-slate-400 font-semibold tracking-wide uppercase"><Filter className="size-4" /> Scores</div>
-                      <div className="flex flex-wrap gap-2">
-                        {scores.map((s) => {
-                          const currentFilters = stagedFilters || filters
-                          const active = Array.isArray(currentFilters.score) ? (currentFilters.score as number[]).includes(s) : currentFilters.score === s
-                          return (
-                            <button
-                              key={s}
-                              type="button"
-                              onClick={() => toggleScore(s)}
-                              className={`h-10 px-3 rounded-[12px] text-sm tracking-wide border transition-all duration-150 flex items-center ${active ? 'bg-green-500/15 text-white border-green-400/30 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]' : 'text-slate-300 border-white/10 hover:bg-white/8 hover:border-white/20'}`}
-                            >
-                              {active && <Check className="size-3 inline mr-1" />} Score {s}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Date Filter */}
-                    <div className="relative max-w-sm">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                      <select
-                        value={(stagedFilters || filters).daysAgo?.toString() || ''}
-                        onChange={handleDaysChange}
-                        className="glass-input pl-10 w-full appearance-none cursor-pointer tap-target"
-                      >
-                        <option value="">Alle datoer</option>
-                        <option value="1">Seneste 24 timer</option>
-                        <option value="3">Seneste 3 dage</option>
-                        <option value="7">Seneste 7 dage</option>
-                        <option value="14">Seneste 14 dage</option>
-                        <option value="30">Seneste 30 dage</option>
-                      </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <svg className="size-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
                       </div>
                     </div>
                   </div>

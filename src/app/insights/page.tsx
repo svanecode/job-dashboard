@@ -42,13 +42,17 @@ export default async function InsightsPage({ searchParams }: { searchParams?: { 
 
   return (
     <main className="container-mobile md:container mx-auto py-6 md:py-10 space-y-6 md:space-y-8">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl tracking-tight text-white leading-tight text-balance">Ugens indsigter</h1>
-          <p className="text-slate-400 text-base md:text-lg max-w-2xl">Læse korte, skarpe indsigter om CFO-markedet – opdateret hver uge.</p>
+      {/* NYT: Redesignet sidehoved-sektion */}
+      <div className="text-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-8 md:p-12 mb-8">
+        <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl tracking-tight text-white leading-tight text-balance">
+          Ugens indsigter
+        </h1>
+        <p className="mt-4 text-slate-400 text-base md:text-lg max-w-2xl mx-auto">
+          Læs korte, skarpe indsigter om CFO-markedet – opdateret hver uge.
+        </p>
+        <div className="mt-6 flex justify-center">
+          <SubscribeForm />
         </div>
-        <SubscribeForm />
       </div>
 
       {/* Mobil: arkiv-åbner */}
@@ -57,9 +61,11 @@ export default async function InsightsPage({ searchParams }: { searchParams?: { 
       {/* Content: venstresidet arkiv + højresidet detaljer */}
       <section className="md:grid md:grid-cols-[280px_1fr] md:gap-6 lg:gap-8">
         {/* Venstre: Scrollbart arkiv */}
-        <aside className="hidden md:block">
+        <aside className="hidden md:block sticky top-24 self-start">
+          {/* NYT: Tilføj en overskrift til arkivet */}
+          <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3 px-3">Arkiv</h3>
           <nav className="rounded-xl border border-white/10 bg-white/5 p-2">
-            <div className="sticky top-24 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="max-h-[70vh] overflow-y-auto pr-1">
               <ul className="space-y-1">
                 {(archive || []).map((it: any) => {
                   const isActive = selectedInsight?.id === it.id
@@ -72,8 +78,9 @@ export default async function InsightsPage({ searchParams }: { searchParams?: { 
                         className={
                           `block rounded-lg px-3 py-2 border transition-colors ` +
                           (isActive
-                            ? 'bg-white/10 border-white/20 text-white'
-                            : 'bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white')
+                            // NYT: Tydeligere styling for aktivt element
+                            ? 'bg-kpmg-500/20 border-kpmg-500/30 text-white'
+                            : 'bg-transparent border-transparent text-slate-300 hover:bg-white/5 hover:text-white')
                         }
                       >
                         <div className="text-xs text-slate-400">Uge {week}, {it.week_year} • {dateStr}</div>
@@ -116,12 +123,12 @@ function InsightCard({ title, date, excerpt }: { title: string; date: string; ex
 
 function SubscribeForm() {
   return (
-    <form className="hidden md:flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl p-1.5"
+    <form className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl p-1.5 max-w-md w-full"
       action="/api/insights/subscribe" method="post">
-      <input type="email" name="email" required placeholder="Din e-mail"
-        className="bg-transparent outline-none px-3 py-2 text-sm text-white placeholder:text-slate-400 w-64"
+      <input type="email" name="email" required placeholder="Din e-mail..."
+        className="bg-transparent outline-none px-3 py-2 text-sm text-white placeholder:text-slate-400 w-full flex-1"
       />
-      <button type="submit" className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-500">
+      <button type="submit" className="px-4 py-2 rounded-lg bg-kpmg-500 text-white text-sm font-medium hover:bg-kpmg-700 transition-colors">
         Tilmeld
       </button>
     </form>
