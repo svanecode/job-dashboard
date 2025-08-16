@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
@@ -13,41 +13,69 @@ import ScoreBadge from '@/components/ScoreBadge'
 import JobModal from '@/components/JobModal'
 
 export default function ProfilePage() {
-  const { user, loading, initialized } = useAuth()
+  // authLoading: Venter på at vide, om brugeren er logget ind.
+  // jobsLoading: Venter på at hente jobs.
+  const { user, loading: authLoading, initialized } = useAuth()
   const router = useRouter()
   const { openJobModal } = useJobStore()
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([])
   const [comments, setComments] = useState<JobComment[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [jobsLoading, setJobsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'jobs' | 'comments'>('jobs')
   const [scoreFilter, setScoreFilter] = useState<number | null>(null)
+  const [jobStatusFilter, setJobStatusFilter] = useState<'active' | 'expired'>('active')
   const [sortKey, setSortKey] = useState<'saved_at' | 'score' | 'date'>('saved_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
-  useEffect(() => {
-    if (!initialized || loading) return
+  // Gør datahentning til en 'useCallback' for stabilitet
+  const loadUserData = useCallback(async () => {
+    // Kør kun, hvis vi har en bruger.
     if (!user) {
-      router.push('/login')
+      setSavedJobs([]) // Ryd listen, hvis brugeren logger ud
+      setComments([])
+      setJobsLoading(false)
       return
     }
-    loadUserData()
-  }, [user, loading, initialized, router])
 
-  const loadUserData = async () => {
+    console.log(`🔍 Henter brugerdata for bruger ${user.id}, job status: ${jobStatusFilter}`);
+    setJobsLoading(true)
     try {
-      setIsLoading(true)
       const [jobsData, commentsData] = await Promise.all([
-        savedJobsService.getSavedJobs(),
+        savedJobsService.getSavedJobs(jobStatusFilter === 'expired'),
         savedJobsService.getUserComments()
       ])
       setSavedJobs(jobsData)
       setComments(commentsData)
+      // Reset score filter when loading new data
+      setScoreFilter(null)
     } catch (error) {
       console.error('Error loading user data:', error)
+      setSavedJobs([]) // Ryd listen ved fejl
+      setComments([])
     } finally {
-      setIsLoading(false)
+      // Sørg ALTID for at stoppe loading-indikatoren
+      setJobsLoading(false)
     }
-  }
+  }, [user, jobStatusFilter])
+
+  // Denne useEffect reagerer nu på, at bruger-statussen er afklaret
+  useEffect(() => {
+    // Vent med at hente data, indtil vi ved, om en bruger er logget ind.
+    if (!authLoading && initialized) {
+      if (!user) {
+        router.push('/login')
+        return
+      }
+      loadUserData()
+    }
+  }, [authLoading, initialized, user, router, loadUserData])
+
+  // Reload data when job status filter changes
+  useEffect(() => {
+    if (user && !jobsLoading) {
+      loadUserData()
+    }
+  }, [jobStatusFilter, loadUserData])
 
   const handleDeleteSavedJob = async (id: string) => {
     try {
@@ -72,9 +100,12 @@ export default function ProfilePage() {
   // Derived: filtered + sorted saved jobs
   const visibleSavedJobs = useMemo(() => {
     let list = savedJobs
+    
+    // Apply score filter
     if (scoreFilter !== null) {
       list = list.filter(j => j.score === scoreFilter)
     }
+    
     const sorted = [...list].sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1
       switch (sortKey) {
@@ -84,7 +115,7 @@ export default function ProfilePage() {
           return dir * (new Date(a.publication_date).getTime() - new Date(b.publication_date).getTime())
         case 'saved_at':
         default:
-          return dir * (new Date(a.saved_at).getTime() - new Date(b.saved_at).getTime())
+          return dir * (new Date(a.saved_at).getTime() - new Date(b.publication_date).getTime())
       }
     })
     return sorted
@@ -116,7 +147,8 @@ export default function ProfilePage() {
       cfo_score: savedJob.score,
       scored_at: null,
       job_info: null,
-      last_seen: null
+      last_seen: null,
+      region: null
     }
     
     openJobModal(job)
@@ -143,13 +175,28 @@ export default function ProfilePage() {
     openJobModal(job as any)
   }
 
-  if (!initialized || (loading && !user)) {
+  // Viser en simpel loader, mens vi tjekker login-status
+  if (authLoading || !initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     )
   }
+
+  // Viser en pænere loader, mens jobs hentes
+  const renderLoadingSkeleton = () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white/5 rounded-xl p-6 border border-white/10 animate-pulse">
+          <div className="h-6 bg-white/10 rounded mb-4 w-3/4"></div>
+          <div className="h-4 bg-white/10 rounded mb-2 w-1/2"></div>
+          <div className="h-4 bg-white/10 rounded w-2/3"></div>
+        </div>
+      ))}
+    </div>
+  )
+
   if (!user) return null
 
   return (
@@ -234,16 +281,8 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="size-8 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-400">Indlæser bruger...</p>
-          </div>
-        ) : isLoading ? (
-          <div className="text-center py-12">
-            <div className="size-8 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-400">Indlæser...</p>
-          </div>
+        {jobsLoading ? (
+          renderLoadingSkeleton()
         ) : (
           <>
             {/* Saved Jobs Tab */}
@@ -252,6 +291,20 @@ export default function ProfilePage() {
                 {/* Quick filters + sort */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
+                    {/* Job Status Filter */}
+                    <button
+                      onClick={() => setJobStatusFilter(jobStatusFilter === 'active' ? 'expired' : 'active')}
+                      className={`px-3 py-1.5 rounded-lg text-sm border transition ${
+                        jobStatusFilter === 'expired'
+                          ? 'bg-orange-500 text-white border-orange-500/40' 
+                          : 'text-slate-300 border-white/10 hover:bg-white/5'
+                      }`}
+                      title={jobStatusFilter === 'active' ? 'Klik for at inkludere udløbede jobs' : 'Klik for kun at vise aktuelle jobs'}
+                    >
+                      {jobStatusFilter === 'active' ? 'Inkluder udløbede' : 'Udløbede inkluderet'}
+                    </button>
+                    
+                    {/* Score Filter */}
                     {[null, 3, 2, 1].map((s, idx) => (
                       <button
                         key={idx}
@@ -266,6 +319,20 @@ export default function ProfilePage() {
                         {s === null ? 'Alle' : `Score ${s}`}
                       </button>
                     ))}
+                    
+                    {/* Reset Filters Button */}
+                    {(jobStatusFilter !== 'active' || scoreFilter !== null) && (
+                      <button
+                        onClick={() => {
+                          setJobStatusFilter('active')
+                          setScoreFilter(null)
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-sm border border-white/10 text-slate-300 hover:bg-white/5 hover:text-white transition"
+                        title="Nulstil alle filtre"
+                      >
+                        Nulstil
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-1" onClick={(e)=>e.stopPropagation()}>
                     <button

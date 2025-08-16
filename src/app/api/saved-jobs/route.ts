@@ -48,8 +48,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all saved jobs for the user
+    const url = new URL(request.url)
+    const includeExpired = url.searchParams.get('includeExpired') === 'true'
+    
     const { data: savedJobs, error } = await supabase
-      .rpc('get_saved_jobs', { user_uuid: user.id })
+      .rpc('get_saved_jobs', { 
+        user_uuid: user.id,
+        include_expired: includeExpired
+      })
 
     if (error) {
       console.error('Error fetching saved jobs:', error)

@@ -1,8 +1,8 @@
-import { supabaseServer } from '@/lib/supabase/server';
-import type { BaseFilters, SortConfig } from './jobQuery';
+// src/services/jobsServer.ts
 
-// Select all columns to avoid column-mismatch errors across environments (e.g., when `region` is present)
-const SELECT_COLUMNS = '*';
+import { supabaseServer } from '@/lib/supabase/server';
+// Sørg for at dine type-definitioner er importeret korrekt
+import type { BaseFilters, SortConfig } from './jobQuery'; 
 
 export async function getJobsFirstPageServer(
   filters: BaseFilters = {},
@@ -12,79 +12,123 @@ export async function getJobsFirstPageServer(
 ) {
   try {
     const sb = await supabaseServer();
+    const offset = (page - 1) * pageSize;
 
-    let q = sb
+    let query = sb
       .from('jobs')
-      .select(SELECT_COLUMNS, { count: 'exact' })
-      .is('deleted_at', null);
-      
-    // Søgning
-    if (filters.q?.trim()) {
-        const term = filters.q.trim();
-        q = q.or(`title.ilike.%${term}%,company.ilike.%${term}%,description.ilike.%${term}%,location.ilike.%${term}%`);
+      .select('*', { count: 'exact' });
+
+    // 1. Statusfilter (Aktuelle vs. Udløbne)
+    // Denne logik matcher nu din database-struktur perfekt.
+    if (filters.jobStatus === 'expired') {
+      // For "Udløbne" jobs, find dem hvor 'deleted_at' IKKE er null.
+      console.log('🔍 jobsServer - Filtrerer for UDLØBETE jobs');
+      // RETTELSE: Korrekt syntaks er .not('kolonne', 'is', null)
+      query = query.not('deleted_at', 'is', null); 
+    } else {
+      // For "Aktuelle" jobs (standard), find dem hvor 'deleted_at' ER null.
+      console.log('🔍 jobsServer - Filtrerer for AKTUELLE jobs');
+      query = query.is('deleted_at', null);
     }
 
-    // Score filter
-    if (filters.score?.length) {
-        q = q.in('cfo_score', filters.score);
-    } else {
-        q = q.gte('cfo_score', filters.minScore ?? 1);
+    // Tilføj altid cfo_score filteret efter status
+    query = query.gte('cfo_score', 1);
+    
+    // 2. Søgefilter (hvis det findes)
+    if (filters.q?.trim()) {
+      const term = filters.q.trim();
+      console.log('🔍 jobsServer - Tilføjer søgefilter for:', term);
+      // Bruger .or() til at søge i flere kolonner inklusive location og description
+      query = query.or(`title.ilike.%${term}%,company.ilike.%${term}%,description.ilike.%${term}%,location.ilike.%${term}%`);
     }
     
-    // Location (Region) filter - RETTET til 'ov'
+    // 3. Lokationsfilter (hvis det findes)
     if (filters.location?.length) {
-      q = q.filter('region', 'ov', `{${filters.location.join(',')}}`);
+      console.log('🔍 jobsServer - Tilføjer lokationsfilter for:', filters.location);
+      query = query.overlaps('region', filters.location);
     }
-    
-    // Date filters
+
+    // 4. Datofilter (hvis det findes)
     if (filters.dateFrom) {
-        q = q.gte('publication_date', filters.dateFrom);
+      console.log('🔍 jobsServer - Tilføjer dateFrom filter:', filters.dateFrom);
+      query = query.gte('publication_date', filters.dateFrom);
     }
     if (filters.dateTo) {
-        q = q.lte('publication_date', filters.dateTo);
+      console.log('🔍 jobsServer - Tilføjer dateTo filter:', filters.dateTo);
+      query = query.lte('publication_date', filters.dateTo);
     }
     if (filters.daysAgo) {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - filters.daysAgo);
-        q = q.gte('publication_date', cutoffDate.toISOString().split('T')[0]);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - filters.daysAgo);
+      const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+      console.log('🔍 jobsServer - Tilføjer daysAgo filter:', filters.daysAgo, 'cutoff:', cutoffDateStr);
+      query = query.gte('publication_date', cutoffDateStr);
     }
 
-    // Sorting
+    // 5. Score filter (hvis det findes)
+    if (filters.score?.length) {
+      console.log('🔍 jobsServer - Tilføjer score filter:', filters.score);
+      query = query.in('cfo_score', filters.score);
+    }
+
+    // 6. Sortering
+    console.log('🔍 jobsServer - Anvender sortering:', sort.key, sort.dir);
     if (sort.key === 'score') {
-        q = q.order('cfo_score', { ascending: sort.dir === 'asc' });
+      query = query.order('cfo_score', { ascending: sort.dir === 'asc' });
     } else if (sort.key === 'date') {
-        q = q.order('publication_date', { ascending: sort.dir === 'asc' });
+      query = query.order('publication_date', { ascending: sort.dir === 'asc' });
     } else if (sort.key === 'company') {
-        q = q.order('company', { ascending: sort.dir === 'asc' });
+      query = query.order('company', { ascending: sort.dir === 'asc' });
     } else if (sort.key === 'title') {
-        q = q.order('title', { ascending: sort.dir === 'asc' });
+      query = query.order('title', { ascending: sort.dir === 'asc' });
     } else if (sort.key === 'location') {
-        q = q.order('location', { ascending: sort.dir === 'asc' });
+      query = query.order('location', { ascending: sort.dir === 'asc' });
     }
 
-    // Pagination
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    q = q.range(from, to);
+    // 7. Paginering
+    query = query.range(offset, offset + pageSize - 1);
 
-    const { data, error, count } = await q;
+    console.log('🔍 jobsServer - Final query filters:', {
+      jobStatus: filters.jobStatus,
+      q: filters.q,
+      location: filters.location,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
+      daysAgo: filters.daysAgo,
+      score: filters.score,
+      page,
+      pageSize
+    });
 
+    // Kør den færdige forespørgsel
+    const { data, error, count } = await query;
+    
     if (error) {
-        console.error('Error fetching jobs:', error);
-        throw error;
+      console.error('Error fetching jobs:', error.message || JSON.stringify(error));
+      throw new Error(error.message || 'Supabase query failed');
     }
 
-    const totalPages = Math.ceil((count || 0) / pageSize);
+    const total = count || 0;
+    const totalPages = Math.ceil(total / pageSize);
+
+    console.log('🔍 jobsServer - Query successful:', {
+      total,
+      returned: data?.length || 0,
+      totalPages,
+      page,
+      pageSize
+    });
 
     return {
-        data: data || [],
-        total: count || 0,
-        totalPages,
-        page,
-        pageSize,
+      data: data || [],
+      total,
+      totalPages,
+      page,
+      pageSize,
     };
   } catch (error) {
-    console.error('Error in getJobsFirstPageServer:', error);
-    throw error;
+    console.error('Fejl i getJobsFirstPageServer:', error);
+    // Returner tomme data for at undgå at siden crasher
+    return { data: [], total: 0, totalPages: 0, page, pageSize };
   }
 } 

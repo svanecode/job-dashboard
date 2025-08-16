@@ -1,8 +1,9 @@
 import { SavedJob, JobComment, SaveJobData, UpdateSavedJobData } from '@/types/job'
 
 class SavedJobsService {
-  async getSavedJobs(): Promise<SavedJob[]> {
-    const response = await fetch('/api/saved-jobs')
+  async getSavedJobs(includeExpired = false): Promise<SavedJob[]> {
+    const url = `/api/saved-jobs${includeExpired ? '?includeExpired=true' : ''}`
+    const response = await fetch(url)
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       console.error('Get saved jobs error:', response.status, errorData)

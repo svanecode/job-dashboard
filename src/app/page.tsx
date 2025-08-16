@@ -47,9 +47,18 @@ export default async function Page({
   const q = Array.isArray(sp.q) 
     ? sp.q[0] 
     : sp.q;
+  
+  // Parse jobStatus filter
+  const jobStatus = (sp.jobStatus as 'active' | 'expired') || 'active';
 
   const initial = await getJobsFirstPageServer(
-      { minScore: 1, score, location, q },
+      { 
+        minScore: 1, 
+        score, 
+        location, 
+        q,
+        jobStatus 
+      },
       sort,
       Number.isFinite(page) && page > 0 ? page : 1,
       pageSize

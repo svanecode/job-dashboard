@@ -11,7 +11,8 @@ export type BaseFilters = {
   dateFrom?: string; // 'YYYY-MM-DD'
   dateTo?: string;   // 'YYYY-MM-DD'
   daysAgo?: number;  // Number of days ago from today
-  minScore?: number; // default 1
+  minScore?: number; // default 1 (now handled in job status filter logic)
+  jobStatus?: 'active' | 'expired'; // 'active' = Aktuelle (deleted_at IS NULL), 'expired' = Udløbede (deleted_at IS NOT NULL)
 };
 
 const SELECT_COLUMNS =
@@ -20,8 +21,27 @@ const SELECT_COLUMNS =
 export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
   let q = supabase
     .from('jobs')
-    .select(SELECT_COLUMNS, { count: 'exact' })
-    .is('deleted_at', null);
+    .select(SELECT_COLUMNS, { count: 'exact' });
+
+  // Handle job status filter (Aktuelle vs Udløbede)
+  console.log('🔍 Job status filter - jobStatus:', filters.jobStatus);
+  
+  if (filters.jobStatus === 'expired') {
+    // Udløbede: Only soft deleted jobs with CFO score >= 1
+    console.log('🔍 Filtering for UDLØBEDE jobs (soft deleted with CFO score >= 1)');
+    // Try alternative approach if not() doesn't work
+    try {
+      q = q.not('deleted_at', null).gte('cfo_score', 1);
+    } catch (error) {
+      console.log('🔍 Fallback to raw SQL for soft deleted filter');
+      // Alternative: use raw SQL if Supabase query builder fails
+      q = q.filter('deleted_at', 'is not', null).gte('cfo_score', 1);
+    }
+  } else {
+    // Aktuelle: Only active jobs with CFO score >= 1
+    console.log('🔍 Filtering for AKTUELLE jobs (not deleted with CFO score >= 1)');
+    q = q.is('deleted_at', null).gte('cfo_score', 1);
+  }
 
   // Søgning
   if (filters.q?.trim()) {
@@ -29,12 +49,11 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
     q = q.or(`title.ilike.%${term}%,company.ilike.%${term}%,description.ilike.%${term}%,location.ilike.%${term}%`);
   }
 
-  // Score filter
+ // Score filter - only apply if we have specific score requirements
   if (filters.score?.length) {
     q = q.in('cfo_score', filters.score);
-  } else {
-    q = q.gte('cfo_score', filters.minScore ?? 1);
   }
+  // Note: minScore is already handled in the soft deleted filter logic above
   
   // Location (Region) filter - bruger 'ov' for array-overlap
   if (filters.location?.length) {
@@ -64,6 +83,14 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
   } else if (sort.key === 'location') {
     q = q.order('location', { ascending: sort.dir === 'asc' });
   }
+
+  console.log('🔍 Final query filters:', {
+    jobStatus: filters.jobStatus,
+    location: filters.location,
+    score: filters.score,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo
+  });
 
   return q;
 }

@@ -31,6 +31,8 @@ export function useUrlFilterSync() {
       const restoredFilters: JobFilters = {
         q: params.get('q') || undefined,
         location: params.get('location') ? params.get('location')!.split(',') : undefined,
+        // RETTELSE: Læs jobStatus fra URL
+        jobStatus: params.get('jobStatus') as 'active' | 'expired' || 'active',
       };
       const restoredPage = Number(params.get('page') || '1');
       const restoredPageSize = Number(params.get('pageSize') || '20');
@@ -88,6 +90,10 @@ export function useUrlFilterSync() {
     if (filters.q) params.set('q', filters.q);
     if (filters.location && Array.isArray(filters.location) && filters.location.length > 0) {
       params.set('location', filters.location.join(','));
+    }
+    // RETTELSE: Skriv kun jobStatus til URL'en hvis den ikke er standard ('active')
+    if (filters.jobStatus === 'expired') {
+      params.set('jobStatus', 'expired');
     }
     if (currentPage > 1) params.set('page', String(currentPage));
     if (jobsPerPage !== 20) params.set('pageSize', String(jobsPerPage));

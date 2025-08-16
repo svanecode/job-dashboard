@@ -34,6 +34,9 @@ export interface JobFilters {
     key: 'score' | 'date' | 'company' | 'title' | 'location';
     dir: 'asc' | 'desc';
   };
+  
+  // Job status filter - clearer naming
+  jobStatus?: 'active' | 'expired';
 }
 
 export interface SavedJob {

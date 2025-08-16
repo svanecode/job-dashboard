@@ -193,7 +193,7 @@ export async function searchJobs(query: string, params?: JobFilters): Promise<{ 
     .select('*', { count: 'exact' })
     .is('deleted_at', null)
     .gte('cfo_score', 1)
-    .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`);
+    .or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`);
 
   // Apply sorting
   switch (sort.key) {

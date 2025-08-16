@@ -60,7 +60,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   jobsPerPage: 20,
   
   // Filters and sorting
-  filters: {},
+  filters: { jobStatus: 'active' }, // Sæt en klar standardværdi
   stagedFilters: {},
   sort: { key: 'date', dir: 'desc' },
   isInitialized: false,
@@ -133,27 +133,12 @@ export const useJobStore = create<JobStore>((set, get) => ({
   },
 
   resetFilters: () => {
-    const currentState = get();
-    const resetFilters = {
-      q: '',
-      searchText: '',
-      location: undefined,
-    };
-    
-    // Tjek om filtrene faktisk er ændret
-    const hasChanged = JSON.stringify(currentState.filters) !== JSON.stringify(resetFilters);
-    
-    if (hasChanged) {
-      console.log('🔍 jobStore.resetFilters - Resetting filters');
-      set({ 
-        filters: resetFilters, 
-        stagedFilters: {}, 
-        currentPage: 1 
-      });
-      // Fjernet fetchJobs() - serveren vil håndtere datahentning via URL ændring
-    } else {
-      console.log('🔍 jobStore.resetFilters - No changes detected, skipping update');
-    }
+    console.log('🔍 jobStore.resetFilters - Resetting filters');
+    set({ 
+      filters: { jobStatus: 'active' }, // Nulstil til standard
+      stagedFilters: {}, 
+      currentPage: 1 
+    });
   },
 
   setCurrentPage: (page) => {

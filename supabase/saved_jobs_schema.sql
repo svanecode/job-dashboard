@@ -30,19 +30,21 @@ CREATE INDEX IF NOT EXISTS idx_job_comments_job_id ON job_comments(job_id);
 CREATE INDEX IF NOT EXISTS idx_job_comments_created_at ON job_comments(created_at DESC);
 
 -- Create trigger to update updated_at for saved_jobs
+DROP TRIGGER IF EXISTS update_saved_jobs_updated_at ON saved_jobs;
 CREATE TRIGGER update_saved_jobs_updated_at 
   BEFORE UPDATE ON saved_jobs 
   FOR EACH ROW 
   EXECUTE FUNCTION update_updated_at_column();
 
 -- Create trigger to update updated_at for job_comments
+DROP TRIGGER IF EXISTS update_job_comments_updated_at ON job_comments;
 CREATE TRIGGER update_job_comments_updated_at 
   BEFORE UPDATE ON job_comments 
   FOR EACH ROW 
   EXECUTE FUNCTION update_updated_at_column();
 
 -- Create function to get saved jobs with job details
-CREATE OR REPLACE FUNCTION get_saved_jobs(user_uuid UUID)
+CREATE OR REPLACE FUNCTION get_saved_jobs(user_uuid UUID, include_expired BOOLEAN DEFAULT FALSE)
 RETURNS TABLE (
   saved_job_id UUID,
   job_id TEXT,
@@ -78,6 +80,7 @@ BEGIN
   JOIN jobs j ON sj.job_id = j.job_id
   LEFT JOIN job_comments jc ON j.job_id = jc.job_id
   WHERE sj.user_id = user_uuid
+    AND (include_expired OR j.deleted_at IS NULL) -- Filter på deleted_at hvis ikke include_expired
   GROUP BY sj.id, sj.job_id, j.title, j.company, j.location, j.publication_date, j.description, j.cfo_score, j.job_url, sj.saved_at, sj.notes
   ORDER BY sj.saved_at DESC;
 END;
