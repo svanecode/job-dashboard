@@ -45,8 +45,8 @@ function PageContent() {
       setJobsLoading(true);
       setError(null);
       try {
-        // Vi bruger den eksisterende API-rute til at hente data sikkert.
-        const response = await fetch(`/api/query?${searchParams.toString()}`);
+        // Vi bruger den nye jobs API-rute til at hente data sikkert.
+        const response = await fetch(`/api/jobs?${searchParams.toString()}`);
         if (!response.ok) {
           throw new Error('Kunne ikke hente jobdata fra serveren.');
         }
