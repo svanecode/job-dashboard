@@ -12,36 +12,37 @@ const nextConfig: NextConfig = {
     // your project has TypeScript errors.
     ignoreBuildErrors: true,
   },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate, max-age=0',
-          },
-          {
-            key: 'Pragma',
-            value: 'no-cache',
-          },
-          {
-            key: 'Expires',
-            value: '0',
-          },
-        ],
-      },
-      {
-        source: '/api/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate, max-age=0',
-          },
-        ],
-      },
-    ];
-  },
+  // Fjernet aggressive cache-control headers - cache-busting systemet håndterer dette nu
+  // async headers() {
+  //   return [
+  //     {
+  //       source: '/(.*)',
+  //       headers: [
+  //         {
+  //           key: 'Cache-Control',
+  //           value: 'no-cache, no-store, must-revalidate, max-age=0',
+  //         },
+  //         {
+  //           key: 'Pragma',
+  //           value: 'no-cache',
+  //         },
+  //         {
+  //           key: 'Expires',
+  //           value: '0',
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       source: '/api/(.*)',
+  //       headers: [
+  //         {
+  //           key: 'Cache-Control',
+  //           value: 'no-cache, no-store, must-revalidate, max-age=0',
+  //         },
+  //       ],
+  //     },
+  //   ];
+  // },
 };
 
 export default nextConfig;
