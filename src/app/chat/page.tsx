@@ -12,7 +12,7 @@ import JobModal from '@/components/JobModal'
 import { useJobStore } from '@/store/jobStore'
 import { getJobByJobId } from '@/services/jobService'
 
-type ChatMessage = { role: 'user' | 'assistant'; content: string }
+type ChatMessage = { role: 'user' | 'assistant'; content: string; timestamp: Date }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -56,7 +56,10 @@ export default function ChatPage() {
         const res = await fetch(`/api/assistants-chat?threadId=${encodeURIComponent(threadId)}`)
         const data = await res.json()
         if (!res.ok || !data?.success) throw new Error(data?.error || 'Kunne ikke hente samtale')
-        const msgs = Array.isArray(data.messages) ? data.messages : []
+        const msgs = Array.isArray(data.messages) ? data.messages.map((msg: any) => ({
+          ...msg,
+          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date()
+        })) : []
         setMessages(msgs)
       } catch (e: any) {
         // Hvis tråden ikke findes længere, ryd lokalt id
@@ -72,7 +75,7 @@ export default function ChatPage() {
     const text = String(value || '').trim()
     if (!text || isLoading) return
     setError(null)
-    const nextConversation: ChatMessage[] = [...messages, { role: 'user' as const, content: text }]
+    const nextConversation: ChatMessage[] = [...messages, { role: 'user' as const, content: text, timestamp: new Date() }]
     setMessages(nextConversation)
     setInput('')
     setIsLoading(true)
@@ -88,7 +91,7 @@ export default function ChatPage() {
         setThreadId(data.threadId)
         try { if (typeof window !== 'undefined') window.sessionStorage.setItem('assistant_thread_id', data.threadId) } catch {}
       }
-      const reply: ChatMessage = { role: 'assistant', content: String(data.response || '') }
+      const reply: ChatMessage = { role: 'assistant', content: String(data.response || ''), timestamp: new Date() }
       setMessages((prev) => [...prev, reply])
     } catch (e: any) {
       setError(e?.message || 'Noget gik galt')
@@ -253,13 +256,13 @@ export default function ChatPage() {
                           <span className="inline-flex items-center gap-2">
                             <span className="text-blue-400 font-semibold">AI</span>
                             <span className="text-slate-400">•</span>
-                            <span className="text-slate-400">{new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-slate-400">{m.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-2">
                             <span className="text-emerald-400 font-semibold">Andreas</span>
                             <span className="text-slate-400">•</span>
-                            <span className="text-slate-400">{new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-slate-400">{m.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}</span>
                           </span>
                         )}
                       </div>
