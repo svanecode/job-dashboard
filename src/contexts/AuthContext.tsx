@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean; // Denne vil nu kun være 'true' ved den allerførste indlæsning
   initialized: boolean; // Tilføjet tilbage for kompatibilitet
   refreshUser: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,6 +32,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       setUser(null);
     }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await authService.signOut();
+    setUser(null);
   }, []);
 
   useEffect(() => {
@@ -66,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [refreshUser]); // Kør kun denne effekt én gang
 
-  const value = { user, loading, initialized, refreshUser: () => refreshUser(user) };
+  const value = { user, loading, initialized, refreshUser: () => refreshUser(user), signOut };
 
   return (
     <AuthContext.Provider value={value}>

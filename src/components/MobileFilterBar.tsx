@@ -49,7 +49,7 @@ export default function MobileFilterBar() {
     resetFilters()
   }
 
-  const handleSortChange = (key: 'score' | 'company' | 'title' | 'location' | 'date', dir: 'asc' | 'desc') => {
+  const handleSortChange = (key: 'score' | 'company' | 'title' | 'location' | 'date' | 'comments' | 'saved', dir: 'asc' | 'desc') => {
     setSort({ key, dir })
     setIsSortSheetOpen(false)
   }
@@ -60,7 +60,9 @@ export default function MobileFilterBar() {
       company: 'Firma',
       title: 'Titel',
       location: 'Lokation',
-      date: 'Dato'
+      date: 'Dato',
+      comments: 'Kommentarer',
+      saved: 'Gemte'
     }
     const dirLabel = sort.dir === 'asc' ? 'A-Å' : 'Å-A'
     return `${sortLabels[sort.key]} (${dirLabel})`
@@ -208,6 +210,19 @@ export default function MobileFilterBar() {
               {/* Content */}
               <div className="px-4 py-4 overflow-y-auto max-h-[calc(60vh-140px)]">
                 <div className="grid gap-2">
+                  {/* Score */}
+                  <button
+                    onClick={() => handleSortChange('score', sort.key === 'score' && sort.dir === 'desc' ? 'asc' : 'desc')}
+                    className={`flex items-center justify-between p-3 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none ${
+                      sort.key === 'score' ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="text-white">Score</span>
+                    {sort.key === 'score' && (
+                      <span className="text-slate-300 text-sm">{sort.dir === 'desc' ? 'Højest først' : 'Lavest først'}</span>
+                    )}
+                  </button>
+
                   {/* Company */}
                   <button
                     onClick={() => handleSortChange('company', sort.key === 'company' && sort.dir === 'desc' ? 'asc' : 'desc')}
@@ -257,6 +272,32 @@ export default function MobileFilterBar() {
                     <span className="text-white">Dato</span>
                     {sort.key === 'date' && (
                       <span className="text-slate-300 text-sm">{sort.dir === 'desc' ? 'Nyeste først' : 'Ældste først'}</span>
+                    )}
+                  </button>
+
+                  {/* Comments */}
+                  <button
+                    onClick={() => handleSortChange('comments', sort.key === 'comments' && sort.dir === 'desc' ? 'asc' : 'desc')}
+                    className={`flex items-center justify-between p-3 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none ${
+                      sort.key === 'comments' ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="text-white">Kommentarer</span>
+                    {sort.key === 'comments' && (
+                      <span className="text-slate-300 text-sm">{sort.dir === 'desc' ? 'Flest først' : 'Færrest først'}</span>
+                    )}
+                  </button>
+
+                  {/* Saved */}
+                  <button
+                    onClick={() => handleSortChange('saved', sort.key === 'saved' && sort.dir === 'desc' ? 'asc' : 'desc')}
+                    className={`flex items-center justify-between p-3 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none ${
+                      sort.key === 'saved' ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="text-white">Gemte</span>
+                    {sort.key === 'saved' && (
+                      <span className="text-slate-300 text-sm">{sort.dir === 'desc' ? 'Gemte først' : 'Ikke gemte først'}</span>
                     )}
                   </button>
                 </div>

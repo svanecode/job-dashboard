@@ -99,7 +99,9 @@ export default async function InsightsPage({ searchParams }: { searchParams?: { 
           {selectedInsight ? (
             <InsightsWeekly insight={selectedInsight as any} />
           ) : (
-            <p className="text-slate-400">Ingen publicerede indsigter endnu.</p>
+            <div className="text-center py-12">
+              <div className="text-slate-400">Vælg en uge fra arkivet</div>
+            </div>
           )}
         </div>
       </section>

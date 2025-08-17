@@ -212,6 +212,11 @@ export async function searchJobs(query: string, params?: JobFilters): Promise<{ 
     case 'date':
       searchQuery = searchQuery.order('publication_date', { ascending: sort.dir === 'asc' });
       break;
+    case 'comments':
+    case 'saved':
+      // Disse sorteringsmuligheder håndteres på klienten
+      // da de kræver data der ikke er tilgængelige i den primære jobs tabel
+      break;
     default:
       searchQuery = searchQuery.order('cfo_score', { ascending: false });
   }

@@ -1,6 +1,6 @@
 import { Job } from '@/types/job'
 
-export type SortKey = 'score' | 'company' | 'title' | 'location' | 'date'
+export type SortKey = 'score' | 'company' | 'title' | 'location' | 'date' | 'comments' | 'saved'
 export type SortDirection = 'asc' | 'desc'
 
 export interface SortConfig {
@@ -29,7 +29,7 @@ const compareDates = (a: string | null, b: string | null): number => {
 }
 
 // Main sort function with fallback to date for stable sorting
-export const sortJobs = (jobs: Job[], sortConfig: SortConfig): Job[] => {
+export const sortJobs = (jobs: Job[], sortConfig: SortConfig, commentCounts?: Record<string, number>, savedJobIds?: Set<number>): Job[] => {
   return [...jobs].sort((a, b) => {
     let comparison = 0
 
@@ -48,6 +48,16 @@ export const sortJobs = (jobs: Job[], sortConfig: SortConfig): Job[] => {
         break
       case 'date':
         comparison = compareDates(a.publication_date, b.publication_date)
+        break
+      case 'comments':
+        const aComments = commentCounts?.[a.job_id] || 0
+        const bComments = commentCounts?.[b.job_id] || 0
+        comparison = aComments - bComments
+        break
+      case 'saved':
+        const aSaved = savedJobIds?.has(a.job_id) ? 1 : 0
+        const bSaved = savedJobIds?.has(b.job_id) ? 1 : 0
+        comparison = aSaved - bSaved
         break
       default:
         comparison = 0

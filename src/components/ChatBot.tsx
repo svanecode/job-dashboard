@@ -8,7 +8,7 @@ import { useJobStore } from '@/store/jobStore'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useChat, UseChatOptions } from '@ai-sdk/react'
-import JobModal from '@/components/JobModal'
+import UnifiedJobModal from '@/components/UnifiedJobModal'
 
 // Tool extraction helper for all v5 tool part shapes
 type ToolExtraction = {
@@ -524,7 +524,7 @@ export default function ChatBot() {
       </AnimatePresence>
 
       {/* Job Modal - Add this to show job details when clicking job cards */}
-      <JobModal />
+      <UnifiedJobModal />
     </>
   )
 }

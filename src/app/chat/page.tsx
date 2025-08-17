@@ -8,7 +8,7 @@ import { Response } from '@/components/ai-elements/response'
 import { ChatInput } from '@/components/ai-elements/chat-input'
 import { Loader } from '@/components/ai-elements/loader'
 import { Sparkles } from 'lucide-react'
-import JobModal from '@/components/JobModal'
+import UnifiedJobModal from '@/components/UnifiedJobModal'
 import { useJobStore } from '@/store/jobStore'
 import { getJobByJobId } from '@/services/jobService'
 
@@ -312,7 +312,7 @@ export default function ChatPage() {
             />
           </div>
         </div>
-        <JobModal />
+        <UnifiedJobModal />
       </main>
     </ProtectedRoute>
   )

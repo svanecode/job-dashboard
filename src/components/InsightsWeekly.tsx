@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useJobStore } from '@/store/jobStore'
 import { getJobById, getJobsByIds } from '@/services/jobService'
 import { motion } from 'framer-motion'
-import JobModal from '@/components/JobModal'
+import UnifiedJobModal from '@/components/UnifiedJobModal'
 
 type WeeklyInsightData = {
   id: string
@@ -139,7 +139,7 @@ export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData
       </div>
 
       {/* Global job modal */}
-      <JobModal />
+      <UnifiedJobModal />
     </article>
   )
 }

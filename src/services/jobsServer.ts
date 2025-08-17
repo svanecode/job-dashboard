@@ -84,6 +84,8 @@ export async function getJobsFirstPageServer(
     } else if (sort.key === 'location') {
       query = query.order('location', { ascending: sort.dir === 'asc' });
     }
+    // Bemærk: 'comments' og 'saved' sortering håndteres på klienten
+    // da disse data ikke er tilgængelige i den primære jobs tabel
 
     // 7. Paginering
     query = query.range(offset, offset + pageSize - 1);

@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 
-export type SortKey = 'score' | 'date' | 'company' | 'title' | 'location';
+export type SortKey = 'score' | 'date' | 'company' | 'title' | 'location' | 'comments' | 'saved';
 export type SortDir = 'asc' | 'desc';
 export type SortConfig = { key: SortKey; dir: SortDir };
 
@@ -83,6 +83,8 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
   } else if (sort.key === 'location') {
     q = q.order('location', { ascending: sort.dir === 'asc' });
   }
+  // Bemærk: 'comments' og 'saved' sortering håndteres på klienten
+  // da disse data ikke er tilgængelige i den primære jobs tabel
 
   console.log('🔍 Final query filters:', {
     jobStatus: filters.jobStatus,

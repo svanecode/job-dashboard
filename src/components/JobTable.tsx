@@ -1,19 +1,19 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronUp, ChevronDown, Building2, MapPin, Calendar, ExternalLink, Bookmark, Trash2, MessageSquare } from 'lucide-react'
+import { Building2, MapPin, Calendar, ExternalLink, Bookmark, Trash2, MessageSquare } from 'lucide-react'
 import { useJobStore } from '@/store/jobStore'
 import { Job } from '@/types/job'
-import { SortKey, SortDirection, getAriaSort } from '@/utils/sort'
+import { SortKey, SortDirection } from '@/utils/sort'
 import { formatDate } from '@/utils/format'
 import CardRow from './CardRow'
 import VirtualJobList from './VirtualJobList'
 import ScoreBars from './ScoreBars'
-import JobSheet from './JobSheet'
+import SortDropdown from './SortDropdown'
 
 import FilterPopupButton from './FilterPopupButton'
 import FilterBarDesktop from './FilterBarDesktop'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { savedJobsService } from '@/services/savedJobsService'
 
@@ -73,11 +73,20 @@ type JobTableProps = {
 export default function JobTable({ initialData, initialPageSize }: JobTableProps = {}) {
   const { paginatedJobs, openJobModal, sort, setSort, setInitialData, rowDensity, currentPage, jobsPerPage, setJobsPerPage, resetFilters } = useJobStore()
   const { user, initialized } = useAuth()
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set())
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
   const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set())
+  const [viewMode, setViewMode] = useState<'table' | 'gallery'>('table')
+
+  // Compute sorted jobs for client-side sorting (comments, saved)
+  const sortedJobs = useMemo(() => {
+    if (sort.key === 'comments' || sort.key === 'saved') {
+      // Import sortJobs dynamically to avoid circular dependency
+      const { sortJobs } = require('@/utils/sort');
+      return sortJobs(paginatedJobs, sort, commentCounts, savedJobs);
+    }
+    return paginatedJobs;
+  }, [paginatedJobs, sort, commentCounts, savedJobs]);
 
 
   // Handle initial data from SSR whenever it changes (e.g., URL page/filter changed)
@@ -114,6 +123,14 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
       setCommentCounts({})
     }
   }, [initialized, user, paginatedJobs])
+
+  // Handle client-side sorting for comments and saved jobs
+  useEffect(() => {
+    if (sort.key === 'comments' || sort.key === 'saved') {
+      console.log('JobTable: Applying client-side sorting for:', sort.key);
+      // Sortering håndteres automatisk via sortJobs funktionen når data vises
+    }
+  }, [sort.key, sort.dir, commentCounts, savedJobs])
 
   const loadSavedJobs = async () => {
     try {
@@ -202,31 +219,17 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
     }
   }
 
-  const handleSort = (key: SortKey) => {
-    const newSort = {
-      key,
-      dir: (sort.key === key && sort.dir === 'asc' ? 'desc' : 'asc') as SortDirection
-    }
-    setSort(newSort)
-  }
+
 
   const handleRowClick = (job: Job) => {
     openJobModal(job)
   }
 
   const handleCardClick = (job: Job) => {
-    setSelectedJob(job)
-    setIsSheetOpen(true)
+    openJobModal(job)
   }
 
-  const handleSheetClose = () => {
-    setIsSheetOpen(false)
-    setSelectedJob(null)
-  }
-
-
-
-  if (paginatedJobs.length === 0) {
+  if (sortedJobs.length === 0) {
     return (
       <>
               {/* Desktop filter bar */}
@@ -267,113 +270,118 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
         <FilterBarDesktop />
       </div>
 
-      {/* Vis kun filter-knappen på mobil */}
-      <div className="md:hidden flex items-center justify-end mb-4">
-        <FilterPopupButton />
+      {/* View Toggle and Sort Controls - Desktop */}
+      <div className="hidden lg:flex items-center justify-between mb-4">
+        {/* Sort Controls */}
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-slate-400 uppercase tracking-wider">Sortering:</div>
+          <SortDropdown sort={sort} onSortChange={setSort} />
+        </div>
+
+        {/* View Toggle */}
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-slate-400 uppercase tracking-wider mr-2">Visning:</div>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === 'table'
+                ? 'bg-kpmg-500 text-white'
+                : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            Tabel
+          </button>
+          <button
+            onClick={() => setViewMode('gallery')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === 'gallery'
+                ? 'bg-kpmg-500 text-white'
+                : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            Galleri
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Controls */}
+      <div className="md:hidden space-y-3 mb-4">
+        {/* Sort Controls */}
+        <div className="flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-slate-400 uppercase tracking-wider">Sortering:</div>
+            <SortDropdown sort={sort} onSortChange={setSort} />
+          </div>
+        </div>
+
+        {/* Filter Button Only - Removed View Toggle since both views are the same on mobile */}
+        <div className="flex items-center justify-center">
+          <FilterPopupButton />
+        </div>
       </div>
 
       {/* Desktop Table - Hidden on mobile */}
-      <div className="hidden lg:block rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] overflow-hidden">
+      {viewMode === 'table' && (
+        <div className="hidden lg:block rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] overflow-hidden">
         <div className="overflow-x-auto max-w-full">
           <table className={`w-full min-w-full table-fixed ${rowDensity === 'compact' ? 'text-[13px]' : 'text-[14px]'}`}>
             <thead className="bg-black/30 backdrop-blur-sm sticky top-0 shadow-[inset_0_-1px_0_rgba(255,255,255,0.06)]">
               <tr>
-                <th className="w-[6%] px-4 py-4">
-                  <button
-                    onClick={() => handleSort('score')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
-                    aria-sort={getAriaSort('score', sort)}
-                  >
+                <th className="w-[8%] px-4 py-4">
+                  <div className="text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                     Score
-                    {sort.key === 'score' && (
-                      sort.dir === 'asc' ? 
-                        <ChevronUp className="size-3" /> : 
-                        <ChevronDown className="size-3" />
-                    )}
-                  </button>
+                  </div>
+                </th>
+                <th className="w-[14%] px-4 py-4">
+                  <div className="text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Firma
+                  </div>
+                </th>
+                <th className="w-[32%] px-4 py-4">
+                  <div className="text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Titel
+                  </div>
+                </th>
+                <th className="w-[16%] px-4 py-4">
+                  <div className="text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Lokation
+                  </div>
                 </th>
                 <th className="w-[12%] px-4 py-4">
-                  <button
-                    onClick={() => handleSort('company')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
-                    aria-sort={getAriaSort('company', sort)}
-                  >
-                    Firma
-                    {sort.key === 'company' && (
-                      sort.dir === 'asc' ? 
-                        <ChevronUp className="size-3" /> : 
-                        <ChevronDown className="size-3" />
-                    )}
-                  </button>
+                  <div className="text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Dato
+                  </div>
                 </th>
-                <th className="w-[30%] px-4 py-4">
-                  <button
-                    onClick={() => handleSort('title')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
-                    aria-sort={getAriaSort('title', sort)}
-                  >
-                    Titel
-                    {sort.key === 'title' && (
-                      sort.dir === 'asc' ? 
-                        <ChevronUp className="size-3" /> : 
-                        <ChevronDown className="size-3" />
-                    )}
-                  </button>
-                </th>
-                <th className="w-[15%] px-4 py-4">
-                  <button
-                    onClick={() => handleSort('location')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
-                    aria-sort={getAriaSort('location', sort)}
-                  >
-                    Lokation
-                    {sort.key === 'location' && (
-                      sort.dir === 'asc' ? 
-                        <ChevronUp className="size-3" /> : 
-                        <ChevronDown className="size-3" />
-                    )}
-                  </button>
+                <th className="w-[12%] px-4 py-4">
+                  <div className="text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Kommentarer
+                  </div>
                 </th>
                 <th className="w-[10%] px-4 py-4">
-                  <button
-                    onClick={() => handleSort('date')}
-                    className="flex items-center gap-1 text-left w-full select-none text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none cursor-pointer hover:underline"
-                    aria-sort={getAriaSort('date', sort)}
-                  >
-                    Dato
-                    {sort.key === 'date' && (
-                      sort.dir === 'asc' ? 
-                        <ChevronUp className="size-3" /> : 
-                        <ChevronDown className="size-3" />
-                    )}
-                  </button>
+                  <div className="text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Gem
+                  </div>
                 </th>
                 <th className="w-[8%] px-4 py-4">
-                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider text-center block">Kommentarer</span>
-                </th>
-                <th className="w-[8%] px-4 py-4">
-                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider text-center block">Gem</span>
-                </th>
-                <th className="w-[6%] px-4 py-4">
                   <span className="sr-only">Link</span>
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {paginatedJobs.map((job) => (
+              {sortedJobs.map((job: Job) => (
                 <tr
                   key={job.id}
                   onClick={() => handleRowClick(job)}
                   className={`hover:bg-white/5 transition-colors cursor-pointer group ${rowDensity === 'compact' ? 'h-11' : 'h-14'}`}
                 >
                   {/* Score */}
-                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[6%]`}>
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[8%]`}>
                     {/* UDSKIFT ScoreBadge MED ScoreBars */}
                     <ScoreBars level={(job.cfo_score || 1) as 1 | 2 | 3} size="sm" />
                   </td>
 
                   {/* Company */}
-                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[12%]`}>
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[14%]`}>
                     <div className="flex items-center gap-2 min-w-0">
                       <Building2 className="size-4 text-slate-500 flex-shrink-0" />
                       {/* Gør firma lidt mindre fremtrædende */}
@@ -384,7 +392,7 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   </td>
 
                   {/* Title */}
-                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[30%]`}>
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[32%]`}>
                     {/* GØR TITLEN MERE FREMTRÆDENDE */}
                     <span className="font-semibold text-white line-clamp-1 text-sm group-hover:text-slate-100 transition-colors">
                       {job.title || 'Ingen titel'}
@@ -392,7 +400,7 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   </td>
 
                   {/* Location */}
-                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[15%]`}>
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} min-w-0 w-[16%]`}>
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="size-4 text-slate-500 flex-shrink-0" />
                       {/* Gør lokation lidt mindre fremtrædende */}
@@ -403,7 +411,7 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   </td>
 
                   {/* Date (created_at) */}
-                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[10%]`}>
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[12%]`}>
                     <div className="flex items-center gap-2">
                       <Calendar className="size-4 text-slate-500" />
                       {/* Gør dato lidt mindre fremtrædende */}
@@ -414,7 +422,7 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   </td>
 
                   {/* Comments */}
-                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[8%] text-center`}>
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[12%] text-center`}>
                     <div className="flex items-center gap-1.5 justify-center">
                       <MessageSquare className="size-4 text-slate-500" />
                       {/* Gør kommentarer lidt mindre fremtrædende */}
@@ -425,7 +433,7 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   </td>
 
                   {/* Save/Unsave */}
-                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[8%] text-center`}>
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[10%] text-center`}>
                     {user ? (
                       <button
                         onClick={(e) => handleSaveJob(job, e)}
@@ -453,7 +461,7 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
                   </td>
 
                   {/* Link */}
-                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[6%]`}>
+                  <td className={`px-4 ${rowDensity === 'compact' ? 'py-2.5' : 'py-4'} whitespace-nowrap w-[8%]`}>
                     {job.job_url ? (
                       <a
                         href={job.job_url}
@@ -474,34 +482,147 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
           </table>
         </div>
       </div>
+      )}
+
+      {/* Desktop Gallery View - Hidden on mobile */}
+      {viewMode === 'gallery' && (
+        <div className="hidden lg:block">
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+            {sortedJobs.map((job: Job) => (
+              <div
+                key={job.id}
+                className="group cursor-pointer"
+                onClick={() => openJobModal(job)}
+              >
+                <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.25)] p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-200">
+                  {/* Header with company and score */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Building2 className="size-5 text-slate-400 flex-shrink-0" />
+                      <span className="text-slate-300 font-medium truncate text-sm">
+                        {job.company || 'Ukendt firma'}
+                      </span>
+                    </div>
+                    <ScoreBars level={(job.cfo_score || 1) as 1 | 2 | 3} size="md" />
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-lg font-semibold text-white mb-3 line-clamp-2 group-hover:text-slate-100 transition-colors">
+                    {job.title || 'Ingen titel'}
+                  </h3>
+
+                  {/* Meta info */}
+                  <div className="flex items-center gap-4 mb-4 text-sm">
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <MapPin className="size-4" />
+                      <span>{job.location || 'Ukendt lokation'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <Calendar className="size-4" />
+                      <span>{formatDate(job.created_at || job.publication_date)}</span>
+                    </div>
+                  </div>
+
+                  {/* Description excerpt */}
+                  {job.description && (
+                    <p className="text-slate-300 text-sm line-clamp-3 mb-4">
+                      {job.description}
+                    </p>
+                  )}
+
+                  {/* Footer with comments and actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                    <div className="flex items-center gap-4 text-sm text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="size-4" />
+                        <span>{commentCounts[job.job_id] || 0}</span>
+                      </div>
+                      {user && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSaveJob(job, e)
+                          }}
+                          disabled={savingJobs.has(job.job_id)}
+                          className={`flex items-center gap-2 transition-colors ${
+                            savingJobs.has(job.job_id)
+                              ? 'text-slate-500'
+                              : savedJobs.has(job.job_id)
+                              ? 'text-red-400 hover:text-red-300'
+                              : 'hover:text-slate-300'
+                          }`}
+                        >
+                          {savingJobs.has(job.job_id) ? (
+                            <div className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : savedJobs.has(job.job_id) ? (
+                            <Trash2 className="size-4" />
+                          ) : (
+                            <Bookmark className="size-4" />
+                          )}
+                          <span className="hidden xl:inline">
+                            {savedJobs.has(job.job_id) ? 'Fjern' : 'Gem'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                    {job.job_url && (
+                      <a
+                        href={job.job_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-slate-400 hover:text-white transition-colors"
+                      >
+                        <ExternalLink className="size-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Mobile Card List - Hidden on desktop */}
       <div className="lg:hidden pb-24 with-fab-bottom overflow-hidden w-full max-w-full">
-        {paginatedJobs.length > 250 ? (
-          // Virtual list for large datasets
-          <div className="h-[calc(100vh-300px)] overflow-hidden w-full max-w-full">
-            <VirtualJobList 
-              jobs={paginatedJobs} 
-              onOpen={handleCardClick}
-              commentCounts={commentCounts}
-              savedJobs={savedJobs}
-              savingJobs={savingJobs}
-              onSave={(job) => handleSaveJob(job, {} as React.MouseEvent)}
-            />
-          </div>
-        ) : (
-          // Regular grid for smaller datasets
-          <div className="grid gap-4 w-full max-w-full">
-            {paginatedJobs.map((job) => (
+        {viewMode === 'table' ? (
+          // Mobile table view
+          <div className="space-y-3">
+            {sortedJobs.map((job: Job) => (
               <div
                 key={job.id}
                 className="w-full max-w-full"
               >
-                  <CardRow
+                <CardRow
                   title={job.title || 'Ingen titel'}
                   company={job.company || 'Ukendt firma'}
                   location={job.location || 'Ukendt lokation'}
-                    date={(job.created_at || job.publication_date || '') as string}
+                  date={(job.created_at || job.publication_date || '') as string}
+                  score={job.cfo_score || 0}
+                  excerpt={job.description || ''}
+                  commentCount={commentCounts[job.job_id] || 0}
+                  isSaved={savedJobs.has(job.job_id)}
+                  isSaving={savingJobs.has(job.job_id)}
+                  onOpen={() => handleCardClick(job)}
+                  onSave={() => handleSaveJob(job, {} as React.MouseEvent)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          // Mobile gallery view
+          <div className="space-y-4">
+            {sortedJobs.map((job: Job) => (
+              <div
+                key={job.id}
+                className="w-full max-w-full"
+              >
+                <CardRow
+                  title={job.title || 'Ingen titel'}
+                  company={job.company || 'Ukendt firma'}
+                  location={job.location || 'Ukendt lokation'}
+                  date={(job.created_at || job.publication_date || '') as string}
                   score={job.cfo_score || 0}
                   excerpt={job.description || ''}
                   commentCount={commentCounts[job.job_id] || 0}
@@ -515,23 +636,6 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
           </div>
         )}
       </div>
-
-      {/* Job Sheet Modal */}
-      {selectedJob && (
-          <JobSheet
-          open={isSheetOpen}
-          onClose={handleSheetClose}
-          title={selectedJob.title || 'Ingen titel'}
-          company={selectedJob.company || 'Ukendt firma'}
-          location={selectedJob.location || 'Ukendt lokation'}
-            date={(selectedJob.created_at || selectedJob.publication_date || '') as string}
-          score={selectedJob.cfo_score || 0}
-          description={selectedJob.description || ''}
-          jobUrl={selectedJob.job_url || undefined}
-          tags={[]}
-          jobId={selectedJob.job_id}
-        />
-      )}
     </>
   )
 } 

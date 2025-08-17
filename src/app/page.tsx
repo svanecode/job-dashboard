@@ -3,7 +3,7 @@ import { getJobsFirstPageServer } from '@/services/jobsServer';
 import JobTable from '@/components/JobTable';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Pagination from '@/components/Pagination';
-import JobModal from '@/components/JobModal';
+import UnifiedJobModal from '@/components/UnifiedJobModal';
 import AnimatedHeader from '@/components/AnimatedHeader';
 import UrlSyncWrapper from '@/components/UrlSyncWrapper';
 import SearchInput from '@/components/SearchInput';
@@ -67,7 +67,7 @@ export default async function Page({
   return (
     <ProtectedRoute>
       <UrlSyncWrapper>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"> 
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8"> 
           <main className="space-y-6">
             <AnimatedHeader />
             <StatsOverviewServer />
@@ -79,7 +79,7 @@ export default async function Page({
               <Pagination />
             </div>
 
-            <JobModal />
+            <UnifiedJobModal />
           </main>
         </div>
       </UrlSyncWrapper>
