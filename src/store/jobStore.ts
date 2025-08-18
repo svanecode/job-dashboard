@@ -172,6 +172,18 @@ export const useJobStore = create<JobStore>((set, get) => ({
   selectedJob: null,
   isModalOpen: false,
   openJobModal: (job) => {
+    // Valider at job-objektet har de nødvendige felter
+    if (!job || !job.job_id) {
+      console.error('jobStore.openJobModal: Invalid job object:', job);
+      return;
+    }
+    
+    console.log('jobStore.openJobModal: Opening modal for job:', {
+      job_id: job.job_id,
+      title: job.title,
+      company: job.company
+    });
+    
     set({ selectedJob: job, isModalOpen: true });
   },
   closeJobModal: () => {

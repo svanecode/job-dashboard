@@ -156,7 +156,20 @@ export default function ChatPage() {
               const job = await getJobByJobId(jobId);
 
               if (job) {
-                console.log('Job found:', job);
+                console.log('Job found:', {
+                  job_id: job.job_id,
+                  title: job.title,
+                  company: job.company,
+                  hasDescription: !!job.description
+                });
+                
+                // Valider at job-objektet har de nødvendige felter
+                if (!job.job_id || !job.title || !job.company) {
+                  console.warn('Job missing required fields:', job);
+                  alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.');
+                  return;
+                }
+                
                 openJobModal(job as any);
               } else {
                 console.warn('Job not found for job_id:', jobId);

@@ -42,32 +42,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // 1. Tjek den nuværende session ved start
     const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      if (currentUser) {
-        await refreshUser(currentUser);
-      } else {
+      try {
+        // Tilføj timeout på session check for at undgå at app'en hænger fast
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        );
+        
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        const currentUser = session?.user ?? null;
+        
+        if (currentUser) {
+          await refreshUser(currentUser);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Fejl under initial session check:", error);
         setUser(null);
+      } finally {
+        // KRITISK: Sæt altid loading til false og initialized til true
+        // uanset om der er en bruger eller ej
+        setLoading(false);
+        setInitialized(true);
       }
-      // Sæt kun loading til 'false' EFTER det første tjek er færdigt
-      setLoading(false);
-      setInitialized(true);
     };
 
-    checkInitialSession();
+    // Fallback timeout - sikrer at app'en altid bliver initialiseret
+    const fallbackTimeout = setTimeout(() => {
+      console.warn("AuthContext: Fallback timeout triggered - forcing initialization");
+      setLoading(false);
+      setInitialized(true);
+    }, 6000);
+
+    checkInitialSession().finally(() => {
+      clearTimeout(fallbackTimeout);
+    });
 
     // 2. Lyt efter fremtidige ændringer i login-status
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
-      const currentUser = session?.user ?? null;
-      if (currentUser) {
-        await refreshUser(currentUser);
-      } else {
+      try {
+        const currentUser = session?.user ?? null;
+        if (currentUser) {
+          await refreshUser(currentUser);
+        } else {
+          setUser(null);
+        }
+        // Sæt loading til false ved hver auth state change
+        setLoading(false);
+      } catch (error) {
+        console.error("Fejl under auth state change:", error);
         setUser(null);
+        setLoading(false);
       }
     });
 
     // Ryd op i lytteren, når komponenten forsvinder
     return () => {
+      clearTimeout(fallbackTimeout);
       authListener?.subscription.unsubscribe();
     };
   }, [refreshUser]); // Kør kun denne effekt én gang

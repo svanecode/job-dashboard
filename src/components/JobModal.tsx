@@ -144,7 +144,8 @@ export default function JobModal() {
   const handlePreviousJob = () => {
     if (!selectedJob || !paginatedJobs.length) return
     
-    const currentIndex = paginatedJobs.findIndex(job => job.id === selectedJob.id)
+    // Brug job_id i stedet for id for at undgå problemer med jobs fra chat
+    const currentIndex = paginatedJobs.findIndex(job => job.job_id === selectedJob.job_id)
     if (currentIndex > 0) {
       const previousJob = paginatedJobs[currentIndex - 1]
       openJobModal(previousJob)
@@ -154,7 +155,8 @@ export default function JobModal() {
   const handleNextJob = () => {
     if (!selectedJob || !paginatedJobs.length) return
     
-    const currentIndex = paginatedJobs.findIndex(job => job.id === selectedJob.id)
+    // Brug job_id i stedet for id for at undgå problemer med jobs fra chat
+    const currentIndex = paginatedJobs.findIndex(job => job.job_id === selectedJob.job_id)
     if (currentIndex < paginatedJobs.length - 1) {
       const nextJob = paginatedJobs[currentIndex + 1]
       openJobModal(nextJob)
@@ -243,7 +245,8 @@ export default function JobModal() {
   if (!selectedJob) return null
 
   const hasNavigation = paginatedJobs.length > 1
-  const currentIndex = paginatedJobs.findIndex(job => job.id === selectedJob.id)
+  // Brug job_id i stedet for id for at undgå problemer med jobs fra chat
+  const currentIndex = paginatedJobs.findIndex(job => job.job_id === selectedJob.job_id)
   const canGoPrevious = currentIndex > 0
   const canGoNext = currentIndex < paginatedJobs.length - 1
 
