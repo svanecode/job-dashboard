@@ -95,7 +95,7 @@ RETURNS TABLE (
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE,
   user_name TEXT
-)
+)image.png
 LANGUAGE plpgsql
 AS $$
 BEGIN
