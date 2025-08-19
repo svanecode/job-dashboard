@@ -20,6 +20,16 @@ export default function UnifiedJobModal() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  // Valider at job data er komplet
+  useEffect(() => {
+    if (selectedJob && isModalOpen && (!selectedJob.job_id || !selectedJob.title || !selectedJob.company)) {
+      console.error('UnifiedJobModal: Invalid job data:', selectedJob);
+      alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.');
+      closeJobModal();
+      return;
+    }
+  }, [selectedJob, isModalOpen, closeJobModal]);
+
   // If no job is selected or modal is not open, render nothing
   if (!selectedJob || !isModalOpen) {
     return null

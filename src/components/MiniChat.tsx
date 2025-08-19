@@ -1,15 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { MessageCircle, X, Send, Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Bot, X, Maximize2, MessageCircle, Sparkles, Plus } from 'lucide-react'
+import SeJobButton from './SeJobButton'
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation'
 import { Message, MessageContent } from '@/components/ai-elements/message'
 import { Response } from '@/components/ai-elements/response'
 import { ChatInput } from '@/components/ai-elements/chat-input'
 import { Loader } from '@/components/ai-elements/loader'
-import { motion, AnimatePresence } from 'framer-motion'
-import { getJobByJobId } from '@/services/jobService'
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string; timestamp: Date }
 
@@ -38,7 +38,7 @@ export default function MiniChat() {
         const res = await fetch(`/api/assistants-chat?threadId=${encodeURIComponent(threadId)}`)
         const data = await res.json()
         if (!res.ok || !data?.success) throw new Error(data?.error || 'Kunne ikke hente samtale')
-        const msgs = Array.isArray(data.messages) ? data.messages.map(msg => ({
+        const msgs = Array.isArray(data.messages) ? data.messages.map((msg: any) => ({
           ...msg,
           timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date()
         })) : []
@@ -51,8 +51,6 @@ export default function MiniChat() {
     }
     load()
   }, [threadId])
-
-
 
   const handleMessageSubmit = async (value: string) => {
     const text = String(value || '').trim()
@@ -128,46 +126,10 @@ export default function MiniChat() {
       if (!jobId) return <span key={index} dangerouslySetInnerHTML={{ __html: segment }} />;
 
       return (
-        <button
+        <SeJobButton
           key={`job-${jobId}-${index}`}
-          onClick={async () => {
-            try {
-              const job = await getJobByJobId(jobId);
-
-              if (job && job.job_id) {
-                // Valider at job-objektet har de nødvendige felter
-                if (!job.title || !job.company) {
-                  console.warn('Job missing required fields:', job);
-                  alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.');
-                  return;
-                }
-                
-                // Brug global event til at åbne job modal
-                const event = new CustomEvent('openJobModal', { detail: job });
-                window.dispatchEvent(event);
-              } else {
-                console.warn('Job not found or invalid for job_id:', jobId);
-                if (confirm('Jobbet kunne ikke findes. Vil du opdatere siden for at hente de seneste data?')) {
-                  window.location.reload();
-                } else {
-                  alert('Jobbet kunne ikke findes. Det er muligvis blevet fjernet eller opdateret.');
-                }
-              }
-            } catch (e: any) {
-              console.error('Open job failed:', e);
-              if (confirm('Der opstod en fejl ved åbning af jobbet. Vil du opdatere siden for at hente de seneste data?')) {
-                window.location.reload();
-              } else {
-                alert('Der opstod en fejl ved åbning af jobbet.');
-              }
-            }
-          }}
-          type="button"
-          className="inline align-baseline ml-1 p-0 text-[0.95em] font-bold underline decoration-dotted decoration-white/70 underline-offset-2 hover:decoration-white text-white hover:text-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
-          title={`Se detaljer for job ID: ${jobId}`}
-        >
-          Se job
-        </button>
+          jobId={jobId}
+        />
       );
     });
   };
@@ -211,7 +173,7 @@ export default function MiniChat() {
             <div className="flex items-center justify-between p-4 border-b border-white/20 bg-white/[0.05]">
               <div className="flex items-center gap-3">
                 <div className="size-10 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-full flex items-center justify-center border border-white/20">
-                  <Bot className="size-5 text-blue-300" />
+                  {/* <Bot className="size-5 text-blue-300" /> */}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -226,10 +188,10 @@ export default function MiniChat() {
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={handleNewConversation} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Ny samtale">
-                  <Plus className="size-4" />
+                  {/* <Plus className="size-4" /> */}
                 </button>
                 <button onClick={openFull} className="p-2 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Åbn i stor">
-                  <Maximize2 className="size-4" />
+                  {/* <Maximize2 className="size-4" /> */}
                 </button>
                 <button onClick={() => setIsOpen(false)} className="p-2 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Luk">
                   <X className="size-4" />

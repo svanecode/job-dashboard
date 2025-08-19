@@ -6,7 +6,6 @@ import TopNav from '@/components/TopNav'
 import UserMenu from '@/components/UserMenu'
 import MiniChat from '@/components/MiniChat'
 import NavigationWrapper from '@/components/NavigationWrapper'
-import GlobalJobModalHandler from '@/components/GlobalJobModalHandler'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -79,8 +78,6 @@ export default function RootLayout({
           </div>
           {/* Global mini chat - ensure it stays below UserMenu z-index */}
           <MiniChat />
-          {/* Global job modal handler */}
-          <GlobalJobModalHandler />
         </AuthProvider>
         {CursorFX()}
       </body>

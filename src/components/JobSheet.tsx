@@ -50,6 +50,16 @@ export default function JobSheet({
   const [isLoadingComments, setIsLoadingComments] = useState(false)
   const [isAddingComment, setIsAddingComment] = useState(false)
 
+  // Valider at job data er komplet
+  useEffect(() => {
+    if (open && (!jobId || !title || !company)) {
+      console.error('JobSheet: Invalid job data:', { jobId, title, company });
+      alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.');
+      onClose();
+      return;
+    }
+  }, [open, jobId, title, company, onClose]);
+
   // Handle swipe to close
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY

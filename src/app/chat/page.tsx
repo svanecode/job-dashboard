@@ -9,8 +9,7 @@ import { ChatInput } from '@/components/ai-elements/chat-input'
 import { Loader } from '@/components/ai-elements/loader'
 import { Sparkles } from 'lucide-react'
 import UnifiedJobModal from '@/components/UnifiedJobModal'
-import { useJobStore } from '@/store/jobStore'
-import { getJobByJobId } from '@/services/jobService'
+import SeJobButton from '@/components/SeJobButton'
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string; timestamp: Date }
 
@@ -21,7 +20,6 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
-  const { openJobModal } = useJobStore()
 
   useEffect(() => {
     try {
@@ -144,48 +142,10 @@ export default function ChatPage() {
       if (!jobId) return <span key={index} dangerouslySetInnerHTML={{ __html: segment }} />;
 
       return (
-        <button
+        <SeJobButton
           key={`job-${jobId}-${index}`}
-          onClick={async () => {
-            try {
-              // Add cache-busting to prevent stale data
-              const timestamp = Date.now();
-              const job = await getJobByJobId(jobId);
-
-              if (job) {
-                // Valider at job-objektet har de nødvendige felter
-                if (!job.job_id || !job.title || !job.company) {
-                  console.warn('Job missing required fields:', job);
-                  alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.');
-                  return;
-                }
-                
-                openJobModal(job as any);
-              } else {
-                console.warn('Job not found for job_id:', jobId);
-                // Try to refresh the page to get latest data
-                if (confirm('Jobbet kunne ikke findes. Vil du opdatere siden for at hente de seneste data?')) {
-                  window.location.reload();
-                } else {
-                  alert('Jobbet kunne ikke findes. Det er muligvis blevet fjernet eller opdateret.');
-                }
-              }
-            } catch (e: any) {
-              console.error('Open job failed:', e);
-              // Try to refresh the page to get latest data
-              if (confirm('Der opstod en fejl ved åbning af jobbet. Vil du opdatere siden for at hente de seneste data?')) {
-                window.location.reload();
-              } else {
-                alert('Der opstod en fejl ved åbning af jobbet.');
-              }
-            }
-          }}
-          type="button"
-          className="inline align-baseline ml-1 p-0 text-[0.95em] font-bold underline decoration-dotted decoration-white/70 underline-offset-2 hover:decoration-white text-white hover:text-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
-          title={`Se detaljer for job ID: ${jobId}`}
-        >
-          Se job
-        </button>
+          jobId={jobId}
+        />
       );
     });
   };

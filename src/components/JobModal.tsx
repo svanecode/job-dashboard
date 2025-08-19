@@ -29,6 +29,16 @@ export default function JobModal() {
   const [isAddingComment, setIsAddingComment] = useState(false)
   const [showComments, setShowComments] = useState(true) // Always show comments
 
+  // Valider at job data er komplet
+  useEffect(() => {
+    if (selectedJob && (!selectedJob.job_id || !selectedJob.title || !selectedJob.company)) {
+      console.error('JobModal: Invalid job data:', selectedJob);
+      alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.');
+      closeJobModal();
+      return;
+    }
+  }, [selectedJob, closeJobModal]);
+
   // Check if mobile on mount
   useEffect(() => {
     const checkMobile = () => {

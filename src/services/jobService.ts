@@ -52,68 +52,133 @@ export async function getAllJobs(filters: JobFilters = {}) {
 
 export async function getJobById(id: number): Promise<Job | null> {
   if (!supabase) {
+    console.error('getJobById: Supabase client not initialized');
     throw new Error('Supabase client not initialized');
   }
 
-  const { data, error } = await supabase
-    .from('jobs')
-    .select('*')
-    .eq('id', id)
-    .is('deleted_at', null)
-    .single();
-
-  if (error) {
-    console.error('Error fetching job:', error);
-    console.error('Error details:', {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code
-    });
+  if (!id || typeof id !== 'number') {
+    console.error('getJobById: Invalid id:', id);
     return null;
   }
 
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single();
+
+    if (error) {
+      console.error('Error fetching job:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      return null;
+    }
+
+    // Valider at job data er komplet
+    if (!data || !data.job_id || !data.title || !data.company) {
+      console.error('getJobById: Job data incomplete:', data);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('getJobById: Unexpected error:', error);
+    return null;
+  }
 }
 
 export async function getJobByJobId(jobId: string): Promise<Job | null> {
   if (!supabase) {
+    console.error('getJobByJobId: Supabase client not initialized');
     throw new Error('Supabase client not initialized');
   }
 
-  const { data, error } = await supabase
-    .from('jobs')
-    .select('*')
-    .eq('job_id', jobId)
-    .is('deleted_at', null)
-    .single();
-
-  if (error) {
-    console.error('Error fetching job by job_id:', error);
+  if (!jobId || typeof jobId !== 'string') {
+    console.error('getJobByJobId: Invalid jobId:', jobId);
     return null;
   }
 
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('job_id', jobId)
+      .is('deleted_at', null)
+      .single();
+
+    if (error) {
+      console.error('Error fetching job by job_id:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      return null;
+    }
+
+    // Valider at job data er komplet
+    if (!data || !data.job_id || !data.title || !data.company) {
+      console.error('getJobByJobId: Job data incomplete:', data);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('getJobByJobId: Unexpected error:', error);
+    return null;
+  }
 }
 
 export async function getJobsByIds(ids: number[]): Promise<Job[]> {
   if (!supabase) {
+    console.error('getJobsByIds: Supabase client not initialized');
     throw new Error('Supabase client not initialized');
   }
-  if (!ids || ids.length === 0) return [];
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .select('*')
-    .in('id', ids)
-    .is('deleted_at', null);
-
-  if (error) {
-    console.error('Error fetching jobs by ids:', error);
+  
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    console.error('getJobsByIds: Invalid ids:', ids);
     return [];
   }
 
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .in('id', ids)
+      .is('deleted_at', null);
+
+    if (error) {
+      console.error('Error fetching jobs by ids:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      return [];
+    }
+
+    // Valider at alle jobs har de nødvendige felter
+    const validJobs = (data || []).filter((job: any) => 
+      job && job.job_id && job.title && job.company
+    );
+
+    if (validJobs.length !== (data || []).length) {
+      console.warn('getJobsByIds: Some jobs were filtered out due to incomplete data');
+    }
+
+    return validJobs;
+  } catch (error) {
+    console.error('getJobsByIds: Unexpected error:', error);
+    return [];
+  }
 }
 
 export async function createJob(job: Omit<Job, 'id' | 'created_at' | 'deleted_at' | 'scored_at' | 'job_info' | 'last_seen'>): Promise<Job> {

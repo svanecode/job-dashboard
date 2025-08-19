@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useJobStore } from '@/store/jobStore'
 import { getJobById, getJobsByIds } from '@/services/jobService'
 import { motion } from 'framer-motion'
 import UnifiedJobModal from '@/components/UnifiedJobModal'
+import { openJobModalGlobal } from '@/store/jobStore'
 
 type WeeklyInsightData = {
   id: string
@@ -24,7 +24,6 @@ type WeeklyInsightData = {
 }
 
 export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData }) {
-  const { openJobModal } = useJobStore()
   const [loadingJobId, setLoadingJobId] = useState<number | null>(null)
   const [prefetched, setPrefetched] = useState<Record<number, any>>({})
 
@@ -57,9 +56,22 @@ export default function InsightsWeekly({ insight }: { insight: WeeklyInsightData
     try {
       setLoadingJobId(jobId)
       const job = prefetched[jobId] || (await getJobById(jobId))
-      if (job) {
-        openJobModal(job)
+      
+      if (job && job.job_id && job.title && job.company) {
+        console.log('InsightsWeekly: Opening job modal for:', {
+          id: job.id,
+          job_id: job.job_id,
+          title: job.title,
+          company: job.company
+        })
+        openJobModalGlobal(job)
+      } else {
+        console.error('InsightsWeekly: Invalid job data for ID:', jobId, job)
+        alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.')
       }
+    } catch (error) {
+      console.error('InsightsWeekly: Error opening job:', error)
+      alert('Der opstod en fejl ved åbning af jobbet. Prøv at opdatere siden.')
     } finally {
       setLoadingJobId(null)
     }

@@ -8,9 +8,12 @@ import InsightsArchiveMobile from '@/components/InsightsArchiveMobile'
 
 export const revalidate = 3600
 
-export default async function InsightsPage({ searchParams }: { searchParams?: { id?: string } }) {
+export default async function InsightsPage({ searchParams }: { searchParams?: Promise<{ id?: string }> }) {
   // Hent arkivliste og valgt indsigts-uge
   const supabase = await supabaseServer()
+  
+  // Await searchParams før brug
+  const params = await searchParams
 
   const { data: archive } = await supabase
     .from('weekly_insights_public')
@@ -18,7 +21,7 @@ export default async function InsightsPage({ searchParams }: { searchParams?: { 
     .order('published_at', { ascending: false })
     .limit(200)
 
-  const selectedId = searchParams?.id
+  const selectedId = params?.id
 
   // Hent den valgte indsigt (eller seneste hvis ingen valgt)
   let selectedInsight = null as any

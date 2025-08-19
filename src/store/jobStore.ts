@@ -152,15 +152,29 @@ export const useJobStore = create<JobStore>((set, get) => ({
     set({ rowDensity: density });
   },
 
-  // Job modal
+  // Job modal - forbedret håndtering af tab switching
   selectedJob: null,
   isModalOpen: false,
   openJobModal: (job) => {
     // Valider at job-objektet har de nødvendige felter
     if (!job || !job.job_id) {
       console.error('jobStore.openJobModal: Invalid job object:', job);
+      alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.');
       return;
     }
+    
+    if (!job.title || !job.company) {
+      console.error('jobStore.openJobModal: Job missing required fields:', job);
+      alert('Jobbet mangler nogle oplysninger. Prøv at opdatere siden.');
+      return;
+    }
+    
+    // Log successful job modal opening for debugging
+    console.log('jobStore.openJobModal: Opening modal for job:', {
+      job_id: job.job_id,
+      title: job.title,
+      company: job.company
+    });
     
     set({ selectedJob: job, isModalOpen: true });
   },
@@ -170,7 +184,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
 
   // Saved jobs
   savedJobIds: new Set(),
-  toggleSavedJob: (jobId) => {
+  toggleSavedJob: (jobId: number) => {
     set((state) => {
       const newSet = new Set(state.savedJobIds);
       if (newSet.has(jobId)) {
@@ -181,7 +195,13 @@ export const useJobStore = create<JobStore>((set, get) => ({
       return { savedJobIds: newSet };
     });
   },
-  isJobSaved: (jobId) => {
+  isJobSaved: (jobId: number) => {
     return get().savedJobIds.has(jobId);
   },
-})) 
+}))
+
+// Global funktion til at åbne job modal direkte fra andre komponenter
+export const openJobModalGlobal = (job: any) => {
+  const store = useJobStore.getState()
+  store.openJobModal(job)
+} 
