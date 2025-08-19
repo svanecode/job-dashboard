@@ -7,6 +7,8 @@ export type Region =
   | 'Nordjylland'
   | 'Udlandet';
 
+export type Score = 1 | 2 | 3;
+
 export type ViewMode = 'normal' | 'compact';
 
 export type Filters = {

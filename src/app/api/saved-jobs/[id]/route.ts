@@ -1,8 +1,9 @@
 import { supabaseServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const supabase = await supabaseServer();
     
     // Get current user
@@ -19,7 +20,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { data, error } = await supabase
       .from('saved_jobs')
       .update({ notes })
-      .eq('id', params.id) // Use 'id' - that's the actual column name in the database
+      .eq('id', id) // Use 'id' - that's the actual column name in the database
       .eq('user_id', user.id)
       .select()
       .single()
@@ -36,28 +37,24 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    console.log('DELETE API: Attempting to delete saved job with ID:', params.id);
+    const { id } = await params;
     
     const supabase = await supabaseServer();
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    console.log('DELETE API: Auth result:', { user: user?.id, error: userError?.message });
     
     if (userError || !user) {
-      console.log('DELETE API: Returning 401 - userError:', userError?.message, 'user:', !!user);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    console.log('DELETE API: Deleting saved job with id:', params.id, 'for user:', user.id);
 
     // Delete the saved job
     const { error } = await supabase
       .from('saved_jobs')
       .delete()
-      .eq('id', params.id) // Use 'id' - that's the actual column name in the database
+      .eq('id', id) // Use 'id' - that's the actual column name in the database
       .eq('user_id', user.id)
 
     if (error) {
@@ -65,7 +62,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Failed to delete saved job' }, { status: 500 })
     }
 
-    console.log('DELETE API: Successfully deleted saved job:', params.id);
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('DELETE API: Error in delete saved job API:', error)

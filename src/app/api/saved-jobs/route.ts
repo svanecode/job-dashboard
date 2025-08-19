@@ -7,11 +7,20 @@ export async function GET(request: NextRequest) {
     
     // Try to get session first
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('API: Session result:', { session: !!session, error: sessionError?.message });
+    console.log('API: Session result:', { 
+      session: !!session, 
+      error: sessionError?.message,
+      sessionId: session?.access_token ? 'exists' : 'missing',
+      expiresAt: session?.expires_at
+    });
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    console.log('API: Auth result:', { user: user?.id, error: userError?.message });
+    console.log('API: Auth result:', { 
+      user: user?.id, 
+      error: userError?.message,
+      userEmail: user?.email
+    });
     
     if (userError || !user) {
       console.log('API: Returning 401 - userError:', userError?.message, 'user:', !!user);
@@ -21,7 +30,8 @@ export async function GET(request: NextRequest) {
           sessionError: sessionError?.message,
           userError: userError?.message,
           sessionExists: !!session,
-          userExists: !!user
+          userExists: !!user,
+          sessionId: session?.access_token ? 'exists' : 'missing'
         }
       }, { status: 401 })
     }

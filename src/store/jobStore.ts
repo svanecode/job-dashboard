@@ -71,12 +71,6 @@ export const useJobStore = create<JobStore>((set, get) => ({
   // Actions
   setInitialData: (data) => {
     // Altid accepter nye data fra serveren - det er nu den eneste kilde
-    console.log('🔍 jobStore.setInitialData - Setting new data from server:', { 
-      page: data.page, 
-      pageSize: data.pageSize, 
-      count: data.data.length 
-    });
-    
     set({
       paginatedJobs: data.data,
       totalJobs: data.total,
@@ -95,14 +89,11 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const hasChanged = JSON.stringify(currentState.filters) !== JSON.stringify(newFiltersCombined);
     
     if (hasChanged) {
-      console.log('🔍 jobStore.setFilters - Filters changed, updating state:', newFiltersCombined);
       set({
         filters: newFiltersCombined,
         currentPage: 1, // Nulstil altid til side 1 ved filterændring
       });
       // Fjernet fetchJobs() - serveren vil håndtere datahentning via URL ændring
-    } else {
-      console.log('🔍 jobStore.setFilters - No changes detected, skipping update');
     }
   },
   
@@ -124,16 +115,12 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const hasChanged = JSON.stringify(currentState.filters) !== JSON.stringify(filtersToApply);
     
     if (hasChanged) {
-      console.log('🔍 jobStore.applyFilters - Applying new filters:', filtersToApply);
       set({ filters: filtersToApply, stagedFilters: {}, currentPage: 1 });
       // Fjernet fetchJobs() - serveren vil håndtere datahentning via URL ændring
-    } else {
-      console.log('🔍 jobStore.applyFilters - No changes detected, skipping update');
     }
   },
 
   resetFilters: () => {
-    console.log('🔍 jobStore.resetFilters - Resetting filters');
     set({ 
       filters: { jobStatus: 'active' }, // Nulstil til standard
       stagedFilters: {}, 
@@ -143,7 +130,6 @@ export const useJobStore = create<JobStore>((set, get) => ({
 
   setCurrentPage: (page) => {
     if (get().currentPage === page) return;
-    console.log('🔍 jobStore.setCurrentPage - Page changed from', get().currentPage, 'to', page);
     set({ currentPage: page });
     // Fjernet fetchJobs() - serveren vil håndtere datahentning via URL ændring
   },
@@ -152,14 +138,12 @@ export const useJobStore = create<JobStore>((set, get) => ({
     const currentState = get();
     if (JSON.stringify(currentState.sort) === JSON.stringify(newSort)) return;
     
-    console.log('🔍 jobStore.setSort - Sort changed from', currentState.sort, 'to', newSort);
     set({ sort: newSort, currentPage: 1 });
     // Fjernet fetchJobs() - serveren vil håndtere datahentning via URL ændring
   },
   
   setJobsPerPage: (pageSize) => {
     if (get().jobsPerPage === pageSize) return;
-    console.log('🔍 jobStore.setJobsPerPage - Page size changed from', get().jobsPerPage, 'to', pageSize);
     set({ jobsPerPage: pageSize, currentPage: 1 });
     // Fjernet fetchJobs() - serveren vil håndtere datahentning via URL ændring
   },
@@ -177,12 +161,6 @@ export const useJobStore = create<JobStore>((set, get) => ({
       console.error('jobStore.openJobModal: Invalid job object:', job);
       return;
     }
-    
-    console.log('jobStore.openJobModal: Opening modal for job:', {
-      job_id: job.job_id,
-      title: job.title,
-      company: job.company
-    });
     
     set({ selectedJob: job, isModalOpen: true });
   },

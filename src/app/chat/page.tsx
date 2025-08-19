@@ -36,7 +36,6 @@ export default function ChatPage() {
       // Force fresh data on page load
       window.addEventListener('focus', () => {
         // Refresh data when user returns to tab
-        console.log('Tab focused, ensuring fresh data');
       });
       
       // Add cache-busting meta tag
@@ -149,20 +148,11 @@ export default function ChatPage() {
           key={`job-${jobId}-${index}`}
           onClick={async () => {
             try {
-              console.log('Attempting to fetch job with job_id:', jobId);
-              
               // Add cache-busting to prevent stale data
               const timestamp = Date.now();
               const job = await getJobByJobId(jobId);
 
               if (job) {
-                console.log('Job found:', {
-                  job_id: job.job_id,
-                  title: job.title,
-                  company: job.company,
-                  hasDescription: !!job.description
-                });
-                
                 // Valider at job-objektet har de nødvendige felter
                 if (!job.job_id || !job.title || !job.company) {
                   console.warn('Job missing required fields:', job);

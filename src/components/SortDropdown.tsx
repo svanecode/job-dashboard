@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, ChevronUp, ChevronUpDown } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { SortConfig, SortKey } from '@/utils/sort'
 
 interface SortDropdownProps {
@@ -30,7 +30,7 @@ export default function SortDropdown({ sort, onSortChange }: SortDropdownProps) 
   const getDirectionIcon = () => {
     if (sort.dir === 'asc') return <ChevronUp className="size-4" />
     if (sort.dir === 'desc') return <ChevronDown className="size-4" />
-    return <ChevronUpDown className="size-4" />
+    return <ChevronDown className="size-4" />
   }
 
   const getCurrentSortLabel = () => {

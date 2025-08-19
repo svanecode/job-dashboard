@@ -43,10 +43,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 1. Tjek den nuværende session ved start
     const checkInitialSession = async () => {
       try {
-        // Tilføj timeout på session check for at undgå at app'en hænger fast
+        // Øg timeout til 10 sekunder for at undgå unødvendige timeouts
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+          setTimeout(() => reject(new Error('Session check timeout')), 10000)
         );
         
         const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
         }
       } catch (error) {
-        console.error("Fejl under initial session check:", error);
+        console.warn("Session check timeout eller fejl - fortsætter uden bruger:", error);
         setUser(null);
       } finally {
         // KRITISK: Sæt altid loading til false og initialized til true
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.warn("AuthContext: Fallback timeout triggered - forcing initialization");
       setLoading(false);
       setInitialized(true);
-    }, 6000);
+    }, 12000);
 
     checkInitialSession().finally(() => {
       clearTimeout(fallbackTimeout);

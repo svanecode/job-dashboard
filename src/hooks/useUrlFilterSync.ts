@@ -41,13 +41,6 @@ export function useUrlFilterSync() {
         dir: (params.get('dir') as 'asc' | 'desc') || 'desc',
       };
 
-      console.log('🔍 useUrlFilterSync - Restoring state from URL:', {
-        filters: restoredFilters,
-        page: restoredPage,
-        pageSize: restoredPageSize,
-        sort: restoredSort
-      });
-
       // Sæt den initielle state uden at fetche data endnu
       const currentState = useJobStore.getState();
       
@@ -59,7 +52,6 @@ export function useUrlFilterSync() {
         JSON.stringify(currentState.sort) !== JSON.stringify(restoredSort);
       
       if (needsUpdate) {
-        console.log('🔍 useUrlFilterSync - Updating state from URL');
         useJobStore.setState({
             filters: restoredFilters,
             currentPage: restoredPage,
@@ -68,7 +60,6 @@ export function useUrlFilterSync() {
             isInitialized: true // Marker som initialiseret
         });
       } else {
-        console.log('🔍 useUrlFilterSync - State already correct, just marking as initialized');
         useJobStore.setState({
             isInitialized: true // Marker som initialiseret
         });

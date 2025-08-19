@@ -37,7 +37,6 @@ export default function ProfilePage() {
       return
     }
 
-    console.log(`🔍 Henter brugerdata for bruger ${user.id}, job status: ${jobStatusFilter}`);
     setJobsLoading(true)
     try {
       const [jobsData, commentsData] = await Promise.all([
@@ -72,10 +71,10 @@ export default function ProfilePage() {
 
   // Reload data when job status filter changes
   useEffect(() => {
-    if (user && !jobsLoading) {
-      loadUserData()
+    if (user && initialized) {
+      loadUserData();
     }
-  }, [jobStatusFilter, loadUserData])
+  }, [user, initialized, jobStatusFilter]);
 
   const handleDeleteSavedJob = async (id: string) => {
     try {

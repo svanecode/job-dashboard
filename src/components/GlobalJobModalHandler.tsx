@@ -8,7 +8,6 @@ export default function GlobalJobModalHandler() {
 
   useEffect(() => {
     const handleJobModalOpen = (event: any) => {
-      console.log('GlobalJobModalHandler: Received openJobModal event', event);
       const job = event.detail
       
       if (job) {
@@ -18,20 +17,12 @@ export default function GlobalJobModalHandler() {
           return;
         }
         
-        console.log('GlobalJobModalHandler: Opening job modal for job:', {
-          job_id: job.job_id,
-          title: job.title,
-          company: job.company,
-          hasDescription: !!job.description
-        });
-        
         openJobModal(job)
       } else {
         console.error('GlobalJobModalHandler: No job data in event');
       }
     }
     
-    console.log('GlobalJobModalHandler: Setting up event listener');
     window.addEventListener('openJobModal', handleJobModalOpen)
     return () => window.removeEventListener('openJobModal', handleJobModalOpen)
   }, [openJobModal])

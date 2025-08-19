@@ -29,7 +29,7 @@ const compareDates = (a: string | null, b: string | null): number => {
 }
 
 // Main sort function with fallback to date for stable sorting
-export const sortJobs = (jobs: Job[], sortConfig: SortConfig, commentCounts?: Record<string, number>, savedJobIds?: Set<number>): Job[] => {
+export const sortJobs = (jobs: Job[], sortConfig: SortConfig, commentCounts?: Record<string, number>, savedJobIds?: Set<string>): Job[] => {
   return [...jobs].sort((a, b) => {
     let comparison = 0
 

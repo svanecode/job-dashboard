@@ -42,7 +42,22 @@ async function startRun(threadId: string): Promise<string> {
     },
     body: JSON.stringify({ assistant_id: ASSISTANT_ID })
   })
-  if (!res.ok) throw new Error(`startRun failed: ${res.status} ${await res.text()}`)
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`OpenAI API error: ${res.status} ${errorText}`);
+    
+    if (res.status === 502) {
+      throw new Error('OpenAI API er midlertidigt utilgængelig. Prøv igen om et par minutter.');
+    } else if (res.status === 429) {
+      throw new Error('OpenAI API rate limit nået. Prøv igen om et par minutter.');
+    } else if (res.status === 401) {
+      throw new Error('OpenAI API nøgle er ugyldig.');
+    } else {
+      throw new Error(`OpenAI API fejl: ${res.status} ${errorText}`);
+    }
+  }
+  
   const data = await res.json()
   return data.id as string
 }
@@ -166,7 +181,30 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error('assistants-chat error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    
+    // Return more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('OpenAI API er midlertidigt utilgængelig')) {
+        return NextResponse.json({ 
+          error: 'OpenAI API er midlertidigt utilgængelig. Prøv igen om et par minutter.',
+          retryAfter: 120 // 2 minutter
+        }, { status: 503 })
+      } else if (error.message.includes('rate limit')) {
+        return NextResponse.json({ 
+          error: 'OpenAI API rate limit nået. Prøv igen om et par minutter.',
+          retryAfter: 60 // 1 minut
+        }, { status: 429 })
+      } else if (error.message.includes('API nøgle')) {
+        return NextResponse.json({ 
+          error: 'OpenAI API konfiguration fejl. Kontakt administrator.',
+        }, { status: 500 })
+      }
+    }
+    
+    return NextResponse.json({ 
+      error: 'Der opstod en fejl under chat behandling. Prøv igen.',
+      details: error instanceof Error ? error.message : 'Ukendt fejl'
+    }, { status: 500 })
   }
 }
 

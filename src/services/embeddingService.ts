@@ -41,64 +41,51 @@ export async function generateEmbeddingsForJobs() {
   }
 
   try {
-    // Get all jobs without embeddings
-    const { data: jobs, error } = await supabase
+    // Get jobs that need embeddings
+    const { data: jobs, error: fetchError } = await supabase
       .from('jobs')
-      .select('id, job_id, title, description')
-      .is('embedding', null)
-      .is('deleted_at', null);
+      .select('*')
+      .is('deleted_at', null)
+      .or('title_embedding.is.null,description_embedding.is.null')
+      .limit(10);
 
-    if (error) {
-      throw error;
-    }
-
-    if (!jobs || jobs.length === 0) {
-      console.log('No jobs found that need embeddings');
+    if (fetchError) {
+      console.error('Error fetching jobs for embeddings:', fetchError);
       return;
     }
 
-    console.log(`Generating embeddings for ${jobs.length} jobs...`);
-
-    // Process jobs in batches to avoid rate limits
-    const batchSize = 5;
-    for (let i = 0; i < jobs.length; i += batchSize) {
-      const batch = jobs.slice(i, i + batchSize);
-      
-      await Promise.all(
-        batch.map(async (job) => {
-          try {
-            // Generate combined embedding for title and description
-            const combinedText = `${job.title}\n\n${job.description}`;
-              const embeddingResponse = await openai.embeddings.create({
-    model: 'text-embedding-3-large',
-    input: combinedText,
-    encoding_format: 'float',
-    // Remove dimensions parameter to use default
-  });
-
-            // Update job with embedding
-            await supabase
-              .from('jobs')
-              .update({
-                embedding: embeddingResponse.data[0].embedding,
-                embedding_created_at: new Date().toISOString(),
-              })
-              .eq('id', job.id);
-
-            console.log(`Updated embedding for job: ${job.title} (ID: ${job.job_id})`);
-          } catch (error) {
-            console.error(`Error generating embeddings for job ${job.id}:`, error);
-          }
-        })
-      );
-
-      // Add delay between batches to respect rate limits
-      if (i + batchSize < jobs.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+    if (!jobs || jobs.length === 0) {
+      return;
     }
 
-    console.log('Embedding generation completed');
+    // Generate embeddings for each job
+    for (const job of jobs) {
+      try {
+        // Generate title embedding
+        if (!job.title_embedding) {
+          const titleEmbedding = await generateEmbeddingForText(job.title || '');
+          if (titleEmbedding) {
+            await supabase
+              .from('jobs')
+              .update({ title_embedding: titleEmbedding })
+              .eq('id', job.id);
+          }
+        }
+
+        // Generate description embedding
+        if (!job.description_embedding) {
+          const descriptionEmbedding = await generateEmbeddingForText(job.description || '');
+          if (descriptionEmbedding) {
+            await supabase
+              .from('jobs')
+              .update({ description_embedding: descriptionEmbedding })
+              .eq('id', job.id);
+          }
+        }
+      } catch (error) {
+        console.error(`Error generating embeddings for job ${job.id}:`, error);
+      }
+    }
   } catch (error) {
     console.error('Error generating embeddings:', error);
     throw error;

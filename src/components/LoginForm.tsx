@@ -56,9 +56,7 @@ export default function LoginForm() {
     setMessage(null);
 
     try {
-      console.log('Attempting login with:', email);
       const result = await authService.signInWithPassword(email, password);
-      console.log('Login result:', result);
       
       if (result.success) {
         setMessage({
@@ -70,7 +68,6 @@ export default function LoginForm() {
         
         // Give more time for session to be properly established and cookies to be set
         setTimeout(() => {
-          console.log('Redirecting to dashboard...');
           router.push('/');
         }, 2000);
       } else {

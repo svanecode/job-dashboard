@@ -131,7 +131,6 @@ export class AIQueryProcessor {
     try {
       // Check if OpenAI is available
       if (!openai) {
-        console.log('OpenAI not available, using fallback processing');
         return this.fallbackProcessing(query);
       }
 

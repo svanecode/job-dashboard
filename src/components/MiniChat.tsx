@@ -132,18 +132,9 @@ export default function MiniChat() {
           key={`job-${jobId}-${index}`}
           onClick={async () => {
             try {
-              console.log('Attempting to fetch job with job_id:', jobId);
-              
               const job = await getJobByJobId(jobId);
 
               if (job && job.job_id) {
-                console.log('Job found:', {
-                  job_id: job.job_id,
-                  title: job.title,
-                  company: job.company,
-                  hasDescription: !!job.description
-                });
-                
                 // Valider at job-objektet har de nødvendige felter
                 if (!job.title || !job.company) {
                   console.warn('Job missing required fields:', job);
@@ -151,12 +142,9 @@ export default function MiniChat() {
                   return;
                 }
                 
-                console.log('Sending openJobModal event...');
                 // Brug global event til at åbne job modal
                 const event = new CustomEvent('openJobModal', { detail: job });
                 window.dispatchEvent(event);
-                console.log('Event sent, job modal should now be open');
-                // MiniChat forbliver åben så brugeren kan fortsætte chatten
               } else {
                 console.warn('Job not found or invalid for job_id:', jobId);
                 if (confirm('Jobbet kunne ikke findes. Vil du opdatere siden for at hente de seneste data?')) {

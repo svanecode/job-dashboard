@@ -79,27 +79,22 @@ class SavedJobsService {
     return response.json()
   }
 
-  async deleteSavedJob(id: string): Promise<void> {
-    console.log('savedJobsService: Attempting to delete saved job with ID:', id);
-    
-    const response = await fetch(`/api/saved-jobs/${id}`, {
-      method: 'DELETE',
-    })
-    
-    console.log('savedJobsService: Delete response status:', response.status);
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      console.error('savedJobsService: Delete error:', response.status, errorData)
-      
-      if (response.status === 401) {
-        throw new Error('Authentication required. Please log in again.')
+  async deleteSavedJob(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(`/api/saved-jobs/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        return { success: true, message: 'Job fjernet fra gemte jobs' };
+      } else {
+        const errorData = await response.json();
+        return { success: false, message: errorData.error || 'Kunne ikke fjerne jobbet' };
       }
-      
-      throw new Error(`Failed to delete saved job: ${errorData.error || response.statusText}`)
+    } catch (error) {
+      console.error('Error deleting saved job:', error);
+      return { success: false, message: 'Der opstod en fejl under fjernelse af jobbet' };
     }
-    
-    console.log('savedJobsService: Successfully deleted saved job:', id);
   }
 
   async getJobComments(jobId: string): Promise<JobComment[]> {

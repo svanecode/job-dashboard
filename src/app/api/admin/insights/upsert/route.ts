@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       .eq('id', auth.user.id)
       .maybeSingle()
     if (meError) {
-      return NextResponse.json({ error: 'Kunne ikke læse bruger' }, { status: 500, details: meError.message })
+      return NextResponse.json({ error: 'Kunne ikke læse bruger' }, { status: 500 })
     }
     if (!me || me.role !== 'admin') {
       return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 403 })

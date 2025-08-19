@@ -21,22 +21,33 @@ export async function getAllJobs(filters: JobFilters = {}) {
     ...base
   } = filters;
 
-  // Convert daysAgo to dateFrom if present
-  if (base.daysAgo && base.daysAgo > 0) {
-    const dateFrom = new Date();
-    dateFrom.setDate(dateFrom.getDate() - base.daysAgo);
-    base.dateFrom = dateFrom.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-    console.log(`🔍 Converting daysAgo: ${base.daysAgo} to dateFrom: ${base.dateFrom}`);
-    delete base.daysAgo; // Remove daysAgo as it's not supported by the query builder
-  }
-  
-  // Debug logging
-  if (base.dateFrom || base.dateTo) {
-    console.log(`🔍 Date filters - dateFrom: ${base.dateFrom}, dateTo: ${base.dateTo}`);
+  // Convert daysAgo to dateFrom if needed
+  if (base.daysAgo && !base.dateFrom) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - base.daysAgo);
+    base.dateFrom = cutoffDate.toISOString().split('T')[0];
   }
 
-  const query = buildJobsQuery(base, sort);
-  return runPaged(query, page, pageSize);
+  // Ensure we have valid date filters
+  if (base.dateFrom && base.dateTo) {
+    // Both dates provided, use as-is
+  } else if (base.dateFrom) {
+    // Only dateFrom provided, set dateTo to today
+    base.dateTo = new Date().toISOString().split('T')[0];
+  } else if (base.dateTo) {
+    // Only dateTo provided, set dateFrom to 30 days ago
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    base.dateFrom = thirtyDaysAgo.toISOString().split('T')[0];
+  } else {
+    // No dates provided, default to last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    base.dateFrom = thirtyDaysAgo.toISOString().split('T')[0];
+    base.dateTo = new Date().toISOString().split('T')[0];
+  }
+
+  return base;
 }
 
 export async function getJobById(id: number): Promise<Job | null> {
@@ -70,10 +81,6 @@ export async function getJobByJobId(jobId: string): Promise<Job | null> {
     throw new Error('Supabase client not initialized');
   }
 
-  // Add cache-busting to prevent stale data
-  const timestamp = Date.now();
-  console.log(`🔍 Fetching job with job_id: ${jobId} at ${timestamp}`);
-
   const { data, error } = await supabase
     .from('jobs')
     .select('*')
@@ -83,19 +90,7 @@ export async function getJobByJobId(jobId: string): Promise<Job | null> {
 
   if (error) {
     console.error('Error fetching job by job_id:', error);
-    console.error('Error details:', {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code
-    });
     return null;
-  }
-
-  if (data) {
-    console.log(`✅ Job found: ${data.title} at ${data.company_name}`);
-  } else {
-    console.log(`❌ No job found for job_id: ${jobId}`);
   }
 
   return data;
@@ -226,7 +221,7 @@ export async function searchJobs(query: string, params?: JobFilters): Promise<{ 
     searchQuery = searchQuery.order('publication_date', { ascending: false });
   }
 
-  const { data, error, count } = await searchQuery.range(
+  const { data: searchResults, error, count } = await searchQuery.range(
     (page - 1) * pageSize,
     ((page - 1) * pageSize) + pageSize - 1
   );
@@ -243,7 +238,7 @@ export async function searchJobs(query: string, params?: JobFilters): Promise<{ 
   }
 
   return {
-    data: data || [],
+    data: searchResults || [],
     total: count || 0,
     page,
     pageSize,

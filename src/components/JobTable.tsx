@@ -92,21 +92,13 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
   // Handle initial data from SSR whenever it changes (e.g., URL page/filter changed)
   useEffect(() => {
     if (initialData) {
-      console.log('JobTable: Setting SSR data from server:', { 
-        page: initialData.page, 
-        count: initialData.data.length,
-        pageSize: initialData.pageSize 
-      });
       setInitialData(initialData);
     }
   }, [initialData, setInitialData])
 
   // Initialize jobsPerPage from SSR if provided
   useEffect(() => {
-    console.log('JobTable: initialPageSize:', initialPageSize, 'jobsPerPage:', jobsPerPage)
-    
     if (initialPageSize && jobsPerPage === 20) {
-      console.log('JobTable: Setting jobsPerPage to:', initialPageSize)
       setJobsPerPage(initialPageSize)
     }
   }, [initialPageSize, jobsPerPage, setJobsPerPage])
@@ -114,11 +106,9 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
   // Load saved jobs and comment counts
   useEffect(() => {
     if (initialized && user && paginatedJobs.length > 0) {
-      console.log('JobTable: Loading saved jobs for user:', user.id);
       loadSavedJobs()
       loadCommentCounts()
     } else if (initialized && !user) {
-      console.log('JobTable: No user, clearing saved jobs state');
       setSavedJobs(new Set())
       setCommentCounts({})
     }
@@ -127,7 +117,6 @@ export default function JobTable({ initialData, initialPageSize }: JobTableProps
   // Handle client-side sorting for comments and saved jobs
   useEffect(() => {
     if (sort.key === 'comments' || sort.key === 'saved') {
-      console.log('JobTable: Applying client-side sorting for:', sort.key);
       // Sortering håndteres automatisk via sortJobs funktionen når data vises
     }
   }, [sort.key, sort.dir, commentCounts, savedJobs])

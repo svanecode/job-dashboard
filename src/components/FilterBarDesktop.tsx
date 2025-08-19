@@ -17,7 +17,6 @@ export default function FilterBarDesktop() {
     const filtersChanged = JSON.stringify(lastFiltersRef.current) !== JSON.stringify(filters);
     
     if (!hasSyncedRef.current || filtersChanged) {
-      console.log('🔍 FilterBarDesktop - Syncing with actual filters');
       // Ensure we always have jobStatus set to 'active' by default
       const defaultFilters = { jobStatus: 'active' as const, ...(filters || {}) };
       setFilters(defaultFilters);

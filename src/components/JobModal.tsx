@@ -92,54 +92,39 @@ export default function JobModal() {
   }
 
   const handleSaveJob = async () => {
-    if (!selectedJob) return
-    
-    console.log('JobModal: User state:', { user: user?.id, email: user?.email });
-    console.log('JobModal: Selected job:', selectedJob.job_id);
-    
-    if (!user) {
-      console.error('User not authenticated')
-      alert('Du skal være logget ind for at gemme jobs')
-      return
-    }
-    
+    if (!user || !selectedJob) return;
+
     try {
-      setIsSaving(true)
-      
-      if (isSaved) {
-        // Job is already saved, so we need to unsave it
-        console.log('JobModal: Attempting to unsave job:', selectedJob.job_id);
-        // First get the saved job ID
-        const savedJobs = await savedJobsService.getSavedJobs()
-        console.log('JobModal: Retrieved saved jobs:', savedJobs);
-        
-        const savedJob = savedJobs.find(job => job.job_id === selectedJob.job_id)
-        console.log('JobModal: Found saved job:', savedJob);
-        
-        if (savedJob && savedJob.saved_job_id) {
-          console.log('JobModal: Deleting saved job with ID:', savedJob.saved_job_id);
-          await savedJobsService.deleteSavedJob(savedJob.saved_job_id)
-          setIsSaved(false)
-        } else {
-          console.error('JobModal: Could not find saved job to delete or missing saved_job_id');
-          console.error('JobModal: savedJob object:', savedJob);
-          alert('Kunne ikke finde det gemte job')
-        }
+      const result = await savedJobsService.saveJob({ job_id: selectedJob.job_id });
+      if (result.success) {
+        setIsSaved(true);
+        alert('Jobbet er blevet gemt til din liste');
       } else {
-        // Job is not saved, so save it
-        console.log('JobModal: Attempting to save job:', selectedJob.job_id);
-        const result = await savedJobsService.saveJob({ job_id: selectedJob.job_id })
-        console.log('JobModal: Save result:', result)
-        setIsSaved(true)
+        alert('Kunne ikke gemme jobbet');
       }
     } catch (error) {
-      console.error('Error saving/unsaving job:', error)
-      // Show error to user
-      alert(`Kunne ikke ${isSaved ? 'fjerne' : 'gemme'} job: ${error instanceof Error ? error.message : 'Ukendt fejl'}`)
-    } finally {
-      setIsSaving(false)
+      console.error('Error saving job:', error);
+      alert('Der opstod en fejl under gemning af jobbet');
     }
-  }
+  };
+
+  const handleUnsaveJob = async () => {
+    if (!user || !selectedJob) return;
+
+    try {
+      const savedJobs = await savedJobsService.getSavedJobs();
+      const savedJob = savedJobs.find(job => job.job_id === selectedJob.job_id);
+      
+      if (savedJob) {
+        await savedJobsService.deleteSavedJob(savedJob.saved_job_id);
+        setIsSaved(false);
+        alert('Jobbet er blevet fjernet fra din liste');
+      }
+    } catch (error) {
+      console.error('Error unsaving job:', error);
+      alert('Der opstod en fejl under fjernelse af jobbet');
+    }
+  };
 
   const handlePreviousJob = () => {
     if (!selectedJob || !paginatedJobs.length) return

@@ -24,22 +24,11 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
     .select(SELECT_COLUMNS, { count: 'exact' });
 
   // Handle job status filter (Aktuelle vs Udløbede)
-  console.log('🔍 Job status filter - jobStatus:', filters.jobStatus);
-  
   if (filters.jobStatus === 'expired') {
     // Udløbede: Only soft deleted jobs with CFO score >= 1
-    console.log('🔍 Filtering for UDLØBEDE jobs (soft deleted with CFO score >= 1)');
-    // Try alternative approach if not() doesn't work
-    try {
-      q = q.not('deleted_at', null).gte('cfo_score', 1);
-    } catch (error) {
-      console.log('🔍 Fallback to raw SQL for soft deleted filter');
-      // Alternative: use raw SQL if Supabase query builder fails
-      q = q.filter('deleted_at', 'is not', null).gte('cfo_score', 1);
-    }
+    q = q.not('deleted_at', null).gte('cfo_score', 1);
   } else {
     // Aktuelle: Only active jobs with CFO score >= 1
-    console.log('🔍 Filtering for AKTUELLE jobs (not deleted with CFO score >= 1)');
     q = q.is('deleted_at', null).gte('cfo_score', 1);
   }
 
@@ -62,11 +51,9 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
 
   // Date filters
   if (filters.dateFrom) {
-    console.log(`🔍 Applying dateFrom filter: ${filters.dateFrom}`);
     q = q.gte('publication_date', filters.dateFrom);
   }
   if (filters.dateTo) {
-    console.log(`🔍 Applying dateTo filter: ${filters.dateTo}`);
     q = q.lte('publication_date', filters.dateTo);
   }
   // daysAgo håndteres nu i jobService.ts og konverteres til dateFrom
@@ -86,14 +73,6 @@ export function buildJobsQuery(filters: BaseFilters, sort: SortConfig) {
   // Bemærk: 'comments' og 'saved' sortering håndteres på klienten
   // da disse data ikke er tilgængelige i den primære jobs tabel
 
-  console.log('🔍 Final query filters:', {
-    jobStatus: filters.jobStatus,
-    location: filters.location,
-    score: filters.score,
-    dateFrom: filters.dateFrom,
-    dateTo: filters.dateTo
-  });
-
   return q;
 }
 
@@ -105,8 +84,6 @@ export async function runPaged(
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    
-    console.log(`🔍 Running paged query: page ${page}, size ${pageSize}, range ${from}-${to}`);
     
     const { data, count, error } = await query.range(from, to);
     
@@ -128,7 +105,6 @@ export async function runPaged(
     }
     
     const total = count ?? 0;
-    console.log(`🔍 Query successful: ${total} total jobs, ${data?.length || 0} returned`);
     
     return {
       data: data ?? [],

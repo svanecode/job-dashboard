@@ -24,7 +24,14 @@ try {
       detectSessionInUrl: true,
       storageKey: 'supabase-auth',
       flowType: 'pkce',
-      debug: process.env.NODE_ENV === 'development',
+      debug: false, // Deaktiver debug logging
+      cookieOptions: {
+        name: 'supabase-auth',
+        lifetime: 60 * 60 * 8, // 8 timer
+        domain: '',
+        path: '/',
+        sameSite: 'lax'
+      }
     },
     global: {
       headers: {
