@@ -27,10 +27,11 @@ try {
       debug: false, // Deaktiver debug logging
       cookieOptions: {
         name: 'supabase-auth',
-        lifetime: 60 * 60 * 8, // 8 timer
+        lifetime: 60 * 60 * 24 * 30, // 30 dage i stedet for 8 timer
         domain: '',
         path: '/',
-        sameSite: 'lax'
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
       }
     },
     global: {

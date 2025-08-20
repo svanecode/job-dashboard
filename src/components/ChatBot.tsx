@@ -85,7 +85,15 @@ export default function ChatBot() {
 
   const chatOptions: UseChatOptions<any> = {
     id: 'job-assistant',
-    onError: (err: unknown) => console.error(err),
+    onError: (err: unknown) => {
+      console.error('Chat error:', err)
+      // Set a more user-friendly error message
+      if (err instanceof Error) {
+        if (err.message.includes('JSON')) {
+          console.error('JSON parsing error - this usually means the API returned an error message instead of valid JSON')
+        }
+      }
+    },
     onFinish: () => { try { setAwaitingTool(false) } catch {}; if (failsafeTimerRef.current) clearTimeout(failsafeTimerRef.current); },
   }
   const { id, messages: sdkMessages, status, error, sendMessage, setMessages: setSdkMessages, stop, regenerate } = useChat(chatOptions)

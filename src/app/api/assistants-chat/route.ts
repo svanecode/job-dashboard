@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     await addMessage(threadId, message)
     const runId = await startRun(threadId)
 
-    // Poll until completed (max ~45s)
+    // Poll until completed (max ~25s)
     const start = Date.now()
     let status = 'queued'
     while (true) {
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
       if (status === 'requires_action') {
         return NextResponse.json({ error: 'Run requires tool outputs which are not handled server-side.' }, { status: 501 })
       }
-      if (Date.now() - start > 45000) {
+      if (Date.now() - start > 25000) {
         return NextResponse.json({ error: 'Run timeout' }, { status: 504 })
       }
       await new Promise((r) => setTimeout(r, 800))

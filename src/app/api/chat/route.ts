@@ -46,7 +46,8 @@ export async function POST(req: Request) {
       const res = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30000) // 30 sekunder timeout
       })
       if (!res.ok) {
         const msg = await res.text()
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
         'Når brugerens besked handler om jobs eller filtrering:',
         '- Brug de vedlagte data fra vektor-store (allerede hentet). Kald ingen værktøjer.',
         '- Brug mindst 20 resultater hvis tilgængeligt; vælg de mest relevante i svaret.',
-        '- Afled rolle/lokation/virksomhed ud fra brugerens tekst (fx “i/på <sted>”, “hos <virksomhed>”).',
+        '- Afled rolle/lokation/virksomhed ud fra brugerens tekst (fx "i/på <sted>", "hos <virksomhed>").',
         '- Ingen hardcoding; brug kun brugerens tekst og dataene.',
         '',
         'Svarformat (kun tekst – ingen kort, links eller markdown-lister):',
@@ -119,7 +120,7 @@ export async function POST(req: Request) {
         'Adfærd:',
         '- Spørg aldrig om bekræftelse før du viser resultater.',
         '- Brug udelukkende de vedlagte data som kilde (ingen gæt/hallucination).',
-        '- Hvis tool’et returnerer 0 relevante fund, så stil én kort, præcis afklarende opfølgning. Ellers stil ingen opfølgning.',
+        '- Hvis tool\'et returnerer 0 relevante fund, så stil én kort, præcis afklarende opfølgning. Ellers stil ingen opfølgning.',
         '- Ved rene forklaringer/definitioner: ingen værktøjer – svar kun i tekst (dansk).',
       ].join('\n'),
       temperature: 0.2,
@@ -130,9 +131,35 @@ export async function POST(req: Request) {
     return result.toUIMessageStreamResponse()
   } catch (error) {
     console.error('Chat API error:', error)
+    
+    // Return more specific error messages
+    let errorMessage = 'Internal server error'
+    let statusCode = 500
+    
+    if (error instanceof Error) {
+      if (error.message.includes('OpenAI responses failed')) {
+        errorMessage = 'OpenAI API fejl - prøv igen om et par minutter'
+        statusCode = 503
+      } else if (error.message.includes('fetch')) {
+        errorMessage = 'Netværksfejl - tjek din internetforbindelse'
+        statusCode = 503
+      } else {
+        errorMessage = error.message
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error instanceof Error ? error.message : 'Ukendt fejl'
+      }),
+      { 
+        status: statusCode, 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        } 
+      }
     )
   }
 }

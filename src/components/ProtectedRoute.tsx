@@ -17,6 +17,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
     // Only check after loading is complete AND we have a definitive user state
     if (!loading && initialized) {
       if (!user) {
+        // Redirect til login hvis ingen bruger
         router.push('/login');
       } else if (requireAdmin && user.role !== 'admin') {
         router.push('/');

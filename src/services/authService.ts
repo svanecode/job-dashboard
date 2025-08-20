@@ -40,9 +40,42 @@ export const authService = {
     }
   },
 
-  // Get current user session
+  // Get current user session with automatic refresh
   async getCurrentUser(): Promise<User | null> {
     try {
+      // Først tjek om vi har en gyldig session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        return null;
+      }
+
+      if (!session) {
+        return null;
+      }
+
+      // Tjek om session snart udløber og forny hvis nødvendigt
+      const expiresAt = new Date(session.expires_at! * 1000);
+      const now = new Date();
+      const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+      const thirtyMinutes = 30 * 60 * 1000;
+
+      if (timeUntilExpiry < thirtyMinutes) {
+        console.log("Session udløber snart, fornyer...");
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.error('Session refresh fejlede:', refreshError);
+          return null;
+        }
+        
+        if (refreshData.session) {
+          console.log("Session fornyet succesfuldt");
+        }
+      }
+
+      // Hent brugerdata
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
@@ -134,7 +167,7 @@ export const authService = {
     }
   },
 
-  // Verify session
+  // Verify session with automatic refresh
   async verifySession(): Promise<{ success: boolean; message: string }> {
     if (!supabase) {
       return { success: false, message: 'Supabase ikke konfigureret' };
@@ -149,6 +182,27 @@ export const authService = {
       }
 
       if (session) {
+        // Tjek om session snart udløber
+        const expiresAt = new Date(session.expires_at! * 1000);
+        const now = new Date();
+        const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+        const oneHour = 60 * 60 * 1000;
+
+        if (timeUntilExpiry < oneHour) {
+          console.log("Session udløber snart, fornyer...");
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError) {
+            console.warn("Session refresh fejlede:", refreshError);
+            return { success: false, message: 'Session kunne ikke fornyes' };
+          }
+          
+          if (refreshData.session) {
+            console.log("Session fornyet succesfuldt");
+            return { success: true, message: 'Session er gyldig og fornyet' };
+          }
+        }
+        
         return { success: true, message: 'Session er gyldig' };
       } else {
         return { success: false, message: 'Ingen gyldig session' };

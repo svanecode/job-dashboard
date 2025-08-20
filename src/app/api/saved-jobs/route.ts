@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         job_id,
         notes
       })
-      .select()
+      .select('id, user_id, job_id, notes, saved_at, created_at, updated_at')
       .single()
 
     if (error) {
@@ -131,7 +131,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save job' }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    // Check if data was returned
+    if (!data || !data.id) {
+      console.error('No data returned from insert operation:', { data, error });
+      return NextResponse.json({ error: 'Failed to save job - no data returned' }, { status: 500 })
+    }
+
+    // Transform data to match expected format
+    const transformedData = {
+      saved_job_id: data.id,
+      user_id: data.user_id,
+      job_id: data.job_id,
+      notes: data.notes,
+      saved_at: data.saved_at,
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    }
+
+    console.log('API: Job saved successfully, returning transformed data:', transformedData);
+    return NextResponse.json(transformedData)
   } catch (error) {
     console.error('Error in save job API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -39,6 +39,25 @@ export default function JobModal() {
     }
   }, [selectedJob, closeJobModal]);
 
+  // Check if job is already saved when modal opens
+  useEffect(() => {
+    const checkIfJobIsSaved = async () => {
+      if (!selectedJob?.job_id || !user) return;
+      
+      try {
+        const isJobSaved = await savedJobsService.isJobSaved(selectedJob.job_id);
+        setIsSaved(isJobSaved);
+      } catch (error) {
+        console.error('Error checking if job is saved:', error);
+        setIsSaved(false);
+      }
+    };
+
+    if (isModalOpen && selectedJob) {
+      checkIfJobIsSaved();
+    }
+  }, [selectedJob, user, isModalOpen]);
+
   // Check if mobile on mount
   useEffect(() => {
     const checkMobile = () => {
@@ -105,16 +124,33 @@ export default function JobModal() {
     if (!user || !selectedJob) return;
 
     try {
+      setIsSaving(true);
       const result = await savedJobsService.saveJob({ job_id: selectedJob.job_id });
-      if (result.success) {
+      
+      console.log('Save job result:', result);
+      
+      // API'en returnerer nu transformed data med saved_job_id
+      if (result && result.saved_job_id) {
         setIsSaved(true);
-        alert('Jobbet er blevet gemt til din liste');
+        // Fjernet alert - brugeren kan se status ændringen i UI
       } else {
-        alert('Kunne ikke gemme jobbet');
+        console.error('Unexpected response format:', result);
+        alert('Kunne ikke gemme jobbet - uventet response format');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving job:', error);
-      alert('Der opstod en fejl under gemning af jobbet');
+      
+      // Vis mere specifik fejlmeddelelse
+      if (error.message === 'Job already saved') {
+        setIsSaved(true);
+        // Fjernet alert - jobbet er allerede gemt
+      } else if (error.message === 'Authentication required. Please log in again.') {
+        alert('Du skal logge ind igen for at gemme jobbet');
+      } else {
+        alert(`Der opstod en fejl under gemning af jobbet: ${error.message}`);
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -122,17 +158,31 @@ export default function JobModal() {
     if (!user || !selectedJob) return;
 
     try {
+      // Find det gemte job først
       const savedJobs = await savedJobsService.getSavedJobs();
       const savedJob = savedJobs.find(job => job.job_id === selectedJob.job_id);
       
       if (savedJob) {
-        await savedJobsService.deleteSavedJob(savedJob.saved_job_id);
+        const result = await savedJobsService.deleteSavedJob(savedJob.saved_job_id);
+        if (result.success) {
+          setIsSaved(false);
+          // Fjernet alert - brugeren kan se status ændringen i UI
+        } else {
+          alert(`Kunne ikke fjerne jobbet: ${result.message}`);
+        }
+      } else {
+        // Hvis jobbet ikke er gemt, sæt status til false
         setIsSaved(false);
-        alert('Jobbet er blevet fjernet fra din liste');
+        console.warn('Job was not found in saved jobs list');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error unsaving job:', error);
-      alert('Der opstod en fejl under fjernelse af jobbet');
+      
+      if (error.message === 'Authentication required. Please log in again.') {
+        alert('Du skal logge ind igen for at fjerne jobbet');
+      } else {
+        alert(`Der opstod en fejl under fjernelse af jobbet: ${error.message}`);
+      }
     }
   };
 
@@ -401,7 +451,7 @@ export default function JobModal() {
                     {/* Save job button - only show if user is authenticated */}
                     {user && (
                       <button
-                        onClick={handleSaveJob}
+                        onClick={isSaved ? handleUnsaveJob : handleSaveJob}
                         disabled={isSaving}
                         className={`w-full flex items-center justify-center gap-3 rounded-xl px-6 py-4 text-base font-medium transition-all duration-200 ${
                           isSaved 
@@ -416,7 +466,7 @@ export default function JobModal() {
                         ) : (
                           <Bookmark className="size-5" />
                         )}
-                        {isSaved ? 'Fjern fra gemte' : 'Gem job'}
+                        {isSaving ? 'Behandler...' : isSaved ? 'Fjern fra gemte' : 'Gem job'}
                       </button>
                     )}
                   </div>
@@ -577,7 +627,7 @@ export default function JobModal() {
                     {/* Save job button - only show if user is authenticated */}
                     {user && (
                       <button
-                        onClick={handleSaveJob}
+                        onClick={isSaved ? handleUnsaveJob : handleSaveJob}
                         disabled={isSaving}
                         className={`h-10 min-w-[140px] px-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${
                           isSaved 
@@ -592,7 +642,7 @@ export default function JobModal() {
                         ) : (
                           <Bookmark className="size-4" />
                         )}
-                        {isSaved ? 'Fjern fra gemte' : 'Gem job'}
+                        {isSaving ? 'Behandler...' : isSaved ? 'Fjern fra gemte' : 'Gem job'}
                       </button>
                     )}
 
